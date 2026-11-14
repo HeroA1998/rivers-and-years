@@ -77,6 +77,7 @@ function newGame(c, legacy) {
     : `${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到洛陽城，決心闖出一番名堂。`);
   UI = { screen: 'game', tab: 'world', ov: null };
   save(); render();
+  window.scrollTo(0, 0);
 }
 
 /* ---------- 衍生數值 ---------- */

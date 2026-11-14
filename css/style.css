@@ -2,18 +2,18 @@
 :root {
   --paper: #EDF1EC; --card: #F8FAF6; --ink: #1D2A2B; --ink2: #56666A; --line: #C8D2CB;
   --jade: #2B6C66; --on-jade: #F4FAF7; --seal: #B3362D; --gold: #8F6A14; --rose: #A8436F;
-  --art-sky: #E6ECE6; --art-ink: #22302F; --art-night: #2C4148; --art-moon: #F3EFD9;
+  --art-sky: #E6ECE6; --art-ink: #22302F; --art-night: #2C4148; --art-moon: #F3EFD9; --art-filter: none;
   --f-brush: 'LXGW WenKai TC', 'Kaiti TC', 'BiauKai', 'DFKai-SB', 'Noto Serif TC', serif;
   --f-ui: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --paper: #111A1C; --card: #19262A; --ink: #E2E9E4; --ink2: #93A4A2; --line: #2B3B3E;
   --jade: #70B9AF; --on-jade: #0C1A19; --seal: #E26B5E; --gold: #D4AC4E; --rose: #E08DB1;
-  --art-sky: #2A3B3E; --art-ink: #080E0F; --art-night: #16242A; --art-moon: #EDE8CC; color-scheme: dark } }
+  --art-sky: #2A3B3E; --art-ink: #080E0F; --art-night: #16242A; --art-moon: #EDE8CC; --art-filter: brightness(.8) contrast(1.05); color-scheme: dark } }
 :root[data-theme="dark"] {
   --paper: #111A1C; --card: #19262A; --ink: #E2E9E4; --ink2: #93A4A2; --line: #2B3B3E;
   --jade: #70B9AF; --on-jade: #0C1A19; --seal: #E26B5E; --gold: #D4AC4E; --rose: #E08DB1;
-  --art-sky: #2A3B3E; --art-ink: #080E0F; --art-night: #16242A; --art-moon: #EDE8CC; color-scheme: dark }
+  --art-sky: #2A3B3E; --art-ink: #080E0F; --art-night: #16242A; --art-moon: #EDE8CC; --art-filter: brightness(.8) contrast(1.05); color-scheme: dark }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -29,7 +29,10 @@ p { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:disabled { opacity: .42; cursor: not-allowed; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
-canvas.art { display: block; width: 100%; height: auto; max-width: 100%; border-radius: 4px; }
+canvas.art, img.art { display: block; width: 100%; height: auto; max-width: 100%; border-radius: 4px; }
+img.art { aspect-ratio: 800 / 375; object-fit: cover; background: var(--line); filter: var(--art-filter); }
+.credits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.credits li { display: flex; flex-direction: column; } .credits a { color: var(--jade); overflow-wrap: anywhere; } .credits span { color: var(--ink2); }
 
 /* 頂欄與場景 */
 .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }

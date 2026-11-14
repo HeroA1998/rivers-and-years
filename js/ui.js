@@ -6,7 +6,9 @@ function h(fn) { H.push(fn); return ` data-h="${H.length - 1}"`; }
 function B(label, fn, cls = '', dis = false) { return `<button type="button" class="btn ${cls}"${dis ? ' disabled' : h(fn)}>${label}</button>`; }
 function A(label, sub, fn, dis = false) { return `<button type="button" class="act"${dis ? ' disabled' : h(fn)}><b>${label}</b><small>${sub}</small></button>`; }
 const bar = (v, m, cls) => `<span class="bar ${cls}"><i style="width:${clamp(m ? v / m * 100 : 0, 0, 100)}%"></i></span>`;
-const art = (kind, seed, cls = '') => `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
+const art = (kind, seed, cls = '') => ART[kind]
+  ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
+  : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const TYPE_CLS = { '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
@@ -27,7 +29,7 @@ const SCREENS = {
   title() {
     const sv = loadSave();
     return `<div class="title-screen">
-      ${art('peak', 'title', 'hero')}
+      ${art('title', 'title', 'hero')}
       <h1>江湖歲月錄</h1>
       <p class="lead">十六歲入洛陽，一人一劍。拜師、修煉、結緣、傳承，寫你自己的武林春秋。</p>
       <div class="col">
@@ -70,7 +72,7 @@ const SCREENS = {
     const e = UI.end;
     const heir = S.child ? `子女「${S.child}」` : S.disciple ? `弟子「${S.disciple.n}」` : null;
     return `<div class="ending">
-      ${art('legacy', 'end', 'hero')}
+      ${art('end', 'end', 'hero')}
       <p class="tag jade">${e.reason === '壽終' ? '壽終正寢' : '封劍歸隱'}・享年${cnNum(age())}</p>
       <h1>${e.title}</h1>
       <p class="story">${esc(S.name)}，${S.origin}。${e.text}</p>
@@ -127,7 +129,9 @@ const TABS = {
         ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
         ${S.sect ? A('叛出師門', '聲望-40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
         ${A('重新開始', '刪除存檔', () => confirmBox('刪除存檔？', '目前的進度將無法復原。', () => { wipeSave(); S = null; UI = { screen: 'title', ov: null }; render(); }))}
-      </div></section>`;
+      </div></section>
+      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。</p>
+      <ul class="credits">${Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('')}</ul></section>`;
   },
   skill() {
     const ids = Object.keys(S.skills).sort((a, b) => Object.keys(TYPE_N).indexOf(SKILLS[a].type) - Object.keys(TYPE_N).indexOf(SKILLS[b].type) || SKILLS[b].tier - SKILLS[a].tier);

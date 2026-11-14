@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v0.2.1';
+const VERSION = 'v0.3.0';
 const ERA = '天啟';
 
 /* ---------- 地點 ---------- */
@@ -12,10 +12,10 @@ const LOCS = {
   hanhai:   { n: '瀚海大漠', kind: 'wild', art: 'desert',   x: 10, y: 15, danger: 1.25, d: '黃沙萬里，馬賊橫行。傳說沙下埋著古國寶藏。' },
   tianlan:  { n: '天嵐山',   kind: 'sect', art: 'peak',     x: 25, y: 35, sect: 'tianlan', d: '雲海之上的劍宗山門，石階三千級。' },
   bore:     { n: '嵩嶽般若寺', kind: 'sect', art: 'temple', x: 60, y: 38, sect: 'bore', d: '千年古剎，晨鐘暮鼓，武僧在院中練拳。' },
-  xuanzhen: { n: '紫霄峰玄真觀', kind: 'sect', art: 'temple', x: 40, y: 60, sect: 'xuanzhen', d: '道觀隱於松風之間，觀中道人講究以靜制動。' },
+  xuanzhen: { n: '紫霄峰玄真觀', kind: 'sect', art: 'taoist', x: 40, y: 60, sect: 'xuanzhen', d: '道觀隱於松風之間，觀中道人講究以靜制動。' },
   baihua:   { n: '百花谷',   kind: 'sect', art: 'valley',   x: 68, y: 82, sect: 'baihua', d: '四季花開不敗的幽谷，谷主醫毒雙絕。' },
   xuesha:   { n: '血煞崖',   kind: 'sect', art: 'cliff',    x: 15, y: 70, sect: 'xuesha', d: '赤色絕壁上的魔教總壇，正道中人聞之色變。' },
-  fengchen: { n: '老君渡',   kind: 'sect', art: 'river',    x: 58, y: 52, sect: 'fengchen', d: '黃河渡口，風塵幫總舵所在。船伕、腳伕、乞兒皆是幫眾耳目。' },
+  fengchen: { n: '老君渡',   kind: 'sect', art: 'dock',     x: 58, y: 52, sect: 'fengchen', d: '黃河渡口，風塵幫總舵所在。船伕、腳伕、乞兒皆是幫眾耳目。' },
 };
 
 /* ---------- 武功 ----------
