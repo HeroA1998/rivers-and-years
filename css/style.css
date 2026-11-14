@@ -182,3 +182,15 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .quest h3 { color: var(--ink); letter-spacing: .08em; } .quest p { grid-column: 1 / -1; font: 17px/1.6 var(--f-brush); } .quest small { grid-column: 1 / -1; color: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .quest.done { border-left-color: var(--jade); } .quest.done p { font-size: 15px; color: var(--ink2); }
 .log.journal li { opacity: 1; }
+
+/* 手機版面：整體等比放大（--z 由程式依螢幕寬度設定），並讓戰鬥在一屏內完成 */
+#app { zoom: var(--z, 1); }
+#app { min-height: calc(100% / var(--z, 1)); }
+.quest small.side { display: flex; gap: 6px; align-items: baseline; margin-top: 4px; line-height: 1.5; }
+.act { min-height: 60px; } .btn.mini { min-height: 34px; } .row4 .btn { min-height: 44px; } .tabs button { padding: 14px 0; }
+.sheet.battle { gap: 8px; padding-block: 12px calc(14px + env(safe-area-inset-bottom, 0px)); }
+.sheet.battle .rule { font-size: 11px; line-height: 1.5; }
+.sheet.battle .blog:not(.recap) { height: 92px; font-size: 14px; }
+.sheet.battle .foe b { font-size: 20px; }
+.cell.card { height: 56px; } .stances .mv { padding: 6px 8px; } .stances .mv b { font-size: 21px; } .stances .mv svg { width: 26px; height: 26px; }
+.callout { min-height: 96px; } .blog.recap { height: 170px; }

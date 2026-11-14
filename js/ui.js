@@ -10,7 +10,7 @@ const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
-const TYPE_CLS = { '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
+const TYPE_CLS = { '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
   H = [];
@@ -119,8 +119,8 @@ const TABS = {
     }).join('')]);
     g.push(['行止', common]);
     const st = storyNow();
-    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress(S)}</small>` : ''}</section>`
-      : `<section class="quest done"><span class="tag jade">主線完結</span><p>江湖路遠，隨心而行；倦了便到「人物」頁歸隱，把武功傳給下一代。</p></section>`;
+    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress}</small>` : ''}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`
+      : `<section class="quest done"><span class="tag jade">主線完結</span><p>江湖路遠，隨心而行；倦了便到「人物」頁歸隱，把武功傳給下一代。</p>${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
     if (S.story === 8 && S.loc === 'luoyang') g.unshift(['主線', A('赴洛陽決戰', '最終一戰・無法脫身', () => confirmBox('赴洛陽決戰？', '這是與血煞教主的最終一戰，無法脫身。確定已備妥丹藥、練好武功？', () => { S.flags.goFinal = true; pump(); }))]);
     return quest + `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
   },
@@ -331,4 +331,11 @@ try {
   if (mq.addEventListener) mq.addEventListener('change', () => render());
   new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 } catch (e) { /* 主題監聽不可用時略過 */ }
+// 手機版面：以 410 單位寬為基準整體放大，字與按鈕在任何手機上都一樣大
+function fitScreen() {
+  const w = window.innerWidth || 410;
+  document.documentElement.style.setProperty('--z', w <= 1100 ? Math.max(1, Math.min(2.6, w / 410)).toFixed(3) : '1');
+}
+fitScreen();
+window.addEventListener('resize', fitScreen);
 render();

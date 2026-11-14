@@ -59,7 +59,7 @@ function newGame(c, legacy) {
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
     weapon: null, armor: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
-    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, wins: 0, losses: 0, legacyFrom: null,
+    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, plot: rollPlot(), chain: {}, wins: 0, losses: 0, legacyFrom: null,
   };
   if (o.item) { S.inv[o.item] = 1; S.weapon = o.item; }
   if (o.herb) S.inv.herb = o.herb;
@@ -200,10 +200,11 @@ function rollEvent(ctx) {
   const pool = EVENTS.filter(e =>
     (!e.ctx || e.ctx.includes(ctx)) && (!e.loc || e.loc === S.loc) &&
     !(e.once && S.done[e.id]) && e.id !== S.flags.lastEv && (!e.cond || e.cond(S, L)));
+  pool.push(...chainCandidates(ctx));
   let tot = 0;
   const ws = pool.map(e => { const w = (e.w || 10) * (e.type === '奇遇' || e.type === '傳承' ? 1 + S.stats.luck / 15 : 1); tot += w; return w; });
   let r = Math.random() * tot;
-  for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) return pool[i]; }
+  for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) return pool[i].chain ? chainStep(pool[i].chain) : pool[i]; }
   return null;
 }
 function act(days, text, ctx, evChance = 38) {
