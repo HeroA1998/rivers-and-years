@@ -9,6 +9,7 @@ const bar = (v, m, cls) => `<span class="bar ${cls}"><i style="width:${clamp(m ?
 const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
+const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
 const TYPE_CLS = { '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
@@ -130,7 +131,7 @@ const TABS = {
         ${S.sect ? A('叛出師門', '聲望-40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
         ${A('重新開始', '刪除存檔', () => confirmBox('刪除存檔？', '目前的進度將無法復原。', () => { wipeSave(); S = null; UI = { screen: 'title', ov: null }; render(); }))}
       </div></section>
-      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。</p>
+      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p>
       <ul class="credits">${Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('')}</ul></section>`;
   },
   skill() {
@@ -165,7 +166,7 @@ const TABS = {
     let s = met.map(id => {
       const k = NPCS[id], n = S.npcs[id];
       const st = S.spouse === id ? '結髮' : ['相識', '初識', '相知', '定情'][n.stage];
-      return `<article class="card"><div class="card-h"><b>${k.n}</b><span class="tag rose">${st}</span><span class="tag grey">${LOCS[k.loc].n}</span></div>
+      return `<article class="card has-face">${face(id)}<div class="card-h"><b>${k.n}</b><span class="tag rose">${st}</span><span class="tag grey">${LOCS[k.loc].n}</span></div>
         <div class="lvrow">好感 ${bar(n.fav, 100, 'fav')}<em>${n.fav}/100</em></div><p>${k.title}。${k.d}</p></article>`;
     }).join('');
     if (met.length < Object.keys(NPCS).length) s += `<p class="empty">江湖上還有 ${Object.keys(NPCS).length - met.length} 位有緣人尚未相遇。多去各地走走，在酒樓打聽消息。</p>`;
@@ -216,7 +217,7 @@ function overlay() {
   }
   if (o.k === 'event') {
     return `<div class="veil"><div class="sheet event">
-      ${art(o.art || (o.type === '戰鬥' ? 'fight' : o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road'), o.title)}
+      <div class="scene">${art(o.art || (o.type === '戰鬥' ? 'fight' : o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road'), o.title)}${face(o.who, 'on-art')}</div>
       <p class="tag ${TYPE_CLS[o.type] || 'grey'}">${o.type}事件</p><h2>${o.title}</h2>
       ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
         : `<p class="story">${o.text}</p><div class="col">${o.choices.map((c, i) => B(c.t, () => choose(i), 'choice')).join('')}</div>`}
@@ -234,7 +235,7 @@ function overlay() {
       <div class="row4">${B('守勢', pGuard, 'mini')}${B('調息', pHeal, 'mini', S.mp < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini')}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>`;
   return `<div class="veil"><div class="sheet battle">
     <p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>
-    <div class="foe"><b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
+    <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
     <ol class="blog">${o.log.slice(-14).map(l => `<li>${l}</li>`).join('')}</ol>
     <div class="vitals in-battle">
       <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em></div>

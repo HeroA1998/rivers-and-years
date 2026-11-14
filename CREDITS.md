@@ -23,3 +23,16 @@
 | love | Desk Album: Flower and Bird Paintings (Bird with Plum Blossoms) | Zhang Ruoai (Chinese, 1713–1746) 1700s | https://clevelandart.org/art/1967.193.j |
 | legacy | Album of Landscape Paintings Illustrating Old Poems: Scholar under a Pine Tree | Hua Yan (Chinese, 1682–c. 1765) 1745 | https://clevelandart.org/art/1982.68.1 |
 | end | Drinking in the Moonlight | Ma Yuan (Chinese, c. 1150–after 1255) late 1100s–early 1200s | https://clevelandart.org/art/1997.89 |
+
+## 人物立繪
+
+人物立繪由 **LinXueLian** 手繪（未使用生成式 AI），取自 https://linxuelian.itch.io ，授權為 CC BY-SA 4.0。本專案將分層素材合成、裁切為半身像並縮小使用；依授權條款，`assets/chars/` 內的衍生圖片同樣以 CC BY-SA 4.0 釋出。原始素材包請至作者頁面下載，請勿由此處轉載。
+
+| 檔案 | 角色 | 來源素材包 |
+|---|---|---|
+| su / hua / li | 蘇晚晴、花弄影、厲紅綃 | https://linxuelian.itch.io/customchar-fbfffm001-fullbodyfemale |
+| gu / qin | 顧長風、秦昭 | https://linxuelian.itch.io/charres-xxwx-sam-xianxia |
+| shen | 沈墨言 | https://linxuelian.itch.io/charres-xxwx-yuansanshan |
+| elder | 師長、高人 | https://linxuelian.itch.io/charres-xxwx-mob-oldman |
+| boss | 厲無咎 | https://linxuelian.itch.io/charres-xxwx-yangertian |
+| kid | 小六子 | https://linxuelian.itch.io/charres-xxwx-mob-villagechildren |

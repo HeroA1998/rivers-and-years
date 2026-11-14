@@ -87,7 +87,7 @@ const EVENTS = [
       { t: '押 50 兩', go: s => chance(35 + s.stats.luck * 3) ? '骰盅揭開，你押中了！' + gain({ silver: 50 }) : '莊家笑瞇瞇地把你的銀子攏了過去。' + gain({ silver: -50 }) },
       { t: '看看就走', go: () => '十賭九輸，你搖搖頭走了出去。' },
     ] },
-  { id: 'j_rival', type: '江湖', title: '少年對手', ctx: ['city', 'travel', 'sect'], w: 9, art: 'fight', cond: s => s.rival < 3 && s.date.y >= 1 + s.rival * 2 && s.fame >= 20 + s.rival * 60,
+  { id: 'j_rival', who: 'qin', type: '江湖', title: '少年對手', ctx: ['city', 'travel', 'sect'], w: 9, art: 'fight', cond: s => s.rival < 3 && s.date.y >= 1 + s.rival * 2 && s.fame >= 20 + s.rival * 60,
     text: s => ['一個錦衣少年攔住你，下巴抬得老高：「聽說你最近有點名氣？我叫秦昭，專打有名氣的。」',
       '「又見面了。」秦昭比上次沉穩了不少，手上的繭也厚了。「上回是我輕敵。這兩年我沒有一天不想著再打一場。」',
       '秦昭站在長亭外等你，身後的馬已備好鞍。「我要去塞外了。走之前最後打一場，不論輸贏，你都是我秦昭這輩子唯一的對手。」'][s.rival],
@@ -122,7 +122,7 @@ const EVENTS = [
       { t: '運功逼毒，掀桌動手', go: () => { S.hp = Math.max(1, Math.round(S.hp * 0.7)); return win(foe('綁匪頭子', 2, 0.6, 'thug'), () => '你把綁匪捆成一串扔進柴房。這一回你總算明白：家世在江湖上不是護身符，是靶子。' + gain({ fame: 12, silver: 60, con: 1 }), () => { const l = Math.round(S.silver * 0.5); S.silver -= l; S.hp = Math.round(maxHp() * 0.3); advance(20); return `你被關了二十天，直到家裡送來贖金。隨身的銀兩也被搜走大半。〔銀兩-${l}　耗時二十日〕`; }, { noFlee: true, intro: '藥力未散，你只剩七成氣力，仍咬牙站了起來。' }); } },
       { t: '「我自己寫信，要多少給多少。」', go: () => { advance(12); return '家裡的銀子來得很快。綁匪頭子臨走還拍了拍你的臉：「小財神，江湖不是這麼闖的。」' + gain({ fame: -8 }) + '〔耗時十二日〕'; } },
     ] },
-  { id: 'o_orphan', type: '江湖', title: '破廟舊友', ctx: ['city'], w: 16, once: true, art: 'city', cond: s => s.origin === '破廟孤兒',
+  { id: 'o_orphan', who: 'kid', type: '江湖', title: '破廟舊友', ctx: ['city'], w: 16, once: true, art: 'city', cond: s => s.origin === '破廟孤兒',
     text: '「喂！是你！」一個精瘦的少年從牆頭跳下來，一拳捶在你肩上。是小六子，當年和你在破廟裡分過半個冷饅頭的小六子。他如今腰裡繫著風塵幫的草繩，神氣得很：「我跟了洪七爺啦。你呢，還是一個人？」',
     choices: [
       { t: '「帶我去見見你們七爺。」', cond: s => !s.sect, go: () => { S.sect = 'fengchen'; S.rank = 0; S.contrib = 60; S.contribTotal = 60; return '小六子拍著胸脯作保。洪七爺只看了你一眼就笑了：「吃過苦的孩子，錯不了。」你成了風塵幫弟子，小六子還替你墊了一筆見面功勞。' + learn('fc_palm') + '〔門派貢獻+60〕'; } },
@@ -179,7 +179,7 @@ const EVENTS = [
       { t: '鬥蛇奪芝', go: () => win(foe('赤鱗巨蟒', 5, 0.7, 'beast'), () => '巨蟒癱軟在地。你小心翼翼地把靈芝連根採下。' + addItem('lingzhi'), null) },
       { t: '靈物有主，退走', go: () => '你慢慢後退，大蛇盤回了原處。' },
     ] },
-  { id: 'a_beggar', type: '奇遇', title: '討酒的老乞丐', ctx: ['city'], w: 7, once: true, art: 'city',
+  { id: 'a_beggar', who: 'elder', type: '奇遇', title: '討酒的老乞丐', ctx: ['city'], w: 7, once: true, art: 'city',
     text: '牆根下一個邋遢老乞丐衝你咂嘴：「小娃娃，老叫化三天沒聞著酒味了。賞口酒喝，老叫化不白喝你的。」',
     choices: [
       { t: '把陳年花雕遞給他', cond: () => has('wine'), go: () => { addItem('wine', -1); return '老乞丐一口氣灌了半罈，抹抹嘴，伸指在你背上連點七下。你只覺一股熱流貫通了平日滯澀的經脈。「你這娃娃不錯。記住，練功別光用蠻力，要用這裡。」他點了點你的額頭，晃晃悠悠地走了。' + gain({ int: 2, bonusMp: 25 }); } },
@@ -216,7 +216,7 @@ const EVENTS = [
       { t: '在瀑下演練招式', go: () => { advance(3); return '你在水霧中把一套功夫翻來覆去練了三天，招式裡多了幾分渾然天成。' + (battleXp(120 + S.stats.int * 8) || '〔武學領悟加深〕'); } },
       { t: '在潭邊靜坐調息', go: () => { advance(3); return '水聲如雷，你的心卻越來越靜。' + (xp(S.nei, 140 + S.stats.int * 8) || '〔內息更加圓融〕') + gain({ mp: 999 }); } },
     ] },
-  { id: 'a_chess', type: '奇遇', title: '山中棋局', ctx: ['wild', 'travel'], w: 5, once: true, art: 'mountain',
+  { id: 'a_chess', who: 'elder', type: '奇遇', title: '山中棋局', ctx: ['wild', 'travel'], w: 5, once: true, art: 'mountain',
     text: '松下石枰旁，兩位白鬚老者正在對弈，落子極慢。你湊近看了一眼，棋盤上黑白交錯，竟隱隱像兩位高手在拆招。',
     choices: [
       { t: '站在一旁觀棋', go: s => {
@@ -251,7 +251,7 @@ const EVENTS = [
     ] },
 
   /* ================= 傳承 ================= */
-  { id: 'l_dying', type: '傳承', title: '垂死的高人', ctx: ['travel', 'wild'], w: 6, once: true, art: 'legacy', cond: s => s.date.y >= 2,
+  { id: 'l_dying', who: 'elder', type: '傳承', title: '垂死的高人', ctx: ['travel', 'wild'], w: 6, once: true, art: 'legacy', cond: s => s.date.y >= 2,
     text: '血跡一路延伸到山神廟裡。一個渾身是傷的老者靠著神案，身邊倒著七具黑衣屍體。他看見你，渾濁的眼裡亮了一下：「老夫縱橫四十年，臨了卻連個磕頭的人都沒有……娃娃，你過來。老夫一手劍、一手刀，只剩傳一樣的力氣了。」',
     choices: [
       { t: '「晚輩願學劍。」', go: () => '老者以指代劍，在地上劃了三十六道痕。每劃一道，他的氣息就弱一分。最後一道劃完，他把手按在你頭頂，將殘存的內力盡數渡了過來。「去吧。別讓它……埋沒了……」' + learn('q_swan') + gain({ bonusMp: 30 }) },
@@ -264,14 +264,14 @@ const EVENTS = [
       { t: '參悟左壁「九霄雷音訣」', go: () => { advance(20); return '你在壁前坐了二十日。某個清晨，丹田裡響起了第一聲悶雷。' + learn('q_thunder'); } },
       { t: '參悟右壁「寒魄冰心訣」', go: () => { advance(20); return '你在壁前坐了二十日。某個深夜，你呵出的氣在盛夏裡凝成了霜。' + learn('q_ice'); } },
     ] },
-  { id: 'l_master', type: '傳承', title: '衣缽相傳', ctx: ['sect'], w: 40, once: true, art: 'legacy',
+  { id: 'l_master', who: 'elder', type: '傳承', title: '衣缽相傳', ctx: ['sect'], w: 40, once: true, art: 'legacy',
     cond: (s, L) => s.sect && L.sect === s.sect && s.rank === 3 && s.contribTotal >= 1000 && s.fame >= 300,
     text: s => `${SECTS[s.sect].master}屏退了左右，把一方印信放在你面前。「為師老了。這副擔子，門中只有你和你大師兄挑得起。」他望著堂外，「按祖師規矩，你們比一場。勝者接掌門戶，並得授本門不傳之秘。」`,
     choices: [
       { t: '「弟子當仁不讓。」', go: s => win(foe('大師兄', 16, 0.6, SECTS[s.sect].align < 0 ? 'demon' : 'master'), () => { s.rank = 4; const u = SECTS[s.sect].ult; return `大師兄單膝跪地，第一個向你行禮：「參見掌門。」從今日起，你就是${SECTS[s.sect].n}之主。` + (u ? learn(u) : gain({ str: 2, con: 2 })) + gain({ fame: 150 }); }, () => { S.hp = Math.round(maxHp() * 0.4); S.done.l_master = 0; return '你敗了。師父嘆道：「火候未到。此事過些時日再議。」'; }, { noFlee: true }) },
       { t: '「弟子願輔佐大師兄。」', go: () => '師父看了你很久，點了點頭：「不爭，也是一種氣度。」他另傳了你一段心法口訣作為補償。' + gain({ moral: 5, int: 1, bonusMp: 30 }) },
     ] },
-  { id: 'l_elder', type: '傳承', title: '掃地老人', ctx: ['sect'], w: 12, once: true, art: 'legacy', cond: (s, L) => s.sect && L.sect === s.sect && s.rank >= 1 && SECTS[s.sect].align > 0,
+  { id: 'l_elder', who: 'elder', type: '傳承', title: '掃地老人', ctx: ['sect'], w: 12, once: true, art: 'legacy', cond: (s, L) => s.sect && L.sect === s.sect && s.rank >= 1 && SECTS[s.sect].align > 0,
     text: '藏經閣外，那個掃了幾十年落葉的啞巴老人忽然用掃帚攔住你，在地上寫了一行字：「你昨日練功，第三轉氣走岔了。」',
     choices: [
       { t: '恭敬請教', go: () => '老人用掃帚柄在你身上點了幾處，你照著運氣，果然暢通無阻。你想再問，他已低頭掃他的落葉去了。後來你才聽說，他是上上代的掌門師弟。' + (xp(S.nei, 400) || '') + gain({ int: 1 }) },
@@ -289,7 +289,7 @@ const EVENTS = [
 
   /* ================= 戀愛（邂逅與插曲） ================= */
   ...Object.keys(NPCS).map(id => ({
-    id: 'm_' + id, type: '戀愛', title: `邂逅・${NPCS[id].n}`, ctx: ['city', 'sect', 'travel'], loc: NPCS[id].loc, w: 16, once: true, art: 'love',
+    id: 'm_' + id, who: id, type: '戀愛', title: `邂逅・${NPCS[id].n}`, ctx: ['city', 'sect', 'travel'], loc: NPCS[id].loc, w: 16, once: true, art: 'love',
     cond: s => daysIn(s) > 90 && MEET[id].cond(s),
     text: s => MEET[id].text ? MEET[id].text(s) : NPCS[id].meet,
     choices: [
@@ -297,14 +297,14 @@ const EVENTS = [
       { t: '點頭致意，就此別過', go: () => { const n = npc(id); n.met = true; n.fav += 2; return `你記住了這個名字：${NPCS[id].n}。往後在${LOCS[NPCS[id].loc].n}，或許還會再見。`; } },
     ],
   })),
-  { id: 'r_rain', type: '戀愛', title: '一傘煙雨', ctx: ['city', 'sect'], w: 12, art: 'love',
+  { id: 'r_rain', who: s => s.flags.rainId, type: '戀愛', title: '一傘煙雨', ctx: ['city', 'sect'], w: 12, art: 'love',
     cond: s => rainNpc(s) && daysIn(s) > 90,
     text: s => { const id = rainNpc(s); s.flags.rainId = id; return `驟雨忽至，你在屋簷下躲雨，身旁多了一個人。${NPCS[id].n}撐開一把油紙傘，往你這邊偏了偏：「一起走？」傘不大，兩個人的肩膀都濕了一半。`; },
     choices: [
       { t: '接過傘柄，往對方那邊傾', go: s => { const n = s.npcs[s.flags.rainId]; n.fav = clamp(n.fav + 7, 0, 100); return `一路上誰也沒說話，雨聲卻一點也不嫌吵。〔${NPCS[s.flags.rainId].n} 好感+7〕`; } },
       { t: '「我淋雨慣了。」', go: s => `${NPCS[s.flags.rainId].n}看了你一眼，撐著傘走進了雨裡。` },
     ] },
-  { id: 'r_letter', type: '戀愛', title: '千里書信', ctx: ['travel', 'wild'], w: 10, art: 'love',
+  { id: 'r_letter', who: s => s.spouse || s.flags.lover, type: '戀愛', title: '千里書信', ctx: ['travel', 'wild'], w: 10, art: 'love',
     cond: s => (s.flags.lover || s.spouse) && NPCS[s.spouse || s.flags.lover].loc !== s.loc,
     text: s => { const k = NPCS[s.spouse || s.flags.lover]; return `驛站的夥計追出來，遞給你一封信。是${k.n}的字跡，絮絮寫了三頁家常，末尾只有一句：「江湖路遠，添衣，少飲，早歸。」`; },
     choices: [{ t: '把信疊好，貼身收起', go: s => { const id = s.spouse || s.flags.lover; s.npcs[id].fav = clamp(s.npcs[id].fav + 4, 0, 100); return '這一夜你睡得格外安穩。' + gain({ hp: 999, mp: 999 }); } }] },
@@ -329,12 +329,12 @@ const FIXED = {
       { t: '報名參加', go: s => { if (s.loc !== 'luoyang') { advance(travelDays('luoyang')); s.loc = 'luoyang'; } s.date.m = 9; s.date.d = Math.max(s.date.d, 9); return tourneyRound(0); } },
       { t: '今年不去湊熱鬧', go: () => '你聽說今年的魁首又是裴照。' },
     ] },
-  lantern: { type: '戀愛', title: '上元燈會', art: 'love', fixed: true,
+  lantern: { who: s => s.flags.fest, type: '戀愛', title: '上元燈會', art: 'love', fixed: true,
     text: s => { const id = nearNpc(20); s.flags.fest = id; return id ? `正月十五，花市燈如晝。${NPCS[id].n}不知何時站到了你身邊，手裡提著一盞兔子燈：「猜燈謎，敢不敢比？」` : '正月十五，花市燈如晝。滿街都是成雙成對的人影，你獨自提著一盞燈，在燈謎攤前停下了腳步。'; },
     choices: s => s.flags.fest
       ? [{ t: '比就比', go: () => { const n = S.npcs[S.flags.fest]; n.fav = clamp(n.fav + 8, 0, 100); return `你們一路猜過去，贏了一堆小玩意。最後一盞燈的謎底是「相思」，兩個人都看出來了，卻誰也沒有說。〔${NPCS[S.flags.fest].n} 好感+8〕`; } }]
       : [{ t: '猜燈謎', go: () => S.stats.int + R(6) >= 10 ? '你連中三元，攤主心疼地奉上彩頭。' + gain({ silver: 40 }) : '你抓耳撓腮，一個也沒猜中。攤主送了你一塊糖。' }] },
-  qixi: { type: '戀愛', title: '七夕', art: 'love', fixed: true, cond: s => topNpc(50),
+  qixi: { who: s => s.flags.fest, type: '戀愛', title: '七夕', art: 'love', fixed: true, cond: s => topNpc(50),
     text: s => { const id = topNpc(50); s.flags.fest = id; s.flags.festFar = !nearNpc(50);
       if (s.flags.festFar) return `七月初七，銀河橫天。你人在${LOCS[s.loc].n}，${NPCS[id].n}遠在${LOCS[NPCS[id].loc].n}。你抬頭找到那兩顆星，忽然很想知道，此刻${NPCS[id].ta}是不是也在看。`;
       return `七月初七，銀河橫天。${NPCS[id].n}與你並肩坐在屋頂上，指著天上兩顆星：「一年才見一次，${NPCS[id].ta === '她' ? '我' : '我'}可受不了。」說完才覺得失言，把臉別了過去。`; },
@@ -345,7 +345,7 @@ const FIXED = {
       { t: '「那就不分開。」', go: () => { const n = S.npcs[S.flags.fest]; n.fav = clamp(n.fav + 10, 0, 100); return `夜風很輕，${NPCS[S.flags.fest].n}沒有回答，只是把肩膀靠了過來。〔好感+10〕`; } },
       { t: '假裝沒聽見，抬頭看星', go: () => { const n = S.npcs[S.flags.fest]; n.fav = clamp(n.fav + 2, 0, 100); return '你們看了一夜的星星。〔好感+2〕'; } },
     ] },
-  child: { type: '傳承', title: '弄璋弄瓦', art: 'legacy', fixed: true,
+  child: { who: s => s.spouse, type: '傳承', title: '弄璋弄瓦', art: 'legacy', fixed: true,
     text: s => `一聲嘹亮的啼哭劃破了清晨。${NPCS[s.spouse].n}疲憊地笑著，把襁褓遞到你懷裡。孩子攥住你的手指，力氣大得出奇。`,
     choices: [{ t: '為孩子取名', go: s => { s.child = s.name[0] + pick(['念', '承', '懷', '知']) + pick(['安', '遠', '舟', '寧']); return `你為孩子取名「${s.child}」。這身武功，總算有了血脈相傳的人。` + gain({ moral: 3 }); } }] },
   discipleDone: { type: '傳承', title: '弟子出師', art: 'legacy', fixed: true,
@@ -370,7 +370,7 @@ const FIXED = {
          { t: '虛張聲勢，放他們從後門走', go: () => '你讓教眾在前門鼓譟了半夜，等衝進去時，別院已人去樓空。壇主狐疑地看了你一眼。' + gain({ moral: 12, contrib: -40 }) }]
       : [{ t: '「住手！」', go: () => win(foe('血煞教壇主', 9, 0.62, 'demon'), () => { S.flags.arc = 2; return '壇主伏誅，餘眾潰散。長老把一枚染血的玉片塞進你手裡：「天機圖……殘片……絕不可落入厲無咎之手……」' + gain({ fame: 50, moral: 15 }); }, null, { noFlee: true }) },
          { t: '寡不敵眾，繞道而行', go: () => '你在山坡上回頭，鎮子燒了一整夜。' + gain({ moral: -8 }) }] },
-  arc3: { type: '戰鬥', title: '洛陽決戰', art: 'fight', fixed: true,
+  arc3: { who: 'boss', type: '戰鬥', title: '洛陽決戰', art: 'fight', fixed: true,
     text: s => s.sect === 'xuesha'
       ? '血煞教傾巢而出，兵臨洛陽。正道群雄在城下列陣，為首的是武林盟主嶽鎮山。教主厲無咎轉過頭，把目光落在你身上：「這一陣，你去。拿下嶽鎮山的人頭，血煞教的下一任教主就是你。」'
       : '血煞教主厲無咎集齊了天機圖，神功大成，率教眾兵臨洛陽。武林盟主三招落敗，重傷嘔血。群雄的目光在人群中搜尋，最後一道接一道，落在了你的身上。厲無咎負手而立：「還有誰？」',

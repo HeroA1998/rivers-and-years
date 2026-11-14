@@ -225,7 +225,7 @@ function showEvent(ev) {
   if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; }
   const text = typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const choices = (typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || []).filter(c => !c.cond || c.cond(S));
-  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, result: null };
+  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who };
   log(`【${ev.type}】${ev.title}`);
   render();
 }
@@ -251,7 +251,7 @@ function foe(n, fix, mult, style, extra) {
 function startBattle(r) {
   const prev = UI.ov || {};
   UI.ov = {
-    k: 'battle', type: '戰鬥', title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
+    k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
     log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, guard: false, round: 1, over: null, sub: null,
   };
   if (r.battle.agi > S.stats.agi + qingBonus() / 2 + 3) { UI.ov.log.push(`${r.battle.n}身法更快，搶先出手！`); foeTurn(); }
@@ -369,7 +369,7 @@ function endBattle() {
     r = b.lose ? b.lose(S) : defeat();
     if (r && typeof r === 'object') return handleResult(r);
   } else r = '你且戰且退，總算甩開了對手。';
-  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r };
+  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r, who: b.who };
   render();
 }
 
@@ -526,7 +526,7 @@ function promote() {
   const k = SECTS[S.sect];
   const e = foe(['執事師兄', '傳功長老座下首徒', '護法長老'][S.rank], 3 + S.rank * 6, 0.55, k.align < 0 ? 'blade' : 'master');
   advance(1);
-  Q.unshift({ type: '傳承', title: '晉升考核', art: 'legacy', text: `${k.master}端坐堂上：「你入門以來的功勞，為師都看在眼裡。接下${e.n}三十招，便許你晉為${RANKS[S.rank + 1]}。」`,
+  Q.unshift({ who: 'elder', type: '傳承', title: '晉升考核', art: 'legacy', text: `${k.master}端坐堂上：「你入門以來的功勞，為師都看在眼裡。接下${e.n}三十招，便許你晉為${RANKS[S.rank + 1]}。」`,
     choices: [{ t: '弟子領命', go: () => ({ battle: e, noFlee: true, win: () => { S.rank++; return `你通過了考核，晉升為${k.n}${RANKS[S.rank]}！` + gain({ fame: 15 * S.rank }); }, lose: () => { S.hp = Math.round(maxHp() * 0.4); return '你未能撐過考核。師父道：「回去再練，來日方長。」'; } }) }] });
   pump();
 }
@@ -545,7 +545,7 @@ function visit(id) {
   if (n.stage < 3 && n.fav >= th[n.stage] && !(n.stage === 2 && S.flags.lover && S.flags.lover !== id)) {
     const st = k.stage[n.stage];
     advance(1);
-    Q.unshift({ type: '戀愛', title: `${k.n}・${['初識', '相知', '定情'][n.stage]}`, art: 'love', text: st.t,
+    Q.unshift({ who: id, type: '戀愛', title: `${k.n}・${['初識', '相知', '定情'][n.stage]}`, art: 'love', text: st.t,
       choices: [st.a, st.b].map((c, i) => ({ t: c[0], go: () => {
         n.fav = clamp(n.fav + c[1], 0, 100);
         if (c[1] > 0) { n.stage++; if (n.stage === 3) { S.flags.lover = id; return `${k.n}與你兩心相許，從此江湖路上不再孤身一人。〔好感+${c[1]}　已定情〕`; } return `${k.n}看你的眼神，和從前有些不同了。〔好感+${c[1]}〕`; }
@@ -570,7 +570,7 @@ function propose(id) {
   if (S.silver < 500) return toastRender('成親需備 500 兩');
   S.silver -= 500; S.spouse = id; S.flags.wedY = S.date.y;
   advance(3);
-  Q.unshift({ type: '戀愛', title: '洞房花燭', art: 'love', text: `紅燭高照，賓客盈門。你與${k.n}拜過天地，江湖上的朋友來了大半，連幾個舊日對頭也送了賀禮。${k.n}握著你的手，輕聲道：「往後的路，一起走。」`,
+  Q.unshift({ who: id, type: '戀愛', title: '洞房花燭', art: 'love', text: `紅燭高照，賓客盈門。你與${k.n}拜過天地，江湖上的朋友來了大半，連幾個舊日對頭也送了賀禮。${k.n}握著你的手，輕聲道：「往後的路，一起走。」`,
     choices: [{ t: '執子之手', go: () => `你與${k.n}結為連理。` + gain({ [k.bonus[0]]: k.bonus[1], fame: 20 }) }] });
   pump();
 }
