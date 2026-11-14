@@ -129,3 +129,14 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .card.has-face .face { grid-row: 1 / span 3; width: 72px; height: auto; border-radius: 4px; background: var(--line); }
 .face.mini-face { width: 42px; height: 42px; aspect-ratio: 1; border-radius: 50%; background: var(--line); }
 .desc a { color: var(--jade); }
+
+/* 猜拳式對決 */
+.rule { font-size: 12px; color: var(--ink2); line-height: 1.6; }
+.duel { display: grid; grid-template-columns: 1.4em repeat(6, 1fr); gap: 6px; align-items: center; }
+.who-l { font: 15px var(--f-brush); color: var(--ink2); }
+.cell { display: flex; align-items: center; justify-content: center; height: 40px; font: normal 20px var(--f-brush); border: 1px solid var(--line); border-radius: 4px; background: var(--card); }
+.cell.unk { color: var(--ink2); border-style: dashed; } .cell.empty { border-style: dashed; background: none; } .cell.next { border-color: var(--jade); border-style: solid; }
+.cA { color: var(--seal); } .cB { color: var(--gold); } .cG { color: var(--jade); } .cX, .cS { color: var(--on-jade); background: var(--seal); border-color: var(--seal); } .cI, .cH { color: var(--rose); }
+.stances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .stances .mv { align-items: center; text-align: center; } .stances .mv b { font-size: 24px; }
+.stances .mv small { color: var(--ink2); }
+.blog { height: 170px; }

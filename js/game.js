@@ -246,22 +246,53 @@ function closeEvent() { UI.ov = null; pump(); }
 /* ---------- 戰鬥 ---------- */
 function foe(n, fix, mult, style, extra) {
   const P = Math.max(1, fix + power() * mult);
-  return Object.assign({ n, P, hp: Math.round(30 + P * 16), mhp: Math.round(30 + P * 16), atk: 5 + P * 2, def: P * 0.6, agi: 3 + P * 0.6, moves: FOE_MOVES[style] }, extra || {});
+  return Object.assign({ n, P, hp: Math.round(30 + P * 16), mhp: Math.round(30 + P * 16), atk: 5 + P * 2, def: P * 0.6, agi: 3 + P * 0.6, moves: FOE_MOVES[style], style }, extra || {});
+}
+/* 猜拳式對決：每回合雙方各排六手。攻克破、破克守、守克攻；同招各傷一半；絕招無視克制。
+   敵人各有慣用套路，交手越多、悟性越高，能預先看穿的手數越多。 */
+const ST = { A: '攻', B: '破', G: '守', X: '絕' };
+const BEATS = { A: 'B', B: 'G', G: 'A' };
+const DMG_K = 0.5;
+const FOE_PATTERNS = {
+  thug:   ['AABAAB', 'ABAABA', 'AAABAG', 'BAAAAB'],
+  blade:  ['BABBAG', 'BBABAB', 'ABBGBA', 'BGBABX'],
+  sword:  ['AGAABA', 'AAGABG', 'GAABAX', 'AGABAA'],
+  beast:  ['AAABAA', 'ABAAAB', 'AABABA'],
+  master: ['GABGAX', 'AGBXGA', 'BGAGBX', 'GBAAGB'],
+  demon:  ['BBAXBA', 'ABXBAG', 'XBABBA', 'BABGXB'],
+  puppet: ['ABGABG', 'BGABGA', 'GABGAB'],
+};
+function insight(e) { return clamp(1 + Math.floor(S.stats.int / 6) + Math.min(3, (S.seen || {})[e.n] || 0), 1, 5); }
+function newRound(b) {
+  let p = pick(FOE_PATTERNS[b.e.style] || FOE_PATTERNS.thug).split('');
+  if (b.e.style !== 'puppet') p = p.map(c => c !== 'X' && chance(14) ? pick(['A', 'B', 'G']) : c);
+  b.foe = p;
+  const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, insight(b.e));
+  b.shown = p.map((_, i) => idx.includes(i));
+  b.plan = []; b.sub = null;
 }
 function startBattle(r) {
   const prev = UI.ov || {};
   UI.ov = {
     k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
-    log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, guard: false, round: 1, over: null, sub: null,
+    log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null,
   };
-  if (r.battle.agi > S.stats.agi + qingBonus() / 2 + 3) { UI.ov.log.push(`${r.battle.n}身法更快，搶先出手！`); foeTurn(); }
+  newRound(UI.ov);
   render();
 }
-function pMoves() {
+function basicMove() {
+  let best = null;
+  for (const id of S.eq) {
+    const k = SKILLS[id], lv = S.skills[id].lv, m = k.moves[0], pw = m[3] * (1 + 0.15 * (lv - 1));
+    if (!best || pw > best.pw) best = { id, k, lv, pow: m[3], pw, n: m[0] };
+  }
+  return best;
+}
+function pMoves() {   // 絕招：備戰外功中第一式以外、已解鎖的招式
   const out = [];
   for (const id of S.eq) {
     const k = SKILLS[id], lv = S.skills[id].lv;
-    for (const m of k.moves) if (lv >= m[1]) out.push({ id, n: m[0], mp: m[2], pow: m[3], fx: m[4], k, lv });
+    k.moves.forEach((m, i) => { if (i > 0 && lv >= m[1]) out.push({ id, n: m[0], mp: m[2], pow: m[3], fx: m[4], k, lv }); });
   }
   return out;
 }
@@ -271,82 +302,107 @@ function attrMul(a) {
   if (a === 'he') return 1.05;
   return na === a ? 1.22 : 0.9;
 }
-function bLog(s) { const b = UI.ov; b.log.push(s); if (b.log.length > 60) b.log.shift(); }
-function pAttack(mv) {
+function bLog(s) { const b = UI.ov; b.log.push(s); if (b.log.length > 80) b.log.shift(); }
+const planMp = b => b.plan.reduce((t, p) => t + (p.t === 'S' ? p.mv.mp : p.t === 'H' ? 12 : 0), 0);
+function planAdd(p) {
+  const b = UI.ov;
+  if (b.over || b.plan.length >= 6) return;
+  const cost = p.t === 'S' ? p.mv.mp : p.t === 'H' ? 12 : 0;
+  if (planMp(b) + cost > S.mp) return toastRender('內力不夠排這一手');
+  if (p.t === 'I' && b.plan.filter(x => x.t === 'I' && x.item === p.item).length >= (S.inv[p.item] || 0)) return toastRender('這種丹藥不夠了');
+  b.plan.push(p); b.sub = null; render();
+}
+function planUndo() { const b = UI.ov; b.plan.pop(); render(); }
+function planFill() { const b = UI.ov; while (b.plan.length < 6) b.plan.push({ t: b.plan.length && b.plan[b.plan.length - 1].t.match(/[ABG]/) ? b.plan[b.plan.length - 1].t : 'A' }); render(); }
+
+// 我方命中：回傳描述
+function hitFoe(b, label, k, lv, pow, mul, fx) {
+  const e = b.e;
+  if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
+  const w = S.weapon && ITEMS[S.weapon].wt === k.type ? ITEMS[S.weapon].atk : 0;
+  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K;
+  const crit = chance(S.stats.luck * 1.3);
+  if (crit) dmg *= 1.6;
+  dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25)));
+  e.hp -= dmg;
+  let s = `你的「${label}」${crit ? '正中要害，' : ''}造成 ${dmg} 點傷害。`;
+  if (fx === 'bleed') { b.fx.bleed = 2; b.fx.bleedV = Math.max(2, Math.round(dmg * 0.4)); s += '對方血流不止。'; }
+  if (fx === 'poison') { b.fx.poison = 3; b.fx.poisonV = 6 + lv * 2 + k.tier * 4; s += '毒性滲入經脈。'; }
+  if (fx === 'stun' && chance(45)) { b.fx.stun = 1; s += '對方被震得頭暈目眩，下一手使不出來。'; }
+  if (fx === 'weak') { b.fx.weak = 2; s += '對方攻勢被你帶偏。'; }
+  if (fx === 'drain') { const hl = Math.round(dmg * 0.35); S.hp = Math.min(maxHp(), S.hp + hl); s += `你吸取了 ${hl} 點氣血。`; }
+  return s;
+}
+function hitMe(b, label, mult, mul = 1) {
+  const e = b.e;
+  if (chance(clamp((pDodge() - e.agi) * 1.2 + 4, 0, 30))) return `${e.n}的「${label}」被你閃身避過。`;
+  const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul));
+  S.hp -= dmg;
+  return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害。`;
+}
+function commitRound() {
   const b = UI.ov, e = b.e;
-  if (b.over) return;
-  if (S.mp < mv.mp) return;
-  S.mp -= mv.mp; b.guard = false;
-  const hit = clamp(90 + (S.stats.agi - e.agi) * 1.5, 55, 98);
-  if (!chance(hit)) bLog(`你使出「${mv.n}」，被${e.n}閃身避過。`);
-  else {
-    const w = S.weapon && ITEMS[S.weapon].wt === mv.k.type ? ITEMS[S.weapon].atk : 0;
-    let dmg = (S.stats.str * 1.2 + mv.pow * (1 + 0.15 * (mv.lv - 1)) + w) * neiFactor() * attrMul(mv.k.attr) * rnd(0.88, 1.12);
-    const crit = chance(S.stats.luck * 1.3);
-    if (crit) dmg *= 1.6;
-    dmg = Math.max(1, Math.round(dmg - (mv.fx === 'pierce' ? 0 : e.def * 0.5)));
-    e.hp -= dmg;
-    let s = `你使出「${mv.n}」，${crit ? '正中要害，' : ''}${e.n}受到 ${dmg} 點傷害。`;
-    if (mv.fx === 'bleed') { b.fx.bleed = 3; b.fx.bleedV = Math.max(2, Math.round(dmg * 0.22)); s += '傷口血流不止。'; }
-    if (mv.fx === 'poison') { b.fx.poison = 4; b.fx.poisonV = 4 + mv.lv * 2 + mv.k.tier * 3; s += '毒性滲入經脈。'; }
-    if (mv.fx === 'stun' && chance(38)) { b.fx.stun = 1; s += '對方被震得頭暈目眩。'; }
-    if (mv.fx === 'weak') { b.fx.weak = 3; s += '對方攻勢被你帶偏。'; }
-    if (mv.fx === 'drain') { const hl = Math.round(dmg * 0.35); S.hp = Math.min(maxHp(), S.hp + hl); s += `你吸取了 ${hl} 點氣血。`; }
-    bLog(s);
+  if (b.over || b.plan.length < 6) return;
+  const m0 = e.moves[0], m1 = e.moves[1] || [m0[0], m0[1] * 1.3], mx = e.moves[e.moves.length - 1];
+  const bm = basicMove();
+  const pN = { A: `${bm.n}`, B: `重手・${bm.n}`, G: '守勢反擊' };
+  const marks = [];
+  let pc = 0, ec = 0;
+  bLog(`—— 第${cnNum(b.round)}回合 ——`);
+  for (let i = 0; i < 6 && !b.over; i++) {
+    const p = b.plan[i];
+    let f = b.foe[i], res, s;
+    if (b.fx.stun) { b.fx.stun = 0; f = '-'; }
+    const fHit = (mul = 1) => f === 'A' ? hitMe(b, m0[0], m0[1], mul) : f === 'B' ? hitMe(b, m1[0], m1[1], mul) : f === 'X' ? hitMe(b, mx[0], mx[1] * 1.25, mul) : '';
+    if (p.t === 'S') {
+      S.mp -= p.mv.mp;
+      s = '【絕招】' + hitFoe(b, p.mv.n, p.mv.k, p.mv.lv, p.mv.pow, f === 'G' ? 0.7 : 1, p.mv.fx) + (f === 'G' ? '（被守勢卸去三成）' : '');
+      if (f === 'X') s += fHit();
+      res = f === 'X' ? 't' : 'w';
+    } else if (p.t === 'I' || p.t === 'H') {
+      if (p.t === 'I') { useMed(p.item); s = `你服下${ITEMS[p.item].n}。`; }
+      else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (knows('bh_nei') ? 1.6 : 1)); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
+      s += fHit(); res = f === 'G' || f === '-' ? 't' : 'l';
+    } else if (f === '-') {
+      s = `${e.n}還在暈眩。` + (p.t === 'G' ? '你穩住了呼吸。' : hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1));
+      res = p.t === 'G' ? 't' : 'w';
+    } else if (f === 'X') {
+      s = '【敵方絕招】' + fHit(p.t === 'G' ? 0.5 : 1) + (p.t === 'G' ? '（守勢擋下一半）' : ''); res = 'l';
+    } else if (p.t === f) {
+      s = p.t === 'G' ? '雙方都採守勢，互相試探。' : `${ST[f]}對${ST[f]}，硬碰硬！` + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, (p.t === 'A' ? 0.8 : 1.1) * 0.5) + fHit(0.5);
+      res = 't';
+    } else if (BEATS[p.t] === f) {
+      if (p.t === 'G') { S.mp = Math.min(maxMp(), S.mp + 4); s = `你架開${e.n}的「${m0[0]}」，順勢反擊！` + hitFoe(b, pN.G, bm.k, bm.lv, bm.pow, 0.55); }
+      else s = (p.t === 'A' ? `你搶在對方重手之前出招。` : `你一記重手破開對方守勢。`) + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1);
+      res = 'w';
+    } else {
+      s = f === 'G' ? `${e.n}架開你的攻勢，反手一擊。` + hitMe(b, '反擊', m0[1] * 0.55) : (f === 'A' ? '你的重手還沒使老，已被搶了先機。' : '你的守勢被重手硬生生砸開。') + fHit();
+      res = 'l';
+    }
+    bLog(`${'①②③④⑤⑥'[i]} ${s}`);
+    marks.push(res === 'w' ? '○' : res === 'l' ? '×' : '△');
+    if (res === 'w') { pc++; ec = 0; } else if (res === 'l') { ec++; pc = 0; } else { pc = 0; ec = 0; }
+    if (pc === 3 && e.hp > 0) { pc = 0; bLog('　連勝三手，追擊！' + hitFoe(b, `追擊・${bm.n}`, bm.k, bm.lv, bm.pow, 1.5)); }
+    if (ec === 3 && S.hp > 0) { ec = 0; bLog('　連失三手，被對方追擊！' + hitMe(b, m0[0], m0[1] * 1.5)); }
+    if (e.hp <= 0) { e.hp = 0; b.over = 'win'; } else if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; }
   }
-  endRound();
-}
-function pGuard() {
-  const b = UI.ov; if (b.over) return;
-  b.guard = true;
-  const m = 6 + neiLv() * 2; S.mp = Math.min(maxMp(), S.mp + m);
-  bLog(`你凝神守勢，回復 ${m} 點內力。`);
-  endRound();
-}
-function pHeal() {
-  const b = UI.ov; if (b.over || S.mp < 12) return;
-  S.mp -= 12; b.guard = false;
-  const hl = Math.round((maxHp() * 0.12 + neiLv() * 4) * (knows('bh_nei') ? 1.6 : 1));
-  S.hp = Math.min(maxHp(), S.hp + hl);
-  bLog(`你運功調息，回復 ${hl} 點氣血。`);
-  endRound();
-}
-function pUse(id) {
-  const b = UI.ov; if (b.over || !has(id)) return;
-  useMed(id); b.sub = null; b.guard = false;
-  bLog(`你服下${ITEMS[id].n}。`);
-  endRound();
+  bLog(`　敵方出招：${b.foe.map(c => ST[c]).join(' ')}　勝負：${marks.join(' ')}`);
+  if (!b.over && b.fx.bleed) { b.fx.bleed--; e.hp -= b.fx.bleedV; bLog(`　${e.n}失血，損失 ${b.fx.bleedV} 點氣血。`); }
+  if (!b.over && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; bLog(`　${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
+  if (!b.over && e.hp <= 0) { e.hp = 0; b.over = 'win'; }
+  if (b.fx.weak) b.fx.weak--;
+  if (b.over === 'win') bLog(`${e.n}倒下了。你贏了。`);
+  else if (b.over === 'lose') bLog('你眼前一黑，栽倒在地……');
+  else { S.mp = Math.min(maxMp(), S.mp + 3); b.round++; newRound(b); }
+  b.plan = b.over ? [] : b.plan;
+  render();
 }
 function pFlee() {
-  const b = UI.ov; if (b.over) return;
-  if (chance(clamp(50 + (S.stats.agi + qingBonus() / 2 - b.e.agi) * 4, 20, 92))) {
-    b.over = 'flee'; bLog('你虛晃一招，抽身而退。');
-    render();
-  } else { bLog('你想脫身，卻被對方纏住！'); b.guard = false; endRound(); }
-}
-function foeTurn() {
-  const b = UI.ov, e = b.e;
-  if (b.fx.stun) { b.fx.stun = 0; bLog(`${e.n}還在暈眩之中，無法出手。`); return; }
-  const r = Math.random();
-  const mv = e.moves[r < 0.5 ? 0 : r < 0.82 ? Math.min(1, e.moves.length - 1) : e.moves.length - 1];
-  const hit = clamp(92 - (pDodge() - e.agi) * 1.2, 30, 95);
-  if (!chance(hit)) { bLog(`${e.n}使出「${mv[0]}」，你側身閃過。`); return; }
-  let dmg = e.atk * mv[1] * (b.fx.weak ? 0.75 : 1) * rnd(0.85, 1.15) - pDef() * 0.5;
-  if (b.guard) dmg *= 0.4;
-  dmg = Math.max(1, Math.round(dmg));
-  S.hp -= dmg;
-  bLog(`${e.n}使出「${mv[0]}」，你${b.guard ? '架住大半勁力，仍' : ''}受到 ${dmg} 點傷害。`);
-}
-function endRound() {
-  const b = UI.ov, e = b.e;
-  if (e.hp > 0) foeTurn();
-  if (e.hp > 0 && b.fx.bleed) { b.fx.bleed--; e.hp -= b.fx.bleedV; bLog(`${e.n}失血，損失 ${b.fx.bleedV} 點氣血。`); }
-  if (e.hp > 0 && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; bLog(`${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
-  if (b.fx.weak) b.fx.weak--;
-  S.mp = Math.min(maxMp(), S.mp + 2);
-  b.round++;
-  if (e.hp <= 0) { e.hp = 0; b.over = 'win'; bLog(`${e.n}倒下了。你贏了。`); }
-  else if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; bLog('你眼前一黑，栽倒在地……'); }
+  const b = UI.ov, e = b.e; if (b.over) return;
+  if (chance(clamp(50 + (S.stats.agi + qingBonus() / 2 - e.agi) * 4, 20, 92))) { b.over = 'flee'; bLog('你虛晃一招，抽身而退。'); return render(); }
+  bLog('你想脫身，卻被對方纏住！');
+  for (let i = 0; i < 2; i++) { const f = b.foe[i], m = f === 'A' ? e.moves[0] : f === 'B' ? (e.moves[1] || e.moves[0]) : null; if (m) bLog('　' + hitMe(b, m[0], m[1])); }
+  if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; bLog('你眼前一黑，栽倒在地……'); } else { b.round++; newRound(b); }
   render();
 }
 function defeat() {
@@ -357,6 +413,7 @@ function defeat() {
 }
 function endBattle() {
   const b = UI.ov;
+  S.seen = S.seen || {}; S.seen[b.e.n] = (S.seen[b.e.n] || 0) + 1;
   let r;
   if (b.over === 'win') {
     S.wins++;

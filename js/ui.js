@@ -223,23 +223,36 @@ function overlay() {
         : `<p class="story">${o.text}</p><div class="col">${o.choices.map((c, i) => B(c.t, () => choose(i), 'choice')).join('')}</div>`}
     </div></div>`;
   }
-  // 戰鬥
-  const e = o.e, mv = pMoves();
+  // 戰鬥：猜拳式對決
+  const e = o.e, mv = pMoves(), bm = basicMove(), full = o.plan.length >= 6, left = S.mp - planMp(o);
   const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
+  const pl = p => p.t === 'S' ? '絕' : p.t === 'I' ? '藥' : p.t === 'H' ? '息' : ST[p.t];
+  const cells = `<div class="duel">
+      <span class="who-l">敵</span>${o.foe.map((c, i) => `<i class="cell ${o.shown[i] ? 'c' + c : 'unk'}">${o.shown[i] ? ST[c] : '？'}</i>`).join('')}
+      <span class="who-l">我</span>${[0, 1, 2, 3, 4, 5].map(i => o.plan[i] ? `<i class="cell c${o.plan[i].t}" title="${o.plan[i].t === 'S' ? o.plan[i].mv.n : ''}">${pl(o.plan[i])}</i>` : `<i class="cell empty${i === o.plan.length ? ' next' : ''}"></i>`).join('')}
+    </div>`;
   let ctl;
   if (o.over) ctl = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
   else if (o.sub === 'med') {
     const meds = Object.keys(S.inv).filter(i => ITEMS[i].kind === 'med');
-    ctl = `<div class="moves-grid">${meds.map(i => `<button type="button" class="mv"${h(() => pUse(i))}><b>${ITEMS[i].n} ×${S.inv[i]}</b><small>${ITEMS[i].d}</small></button>`).join('') || '<p class="empty">沒有丹藥了。</p>'}</div><div class="row4">${B('返回', () => { o.sub = null; render(); }, 'mini')}</div>`;
-  } else ctl = `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${S.mp < m.mp ? ' disabled' : h(() => pAttack(m))}><b>${m.n}</b><small>${m.mp ? `內力 ${m.mp}` : '不耗內力'}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>
-      <div class="row4">${B('守勢', pGuard, 'mini')}${B('調息', pHeal, 'mini', S.mp < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini')}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>`;
+    ctl = `<div class="moves-grid">${meds.map(i => `<button type="button" class="mv"${h(() => planAdd({ t: 'I', item: i }))}><b>${ITEMS[i].n} ×${S.inv[i]}</b><small>${ITEMS[i].d}・佔一手</small></button>`).join('') || '<p class="empty">沒有丹藥了。</p>'}</div><div class="row4">${B('返回', () => { o.sub = null; render(); }, 'mini')}</div>`;
+  } else ctl = `<div class="stances">
+        <button type="button" class="mv cA"${full ? ' disabled' : h(() => planAdd({ t: 'A' }))}><b>攻</b><small>快招・克破</small></button>
+        <button type="button" class="mv cB"${full ? ' disabled' : h(() => planAdd({ t: 'B' }))}><b>破</b><small>重手・克守</small></button>
+        <button type="button" class="mv cG"${full ? ' disabled' : h(() => planAdd({ t: 'G' }))}><b>守</b><small>反擊・克攻</small></button>
+      </div>
+      ${mv.length ? `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${full || left < m.mp ? ' disabled' : h(() => planAdd({ t: 'S', mv: m }))}><b>${m.n}</b><small>絕招・內力 ${m.mp}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>` : ''}
+      <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>
+      <div class="col">${full ? B('出手', commitRound, 'primary big') : B(`補滿（還差 ${6 - o.plan.length} 手）`, planFill, 'big')}</div>`;
   return `<div class="veil"><div class="sheet battle">
     <p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>
     <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
-    <ol class="blog">${o.log.slice(-14).map(l => `<li>${l}</li>`).join('')}</ol>
+    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。<br>已看穿 ${o.shown.filter(Boolean).length}/6 手（交手越多、悟性越高，看穿越多）　基本招式：${bm.n}</p>
+    ${o.over ? '' : cells}
+    <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
     <div class="vitals in-battle">
       <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em></div>
-      <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}</em></div>
+      <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}${planMp(o) ? `（本回合將用 ${planMp(o)}）` : ''}</em></div>
     </div>${ctl}</div></div>`;
 }
 
