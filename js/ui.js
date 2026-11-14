@@ -10,7 +10,7 @@ const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
-const TYPE_CLS = { '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
+const TYPE_CLS = { '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
   H = [];
@@ -118,7 +118,11 @@ const TABS = {
       return s;
     }).join('')]);
     g.push(['行止', common]);
-    return `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
+    const st = storyNow();
+    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress(S)}</small>` : ''}</section>`
+      : `<section class="quest done"><span class="tag jade">主線完結</span><p>江湖路遠，隨心而行；倦了便到「人物」頁歸隱，把武功傳給下一代。</p></section>`;
+    if (S.story === 8 && S.loc === 'luoyang') g.unshift(['主線', A('赴洛陽決戰', '最終一戰・無法脫身', () => confirmBox('赴洛陽決戰？', '這是與血煞教主的最終一戰，無法脫身。確定已備妥丹藥、練好武功？', () => { S.flags.goFinal = true; pump(); }))]);
+    return quest + `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
   },
   me() {
     return `<section class="group"><h3>${esc(S.name)}</h3>
@@ -126,6 +130,7 @@ const TABS = {
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>
+      <section class="group"><h3>江湖記事</h3>${(S.journal || []).length ? `<ul class="log journal">${S.journal.map(j => `<li><time>${j.t}・${j.ch}</time>${j.s}</li>`).join('')}</ul>` : '<p class="empty">故事才剛開始。</p>'}</section>
       <section class="group"><h3>去留</h3><div class="acts">
         ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
         ${S.sect ? A('叛出師門', '聲望-40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
@@ -220,7 +225,9 @@ function overlay() {
       <div class="scene">${art(o.art || (o.type === '戰鬥' ? 'fight' : o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road'), o.title)}${face(o.who, 'on-art')}</div>
       <p class="tag ${TYPE_CLS[o.type] || 'grey'}">${o.type}事件</p><h2>${o.title}</h2>
       ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
-        : `<p class="story">${o.text}</p><div class="col">${o.choices.map((c, i) => B(c.t, () => choose(i), 'choice')).join('')}</div>`}
+        : o.pages && o.pi < o.pages.length - 1
+          ? `<p class="story">${o.pages[o.pi]}</p><div class="col">${B(`繼續　${o.pi + 1}/${o.pages.length}`, () => { o.pi++; render(); document.querySelector('.sheet').scrollTop = 0; }, 'primary big')}</div>`
+          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => B(c.t, () => choose(i), 'choice')).join('')}</div>`}
     </div></div>`;
   }
   // 戰鬥：猜拳式對決

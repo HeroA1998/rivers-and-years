@@ -31,7 +31,7 @@
 | 檔案 | 角色 | 來源素材包 |
 |---|---|---|
 | su / hua / li | 蘇晚晴、花弄影、厲紅綃 | https://linxuelian.itch.io/customchar-fbfffm001-fullbodyfemale |
-| gu / qin | 顧長風、秦昭 | https://linxuelian.itch.io/charres-xxwx-sam-xianxia |
+| gu / qin / pei | 顧長風、秦昭、裴照 | https://linxuelian.itch.io/charres-xxwx-sam-xianxia |
 | shen | 沈墨言 | https://linxuelian.itch.io/charres-xxwx-yuansanshan |
 | elder | 師長、高人 | https://linxuelian.itch.io/charres-xxwx-mob-oldman |
 | boss | 厲無咎 | https://linxuelian.itch.io/charres-xxwx-yangertian |

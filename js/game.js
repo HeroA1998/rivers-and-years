@@ -59,7 +59,7 @@ function newGame(c, legacy) {
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
     weapon: null, armor: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
-    done: {}, flags: {}, log: [], wins: 0, losses: 0, legacyFrom: null,
+    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, wins: 0, losses: 0, legacyFrom: null,
   };
   if (o.item) { S.inv[o.item] = 1; S.weapon = o.item; }
   if (o.herb) S.inv.herb = o.herb;
@@ -76,7 +76,7 @@ function newGame(c, legacy) {
     ? `${S.name}帶著${legacy.from}的遺澤踏入洛陽城。上一代的故事已成傳說，這一代的才剛開始。`
     : `${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到洛陽城，決心闖出一番名堂。`);
   UI = { screen: 'game', tab: 'world', ov: null };
-  save(); render();
+  pump();
   window.scrollTo(0, 0);
 }
 
@@ -186,9 +186,6 @@ function advance(days) {
 }
 function onMonth() {
   const { y, m } = S.date;
-  if (y === 3 && m === 6) Q.push(FIXED.arc1);
-  if (y === 5 && m === 6) Q.push(FIXED.arc2);
-  if (y === 7 && m === 3) Q.push(FIXED.arc3);
   if (S.spouse && !S.child && S.flags.wedY && y > S.flags.wedY && m === 4 && chance(60)) Q.push(FIXED.child);
   if (S.disciple && !S.disciple.done && y >= S.disciple.y + 4 && m === 8) Q.push(FIXED.discipleDone);
 }
@@ -218,14 +215,17 @@ function act(days, text, ctx, evChance = 38) {
 function pump() {
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
+  const st = storyDue();
+  if (st) { UI.ov = null; save(); showEvent(st); return; }
   save(); render();
 }
 function showEvent(ev) {
   if (ev.cond && ev.fixed && !ev.cond(S)) return pump();
   if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; }
-  const text = typeof ev.text === 'function' ? ev.text(S) : ev.text;
+  const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
+  const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const choices = (typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || []).filter(c => !c.cond || c.cond(S));
-  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who };
+  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who };
   log(`【${ev.type}】${ev.title}`);
   render();
 }
@@ -519,7 +519,11 @@ function work() {
 function gossip() {
   if (S.silver < 5) return toastRender('銀兩不足');
   S.silver -= 5;
-  act(1, `在酒樓要了一壺酒，聽鄰桌閒談：「${pick(RUMORS)}」`, 'city', 70);
+  const st = storyNow();
+  if (S.story === 1 && S.loc === 'luoyang') { S.flags.askChen = true; return act(1, '在酒樓要了一壺酒，向店小二打聽一個叫陳伯的擺渡人。', null); }
+  let r = st && st.rumor && chance(45) ? st.rumor : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
+  S.flags.lastRumor = r;
+  act(1, `在酒樓要了一壺酒，聽鄰桌閒談：「${r}」`, 'city', 70);
 }
 function arena() {
   const e = foe(pick(['擂主「鐵塔」趙橫', '擂主「快劍」柳七', '擂主「雙刀」賀三娘']), 2, 0.6, pick(['thug', 'sword', 'blade']));

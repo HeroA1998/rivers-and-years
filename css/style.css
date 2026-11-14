@@ -176,3 +176,9 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .card.lost { opacity: 1; filter: none; color: var(--ink2); background: var(--line); border-color: var(--line); }
 .card.lost svg, .card.lost b { opacity: .45; }
 .blog.recap { height: 200px; }
+
+/* 主線目標 */
+.quest { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: center; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--seal); border-radius: 4px; }
+.quest h3 { color: var(--ink); letter-spacing: .08em; } .quest p { grid-column: 1 / -1; font: 17px/1.6 var(--f-brush); } .quest small { grid-column: 1 / -1; color: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.quest.done { border-left-color: var(--jade); } .quest.done p { font-size: 15px; color: var(--ink2); }
+.log.journal li { opacity: 1; }
