@@ -430,6 +430,10 @@ function rest(days, cost, text) {
   S.silver -= cost; S.hp = maxHp(); S.mp = maxMp();
   act(days, text, null);
 }
+function roughSleep() {
+  S.hp = Math.max(S.hp, Math.round(maxHp() * 0.6)); S.mp = Math.max(S.mp, Math.round(maxMp() * 0.6));
+  act(3, S.origin === '破廟孤兒' ? '在城隍廟的屋簷下蜷了三夜。這種日子你從小過慣了，倒也睡得著。' : '囊中羞澀，在城隍廟的屋簷下湊合了三夜，沒怎麼睡好。', 'city', 30);
+}
 function toastRender(s) { toast(s); render(); }
 function work() {
   const pay = Math.round((30 + S.stats.str * 3) * (S.sect === 'fengchen' ? 1.5 : 1));
@@ -500,9 +504,7 @@ function sectTask() {
   const k = SECTS[S.sect];
   advance(10);
   const c = ri(24, 38) + S.rank * 4;
-  const tasks = k.align < 0
-    ? ['押送一批來路不明的貨物', '替教中收取各地分舵的供奉', '看守崖下地牢']
-    : ['下山採買糧米藥材', '護送香客與商隊過山', '抄錄整理藏經閣典籍', '指點新入門的師弟師妹'];
+  const tasks = k.tasks;
   if (chance(30)) {
     const e = k.align < 0 ? foe('正道遊俠', 1, 0.55, 'sword') : foe(pick(['血煞教探子', '盜經賊', '尋仇的惡客']), 1, 0.55, pick(['blade', 'thug']));
     Q.unshift({ type: '戰鬥', title: '門派任務', art: 'fight', text: `你奉命${pick(tasks)}，途中遇上${e.n}發難。`,

@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v0.1.0';
+const VERSION = 'v0.2.0';
 const ERA = '天啟';
 
 /* ---------- 地點 ---------- */
@@ -86,22 +86,22 @@ const SKILLS = {
 const RANKS = ['外門弟子', '內門弟子', '真傳弟子', '長老', '掌門'];
 const RANK_NEED = [0, 100, 300, 700];   // 晉升所需累計貢獻
 const SECTS = {
-  tianlan: { n: '天嵐劍宗', loc: 'tianlan', align: 1, master: '凌虛子', style: '劍法・輕靈迅捷',
+  tianlan: { tasks: ['下山採買劍胚與磨石', '護送宗門信使過山', '在洗劍池打磨同門佩劍', '指點新入門的師弟師妹練劍'], n: '天嵐劍宗', loc: 'tianlan', align: 1, master: '凌虛子', style: '劍法・輕靈迅捷',
     d: '正道劍宗之首，門規森嚴，只收悟性上佳者。', req: s => s.stats.int >= 6, reqT: '悟性須達 6',
     teach: [['tl_sword', 0, 0], ['tl_nei', 1, 60], ['tl_qing', 1, 80], ['tl_cloud', 2, 160]], ult: 'tl_ult' },
-  bore: { n: '般若寺', loc: 'bore', align: 1, master: '了塵方丈', style: '拳掌・剛猛厚重',
+  bore: { tasks: ['下山化緣、施粥濟貧', '護送香客過嵩嶽山道', '抄錄整理藏經閣典籍', '在羅漢堂陪練新入門的沙彌'], n: '般若寺', loc: 'bore', align: 1, master: '了塵方丈', style: '拳掌・剛猛厚重',
     d: '佛門武學淵源最深，重根基，戒殺生。', req: s => s.moral >= 0 && s.stats.con >= 6, reqT: '根骨須達 6，且非奸邪之徒',
     teach: [['br_fist', 0, 0], ['br_nei', 1, 60], ['br_palm', 2, 160]], ult: 'br_ult' },
-  xuanzhen: { n: '玄真觀', loc: 'xuanzhen', align: 1, master: '松鶴真人', style: '內功・以柔克剛',
+  xuanzhen: { tasks: ['上山採集煉丹藥材', '為山下村民作法事祈福', '抄寫道藏經卷', '清掃紫霄峰三千石階'], n: '玄真觀', loc: 'xuanzhen', align: 1, master: '松鶴真人', style: '內功・以柔克剛',
     d: '道家玄門，內功冠絕天下，講究清靜無為。', req: s => s.stats.int >= 7, reqT: '悟性須達 7',
     teach: [['xz_sword', 0, 0], ['xz_nei', 1, 60], ['xz_qing', 1, 80], ['xz_palm', 2, 160]], ult: 'xz_ult' },
-  baihua: { n: '百花谷', loc: 'baihua', align: 0, master: '花谷主', style: '暗器・醫毒雙修',
+  baihua: { tasks: ['出谷為村民義診', '照料藥圃裡的奇花異草', '護送一批藥材去臨安藥行', '替谷主試新配的藥方'], n: '百花谷', loc: 'baihua', align: 0, master: '花谷主', style: '暗器・醫毒雙修',
     d: '不問正邪，只問緣分。谷中弟子精於醫術與暗器。', req: s => s.stats.cha >= 6 || s.stats.luck >= 7, reqT: '魅力須達 6，或福緣須達 7',
     teach: [['bh_dart', 0, 0], ['bh_nei', 1, 60], ['bh_qing', 1, 80], ['bh_star', 2, 160]], ult: 'bh_ult' },
-  xuesha: { n: '血煞教', loc: 'xuesha', align: -1, master: '厲無咎', style: '刀法・狠辣詭譎',
+  xuesha: { tasks: ['押送一批來路不明的貨物', '替教中收取各地分舵的供奉', '看守崖下地牢'], n: '血煞教', loc: 'xuesha', align: -1, master: '厲無咎', style: '刀法・狠辣詭譎',
     d: '邪道第一大教，強者為尊。入教者將為正道所不容。', req: s => s.moral <= 20, reqT: '俠義之名太盛者不收',
     teach: [['xs_blade', 0, 0], ['xs_nei', 1, 50], ['xs_shura', 2, 150]], ult: 'xs_ult' },
-  fengchen: { n: '風塵幫', loc: 'fengchen', align: 0, master: '洪七爺', style: '拳掌・市井實戰',
+  fengchen: { tasks: ['在渡口替幫中兄弟排解糾紛', '沿街打探各路消息回報總舵', '押送一船糧米過黃河', '照看幫裡收留的孤兒'], n: '風塵幫', loc: 'fengchen', align: 0, master: '洪七爺', style: '拳掌・市井實戰',
     d: '天下第一大幫，販夫走卒皆兄弟，來者不拒。', req: () => true, reqT: '無',
     teach: [['fc_palm', 0, 0], ['fc_nei', 1, 50], ['fc_qing', 1, 70], ['fc_drunk', 2, 150]] , ult: null },
 };
