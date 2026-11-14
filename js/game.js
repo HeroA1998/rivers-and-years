@@ -74,7 +74,7 @@ function newGame(c, legacy) {
   Q = [];
   log(legacy
     ? `${S.name}帶著${legacy.from}的遺澤踏入洛陽城。上一代的故事已成傳說，這一代的才剛開始。`
-    : `${S.name}，${o.n}，年方十六，懷揣${S.silver}兩盤纏來到洛陽城，決心闖出一番名堂。`);
+    : `${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到洛陽城，決心闖出一番名堂。`);
   UI = { screen: 'game', tab: 'world', ov: null };
   save(); render();
 }
@@ -414,7 +414,7 @@ function train(id) {
   if (home) g *= 1.3;
   if (k.type !== 'nei') g *= 1 + neiLv() * 0.01;
   const up = xp(id, g);
-  act(10, `閉門苦練${k.n}十日${home ? '，有同門指點，事半功倍' : ''}。${up}`, LOCS[S.loc].kind, 25);
+  act(10, `${S.origin === '破廟孤兒' && !S.sect ? '在城外荒地上' : '閉門'}苦練${k.n}十日${home ? '，有同門指點，事半功倍' : ''}。${up}`, LOCS[S.loc].kind, 25);
 }
 function drill(st) {
   UI.ov = null;

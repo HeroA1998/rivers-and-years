@@ -24,6 +24,18 @@ const rainNpc = s => Object.keys(s.npcs).find(i => s.npcs[i].met && s.npcs[i].fa
 // 節日能否相伴：對方就在此地，或已成親同行
 const nearNpc = min => { const id = topNpc(min); return id && (id === S.spouse || NPCS[id].loc === S.loc) ? id : null; };
 
+// 邂逅條件：初入江湖的前三個月不談情緣；每位有緣人只在合乎你身分與處境時才會遇上
+const daysIn = s => (s.date.y - 1) * 360 + (s.date.m - 1) * 30 + s.date.d;
+const MEET = {
+  su:   { cond: s => s.sect === 'tianlan' || s.fame >= 60,
+          text: s => s.sect === 'tianlan' ? NPCS.su.meet.replace('「看夠了？這條路外人不該來。」', '「看夠了？新入門的都愛躲在樹後偷看，你倒是頭一個站著不動的。」') : NPCS.su.meet },
+  hua:  { cond: () => true },
+  li:   { cond: s => s.fame >= 30 || power() >= 7 },                       // 她只對有點膽色本事的人感興趣
+  gu:   { cond: s => s.silver >= 50 },                                     // 他開口就是借錢
+  shen: { cond: s => s.origin === '書香門第' || s.stats.int >= 8 || s.fame >= 80 || s.sect === 'xuanzhen',   // 書肆不是誰都會進去、也不是誰都留得住
+          text: s => s.origin === '破廟孤兒' ? '你在洛陽書肆的屋簷下避雨，隔著窗看架上的書。夥計正要趕人，一個青衣男子攔住了他，把一卷書遞到窗外：「認得字麼？這本講的是劍理，卻沒有一招劍法。雨停之前，進來坐著讀吧。」' : NPCS.shen.meet },
+};
+
 const EVENTS = [
   /* ================= 江湖 ================= */
   { id: 'j_refugee', type: '江湖', title: '路有饑民', ctx: ['travel', 'city'], w: 9, art: 'road',
@@ -277,15 +289,16 @@ const EVENTS = [
 
   /* ================= 戀愛（邂逅與插曲） ================= */
   ...Object.keys(NPCS).map(id => ({
-    id: 'm_' + id, type: '戀愛', title: `邂逅・${NPCS[id].n}`, ctx: ['city', 'sect', 'travel'], loc: NPCS[id].loc, w: 45, once: true, art: 'love',
-    text: NPCS[id].meet,
+    id: 'm_' + id, type: '戀愛', title: `邂逅・${NPCS[id].n}`, ctx: ['city', 'sect', 'travel'], loc: NPCS[id].loc, w: 16, once: true, art: 'love',
+    cond: s => daysIn(s) > 90 && MEET[id].cond(s),
+    text: s => MEET[id].text ? MEET[id].text(s) : NPCS[id].meet,
     choices: [
       { t: '上前攀談', go: () => { const n = npc(id); n.met = true; n.fav += 8; return `你與${NPCS[id].n}（${NPCS[id].title}）就此相識。${NPCS[id].d}〔好感+8〕`; } },
       { t: '點頭致意，就此別過', go: () => { const n = npc(id); n.met = true; n.fav += 2; return `你記住了這個名字：${NPCS[id].n}。往後在${LOCS[NPCS[id].loc].n}，或許還會再見。`; } },
     ],
   })),
   { id: 'r_rain', type: '戀愛', title: '一傘煙雨', ctx: ['city', 'sect'], w: 12, art: 'love',
-    cond: s => rainNpc(s),
+    cond: s => rainNpc(s) && daysIn(s) > 90,
     text: s => { const id = rainNpc(s); s.flags.rainId = id; return `驟雨忽至，你在屋簷下躲雨，身旁多了一個人。${NPCS[id].n}撐開一把油紙傘，往你這邊偏了偏：「一起走？」傘不大，兩個人的肩膀都濕了一半。`; },
     choices: [
       { t: '接過傘柄，往對方那邊傾', go: s => { const n = s.npcs[s.flags.rainId]; n.fav = clamp(n.fav + 7, 0, 100); return `一路上誰也沒說話，雨聲卻一點也不嫌吵。〔${NPCS[s.flags.rainId].n} 好感+7〕`; } },
