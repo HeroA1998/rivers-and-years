@@ -348,9 +348,11 @@ function commitRound() {
   const pN = { A: `${bm.n}`, B: `重手・${bm.n}`, G: '守勢反擊' };
   const marks = [];
   let pc = 0, ec = 0;
+  const slots = [], tail = [], start = { hp: S.hp, eh: e.hp, mp: S.mp };
+  const tl = x => { tail.push(x); bLog('　' + x); };
   bLog(`—— 第${cnNum(b.round)}回合 ——`);
   for (let i = 0; i < 6 && !b.over; i++) {
-    const p = b.plan[i];
+    const p = b.plan[i], hp0 = S.hp, eh0 = e.hp, L = [];
     let f = b.foe[i], res, s;
     if (b.fx.stun) { b.fx.stun = 0; f = '-'; }
     const fHit = (mul = 1) => f === 'A' ? hitMe(b, m0[0], m0[1], mul) : f === 'B' ? hitMe(b, m1[0], m1[1], mul) : f === 'X' ? hitMe(b, mx[0], mx[1] * 1.25, mul) : '';
@@ -379,22 +381,38 @@ function commitRound() {
       s = f === 'G' ? `${e.n}架開你的攻勢，反手一擊。` + hitMe(b, '反擊', m0[1] * 0.55) : (f === 'A' ? '你的重手還沒使老，已被搶了先機。' : '你的守勢被重手硬生生砸開。') + fHit();
       res = 'l';
     }
-    bLog(`${'①②③④⑤⑥'[i]} ${s}`);
+    L.push(s);
     marks.push(res === 'w' ? '○' : res === 'l' ? '×' : '△');
     if (res === 'w') { pc++; ec = 0; } else if (res === 'l') { ec++; pc = 0; } else { pc = 0; ec = 0; }
-    if (pc === 3 && e.hp > 0) { pc = 0; bLog('　連勝三手，追擊！' + hitFoe(b, `追擊・${bm.n}`, bm.k, bm.lv, bm.pow, 1.5)); }
-    if (ec === 3 && S.hp > 0) { ec = 0; bLog('　連失三手，被對方追擊！' + hitMe(b, m0[0], m0[1] * 1.5)); }
+    if (pc === 3 && e.hp > 0) { pc = 0; L.push('連勝三手，追擊！' + hitFoe(b, `追擊・${bm.n}`, bm.k, bm.lv, bm.pow, 1.5)); }
+    if (ec === 3 && S.hp > 0) { ec = 0; L.push('連失三手，被對方追擊！' + hitMe(b, m0[0], m0[1] * 1.5)); }
     if (e.hp <= 0) { e.hp = 0; b.over = 'win'; } else if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; }
+    slots.push({ res, f, lines: L, dE: eh0 - e.hp, dP: hp0 - S.hp, hpP: S.hp, hpE: e.hp, mpP: S.mp });
+    L.forEach((x, n) => bLog((n ? '　' : '①②③④⑤⑥'[i] + ' ') + x));
   }
   bLog(`　敵方出招：${b.foe.map(c => ST[c]).join(' ')}　勝負：${marks.join(' ')}`);
-  if (!b.over && b.fx.bleed) { b.fx.bleed--; e.hp -= b.fx.bleedV; bLog(`　${e.n}失血，損失 ${b.fx.bleedV} 點氣血。`); }
-  if (!b.over && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; bLog(`　${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
+  if (!b.over && b.fx.bleed) { b.fx.bleed--; e.hp -= b.fx.bleedV; tl(`${e.n}失血，損失 ${b.fx.bleedV} 點氣血。`); }
+  if (!b.over && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; tl(`${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
   if (!b.over && e.hp <= 0) { e.hp = 0; b.over = 'win'; }
   if (b.fx.weak) b.fx.weak--;
-  if (b.over === 'win') bLog(`${e.n}倒下了。你贏了。`);
-  else if (b.over === 'lose') bLog('你眼前一黑，栽倒在地……');
-  else { S.mp = Math.min(maxMp(), S.mp + 3); b.round++; newRound(b); }
-  b.plan = b.over ? [] : b.plan;
+  if (b.over === 'win') tl(`${e.n}倒下了。你贏了。`);
+  else if (b.over === 'lose') tl('你眼前一黑，栽倒在地……');
+  // 進入揭牌：逐手亮出雙方的牌與勝負
+  b.rv = { slots, tail, plan: b.plan.slice(), shown: b.shown.slice(), step: 0, start };
+  render();
+  clearTimeout(revealTimer); revealTimer = setTimeout(revealTick, 450);
+}
+let revealTimer = 0;
+function revealTick() {
+  const b = UI.ov;
+  if (!b || b.k !== 'battle' || !b.rv || b.rv.step >= b.rv.slots.length) return;
+  b.rv.step++; render();
+  if (b.rv.step < b.rv.slots.length) revealTimer = setTimeout(revealTick, 950);
+}
+function revealSkip() { const b = UI.ov; clearTimeout(revealTimer); b.rv.step = b.rv.slots.length; b.rv.skipped = true; render(); }
+function nextRound() {
+  const b = UI.ov; clearTimeout(revealTimer); b.rv = null;
+  if (!b.over) { S.mp = Math.min(maxMp(), S.mp + 3); b.round++; newRound(b); }
   render();
 }
 function pFlee() {

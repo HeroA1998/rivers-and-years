@@ -22,7 +22,7 @@ function render() {
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.innerHTML = html;
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
-  const bl = document.querySelector('.blog'); if (bl) bl.scrollTop = bl.scrollHeight;
+  const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
 }
 
@@ -224,12 +224,12 @@ function overlay() {
     </div></div>`;
   }
   // 戰鬥：猜拳式對決
+  if (o.rv) return revealView(o);
   const e = o.e, mv = pMoves(), bm = basicMove(), full = o.plan.length >= 6, left = S.mp - planMp(o);
   const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
-  const pl = p => p.t === 'S' ? '絕' : p.t === 'I' ? '藥' : p.t === 'H' ? '息' : ST[p.t];
   const cells = `<div class="duel">
-      <span class="who-l">敵</span>${o.foe.map((c, i) => `<i class="cell ${o.shown[i] ? 'c' + c : 'unk'}">${o.shown[i] ? ST[c] : '？'}</i>`).join('')}
-      <span class="who-l">我</span>${[0, 1, 2, 3, 4, 5].map(i => o.plan[i] ? `<i class="cell c${o.plan[i].t}" title="${o.plan[i].t === 'S' ? o.plan[i].mv.n : ''}">${pl(o.plan[i])}</i>` : `<i class="cell empty${i === o.plan.length ? ' next' : ''}"></i>`).join('')}
+      <span class="who-l">敵</span>${o.foe.map((c, i) => o.shown[i] ? card(c) : card('?')).join('')}
+      <span class="who-l">我</span>${[0, 1, 2, 3, 4, 5].map(i => o.plan[i] ? card(o.plan[i].t) : `<i class="cell empty${i === o.plan.length ? ' next' : ''}"></i>`).join('')}
     </div>`;
   let ctl;
   if (o.over) ctl = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
@@ -237,9 +237,9 @@ function overlay() {
     const meds = Object.keys(S.inv).filter(i => ITEMS[i].kind === 'med');
     ctl = `<div class="moves-grid">${meds.map(i => `<button type="button" class="mv"${h(() => planAdd({ t: 'I', item: i }))}><b>${ITEMS[i].n} ×${S.inv[i]}</b><small>${ITEMS[i].d}・佔一手</small></button>`).join('') || '<p class="empty">沒有丹藥了。</p>'}</div><div class="row4">${B('返回', () => { o.sub = null; render(); }, 'mini')}</div>`;
   } else ctl = `<div class="stances">
-        <button type="button" class="mv cA"${full ? ' disabled' : h(() => planAdd({ t: 'A' }))}><b>攻</b><small>快招・克破</small></button>
-        <button type="button" class="mv cB"${full ? ' disabled' : h(() => planAdd({ t: 'B' }))}><b>破</b><small>重手・克守</small></button>
-        <button type="button" class="mv cG"${full ? ' disabled' : h(() => planAdd({ t: 'G' }))}><b>守</b><small>反擊・克攻</small></button>
+        <button type="button" class="mv cA"${full ? ' disabled' : h(() => planAdd({ t: 'A' }))}>${ICON.A}<b>攻</b><small>快招・克破</small></button>
+        <button type="button" class="mv cB"${full ? ' disabled' : h(() => planAdd({ t: 'B' }))}>${ICON.B}<b>破</b><small>重手・克守</small></button>
+        <button type="button" class="mv cG"${full ? ' disabled' : h(() => planAdd({ t: 'G' }))}>${ICON.G}<b>守</b><small>反擊・克攻</small></button>
       </div>
       ${mv.length ? `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${full || left < m.mp ? ' disabled' : h(() => planAdd({ t: 'S', mv: m }))}><b>${m.n}</b><small>絕招・內力 ${m.mp}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>` : ''}
       <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>
@@ -254,6 +254,61 @@ function overlay() {
       <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em></div>
       <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}${planMp(o) ? `（本回合將用 ${planMp(o)}）` : ''}</em></div>
     </div>${ctl}</div></div>`;
+}
+
+/* ---------- 指令牌與揭牌 ---------- */
+const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const ICON = {
+  A: svg('<path d="M20.5 3.5l-11 11M20.5 3.5L15 4.5 6.5 13l4.5 4.5L19.5 9z" fill="currentColor" fill-opacity=".18"/><path d="M5 12l7 7M8.5 15.5L3.5 20.5"/>'),            // 劍
+  B: svg('<path d="M13.5 2.5l8 8-3.5 3.5-8-8z" fill="currentColor" fill-opacity=".18"/><path d="M12.5 8.5L3 18l3 3 9.5-9.5"/>'),                                             // 重錘
+  G: svg('<path d="M12 2.5l8 3v6.5c0 5-3.4 8.3-8 9.5-4.6-1.2-8-4.5-8-9.5V5.5z" fill="currentColor" fill-opacity=".18"/><path d="M12 7v9M8 11.5h8"/>'),                       // 盾
+  S: svg('<path d="M12 2l2.6 6.4L21 9l-5 4.4L17.6 20 12 16.4 6.4 20 8 13.4 3 9l6.4-.6z" fill="currentColor" fill-opacity=".3"/>'),                                           // 絕招
+  I: svg('<path d="M10 2.5h4M10.5 2.5v3a3.2 3.2 0 00-.8 5.4 5.6 5.6 0 104.6 0 3.2 3.2 0 00-.8-5.4v-3" fill="currentColor" fill-opacity=".18"/>'),                            // 藥葫蘆
+  H: svg('<path d="M4 13a8 8 0 1113.5 5.8M12 13a3.2 3.2 0 10-3.2-3.2M8 20.5h8"/>'),                                                                                          // 調息
+  '?': svg('<path d="M12 3l9 9-9 9-9-9z"/><path d="M12 8l4 4-4 4-4-4z" fill="currentColor" fill-opacity=".25"/>'),
+  '-': svg('<path d="M5 8c2-3 5 3 7 0s5 3 7 0M5 15c2-3 5 3 7 0s5 3 7 0"/>'),
+};
+ICON.X = ICON.S;
+const CARD_N = { A: '攻', B: '破', G: '守', S: '絕', X: '絕', I: '藥', H: '息', '?': '？', '-': '暈' };
+const card = (t, cls = '', extra = '') => `<i class="cell card c${t === '?' ? 'U' : t === '-' ? 'U' : t} ${cls}">${ICON[t]}<b>${CARD_N[t]}</b>${extra}</i>`;
+
+function revealView(o) {
+  const rv = o.rv, e = o.e, n = rv.slots.length, st = rv.step, done = st >= n;
+  const cur = st > 0 ? rv.slots[st - 1] : null;
+  const RES = { w: ['勝', 'win'], l: ['負', 'lose'], t: ['平', 'tie'] };
+  const dmg = v => v > 0 ? `<em class="dmg">-${v}</em>` : v < 0 ? `<em class="dmg heal">+${-v}</em>` : '';
+  const foeRow = [0, 1, 2, 3, 4, 5].map(i => {
+    if (i >= st) return i < n || !done ? (rv.shown[i] ? card(o.foe[i]) : card('?')) : card('?', 'void');
+    const s = rv.slots[i], now = i === st - 1 && !rv.skipped;
+    return card(s.f, `${s.res === 'l' ? 'won' : s.res === 'w' ? 'lost' : ''} ${now ? (rv.shown[i] ? 'pulse' : 'flip') : ''}`, i === st - 1 || done ? dmg(s.dE) : '');
+  }).join('');
+  const midRow = [0, 1, 2, 3, 4, 5].map(i => i < st ? `<span class="res ${RES[rv.slots[i].res][1]} ${i === st - 1 && !rv.skipped ? 'pop' : ''}">${RES[rv.slots[i].res][0]}</span>` : '<span class="res"></span>').join('');
+  const myRow = [0, 1, 2, 3, 4, 5].map(i => {
+    if (i >= st) return card(rv.plan[i].t, i >= n && done ? 'void' : '');
+    const s = rv.slots[i], now = i === st - 1 && !rv.skipped;
+    return card(rv.plan[i].t, `${s.res === 'w' ? 'won' : s.res === 'l' ? 'lost' : ''} ${now ? 'pulse' : ''}`, i === st - 1 || done ? dmg(s.dP) : '');
+  }).join('');
+  const hpP = done ? S.hp : cur ? cur.hpP : rv.start.hp, hpE = done ? e.hp : cur ? cur.hpE : rv.start.eh, mpP = done ? S.mp : cur ? cur.mpP : rv.start.mp;
+  const w = rv.slots.slice(0, st).filter(s => s.res === 'w').length, l = rv.slots.slice(0, st).filter(s => s.res === 'l').length;
+  const note = done
+    ? `<ol class="blog recap">${rv.slots.map((s, i) => `<li class="${RES[s.res][1]}"><b>${'①②③④⑤⑥'[i]} ${RES[s.res][0]}</b> ${s.lines.join('')}</li>`).join('')}${rv.tail.map(t => `<li>${t}</li>`).join('')}</ol>`
+    : `<div class="callout ${cur ? RES[cur.res][1] : ''}">${cur ? `<b>第${cnNum(st)}手・${RES[cur.res][0]}</b>${cur.lines.map(x => `<span>${x}</span>`).join('')}` : '<b>揭牌——</b><span>雙方同時亮出這一回合的六手。</span>'}</div>`;
+  return `<div class="veil"><div class="sheet battle">
+    <p class="tag seal">戰鬥・第${cnNum(o.round)}回合・揭牌</p>
+    <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${bar(hpE, e.mhp, 'hp')}<em>${Math.max(0, hpE)}/${e.mhp}</em></div>
+    <div class="duel reveal">
+      <span class="who-l">敵</span>${foeRow}
+      <span class="who-l"></span>${midRow}
+      <span class="who-l">我</span>${myRow}
+    </div>
+    <p class="score">本回合　<b class="win">勝 ${w}</b>　<b class="lose">負 ${l}</b>　<b class="tie">平 ${st - w - l}</b></p>
+    ${note}
+    <div class="vitals in-battle">
+      <div><span>氣血</span>${bar(hpP, maxHp(), 'hp')}<em>${Math.max(0, hpP)}/${maxHp()}</em></div>
+      <div><span>內力</span>${bar(mpP, maxMp(), 'mp')}<em>${mpP}/${maxMp()}</em></div>
+    </div>
+    <div class="col">${done ? (o.over ? B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big') : B('下一回合', nextRound, 'primary big')) : B('跳過動畫', revealSkip, 'big')}</div>
+  </div></div>`;
 }
 
 /* ---------- 啟動 ---------- */
