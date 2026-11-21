@@ -368,7 +368,7 @@ function foe(n, fix, mult, style, extra) {
    敵人各有慣用套路，交手越多、悟性越高，能預先看穿的手數越多。 */
 const ST = { A: '攻', B: '破', G: '守', X: '絕' };
 const BEATS = { A: 'B', B: 'G', G: 'A' };
-const DMG_K = 0.5;
+const DMG_K = 1.3;
 const FOE_PATTERNS = {
   thug:   ['AABAAB', 'ABAABA', 'AAABAG', 'BAAAAB'],
   blade:  ['BABBAG', 'BBABAB', 'ABBGBA', 'BGBABX'],
@@ -418,7 +418,7 @@ function startBattle(r) {
   S.flags.sinceFight = 0;
   UI.ov = {
     k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
-    log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null,
+    log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null, esc: 1,
   };
   PEND = [];
   const K = maxMp() / Math.max(1, qiMax());           // 一顆氣團＝K 點戰鬥內力
@@ -480,7 +480,7 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
   const e = b.e;
   if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
   const w = S.weapon && ITEMS[S.weapon].wt === k.type ? ITEMS[S.weapon].atk : 0;
-  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1);
+  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1) * (b.esc || 1);
   const crit = chance(S.stats.luck * 1.3 + fxSum('crit'));
   if (crit) dmg *= 1.6;
   dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25)));
@@ -497,7 +497,7 @@ function hitMe(b, label, mult, mul = 1) {
   const e = b.e;
   if (chance(clamp((pDodge() - e.agi) * 1.2 + 4, 0, 30))) return `${e.n}的「${label}」被你閃身避過。`;
   const red = (1 - Math.min(0.5, fxSum('dmgRed'))) * (1 - fxSum('foeWeak'));
-  const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul * red));
+  const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul * red * (b.esc || 1)));
   S.hp -= dmg;
   const rf = fxSum('reflect');
   if (rf) { const r = Math.max(1, Math.round(dmg * rf)); e.hp -= r; return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害；你挪移卸勁，反震 ${r} 點。`; }
@@ -509,39 +509,46 @@ function commitRound() {
   const m0 = e.moves[0], m1 = e.moves[1] || [m0[0], m0[1] * 1.3], mx = e.moves[e.moves.length - 1];
   const bm = basicMove();
   const pN = { A: `${bm.n}`, B: `重手・${bm.n}`, G: '守勢反擊' };
+  const pMul = { A: 0.8, B: 1.1, G: 0.55 };
   const marks = [];
   let pc = 0, ec = 0;
   const slots = [], tail = [], start = { hp: S.hp, eh: e.hp, mp: S.mp };
   const tl = x => { tail.push(x); bLog('　' + x); };
   bLog(`—— 第${cnNum(b.round)}回合 ——`);
-  for (let i = 0; i < 6 && !b.over; i++) {
-    const p = b.plan[i], hp0 = S.hp, eh0 = e.hp, L = [];
-    let f = b.foe[i], res, s;
+  // 六手為一回合；打完還沒分勝負，就在同一回合接著打「決勝手」，傷害逐手加重，直到一方歸零
+  for (let i = 0; i < 60 && !b.over; i++) {
+    b.esc = i < 6 ? 1 : 1 + 0.35 * (i - 5);
+    const p = b.plan[i % 6], hp0 = S.hp, eh0 = e.hp, L = [];
+    if (i === 6) L.push('——六手已盡，雙方仍未分勝負，決勝手開始，傷害逐手加重。——');
+    let f = b.foe[i % 6], res, s;
     if (b.fx.stun) { b.fx.stun = 0; f = '-'; }
-    const fHit = (mul = 1) => f === 'A' ? hitMe(b, m0[0], m0[1], mul) : f === 'B' ? hitMe(b, m1[0], m1[1], mul) : f === 'X' ? hitMe(b, mx[0], mx[1] * 1.25, mul) : '';
+    // 敵方出招：每一手都會攻擊（猜贏了也一樣，只是傷害打折）
+    const enemyHit = (mul = 1) => f === 'A' ? hitMe(b, m0[0], m0[1], mul) : f === 'B' ? hitMe(b, m1[0], m1[1], mul) : f === 'X' ? hitMe(b, mx[0], mx[1] * 1.25, mul) : f === 'G' ? hitMe(b, '反擊', m0[1] * 0.55, mul) : '';
+    // 我方出招：全額 mul = 1
+    const pAtk = (mul = 1) => hitFoe(b, pN[p.t] || pN.A, bm.k, bm.lv, bm.pow, pMul[p.t] * mul);
     if (p.t === 'S') {
       S.mp -= p.mv.mp;
       s = '【絕招】' + hitFoe(b, p.mv.n, p.mv.k, p.mv.lv, p.mv.pow, f === 'G' ? 0.7 : 1, p.mv.fx) + (f === 'G' ? '（被守勢卸去三成）' : '');
-      if (f === 'X') s += fHit();
+      if (f !== '-') s += enemyHit(f === 'X' ? 1 : 0.6);
       res = f === 'X' ? 't' : 'w';
     } else if (p.t === 'I' || p.t === 'H') {
       if (p.t === 'I') { useMed(p.item); s = `你服下${ITEMS[p.item].n}。`; }
       else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (1 + fxSum('heal'))); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
-      s += fHit(); res = f === 'G' || f === '-' ? 't' : 'l';
+      s += enemyHit(1); res = f === 'G' || f === '-' ? 't' : 'l';
     } else if (f === '-') {
-      s = `${e.n}還在暈眩。` + (p.t === 'G' ? '你穩住了呼吸。' : hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1));
+      s = `${e.n}還在暈眩。` + (p.t === 'G' ? '你穩住了呼吸。' : pAtk(1));
       res = p.t === 'G' ? 't' : 'w';
-    } else if (f === 'X') {
-      s = '【敵方絕招】' + fHit(p.t === 'G' ? 0.5 : 1) + (p.t === 'G' ? '（守勢擋下一半）' : ''); res = 'l';
     } else if (p.t === f) {
-      s = p.t === 'G' ? '雙方都採守勢，互相試探。' : `${ST[f]}對${ST[f]}，硬碰硬！` + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, (p.t === 'A' ? 0.8 : 1.1) * 0.5) + fHit(0.5);
+      s = p.t === 'G' ? '雙方都採守勢，互相試探。' : `${ST[f]}對${ST[f]}，硬碰硬！` + pAtk(0.5);
+      s += enemyHit(0.5);
       res = 't';
     } else if (BEATS[p.t] === f) {
-      if (p.t === 'G') { S.mp = Math.min(maxMp(), S.mp + 4); s = `你架開${e.n}的「${m0[0]}」，順勢反擊！` + hitFoe(b, pN.G, bm.k, bm.lv, bm.pow, 0.55 * (1 + fxSum('guard'))); }
-      else s = (p.t === 'A' ? `你搶在對方重手之前出招。` : `你一記重手破開對方守勢。`) + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1);
+      s = p.t === 'G' ? `你架開${e.n}的「${m0[0]}」，順勢反擊！` : p.t === 'A' ? `你搶在對方重手之前出招。` : `你一記重手破開對方守勢。`;
+      s += pAtk(1) + '（對方還是還了一招，只是打得輕。）' + enemyHit(0.35);
       res = 'w';
     } else {
-      s = f === 'G' ? `${e.n}架開你的攻勢，反手一擊。` + hitMe(b, '反擊', m0[1] * 0.55) : (f === 'A' ? '你的重手還沒使老，已被搶了先機。' : '你的守勢被重手硬生生砸開。') + fHit();
+      s = (f === 'G' ? `${e.n}架開你的攻勢，反手一擊。` : f === 'A' ? '你的重手還沒使老，已被搶了先機。' : '你的守勢被重手硬生生砸開。');
+      s += enemyHit(1) + pAtk(0.35) + '（你也還了一招，只是輕了些。）';
       res = 'l';
     }
     L.push(s);
@@ -551,8 +558,10 @@ function commitRound() {
     if (ec === 3 && S.hp > 0) { ec = 0; L.push('連失三手，被對方追擊！' + hitMe(b, m0[0], m0[1] * 1.5)); }
     if (e.hp <= 0) { e.hp = 0; b.over = 'win'; } else if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; }
     slots.push({ res, f, lines: L, dE: eh0 - e.hp, dP: hp0 - S.hp, hpP: S.hp, hpE: e.hp, mpP: S.mp });
-    L.forEach((x, n) => bLog((n ? '　' : '①②③④⑤⑥'[i] + ' ') + x));
+    L.forEach((x, n) => bLog((n ? '　' : (i < 6 ? '①②③④⑤⑥'[i] : `決${cnNum(i - 5)}`) + ' ') + x));
   }
+  b.esc = 1;
+  if (!b.over) b.over = e.hp / e.mhp > S.hp / maxHp() ? 'win' : 'lose';   // 極端情況的保險，正常一定在決勝手內分出生死
   bLog(`　敵方出招：${b.foe.map(c => ST[c]).join(' ')}　勝負：${marks.join(' ')}`);
   if (!b.over && b.fx.bleed) { b.fx.bleed--; e.hp -= b.fx.bleedV; tl(`${e.n}失血，損失 ${b.fx.bleedV} 點氣血。`); }
   if (!b.over && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; tl(`${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
@@ -560,14 +569,7 @@ function commitRound() {
   if (b.fx.weak) b.fx.weak--;
   const rg = fxSum('regen'), mr = fxSum('mpr');
   if (!b.over && S.hp > 0 && (rg || mr)) { const hv = Math.round(maxHp() * rg); S.hp = Math.min(maxHp(), S.hp + hv); S.mp = Math.min(maxMp(), S.mp + mr); tl(`你運轉內功，${hv ? `回復 ${hv} 點氣血` : ''}${hv && mr ? '、' : ''}${mr ? `${mr} 點內力` : ''}。`); }
-  // 一局定勝負：六手打完還沒分出生死，就比誰剩下的氣血比例高；同樣多則看誰贏的手數多
-  if (!b.over) {
-    const pp = S.hp / maxHp(), ep = Math.max(0, e.hp) / e.mhp, wins = marks.filter(m => m === '○').length, loses = marks.filter(m => m === '×').length;
-    const mine = Math.round(pp * 100), theirs = Math.round(ep * 100);
-    b.over = pp > ep || (pp === ep && wins >= loses) ? 'win' : 'lose';
-    if (b.over === 'win') tl(`六手已盡，雙方都還站著。你剩 ${mine}% 氣血，${e.n}只剩 ${theirs}%。這一局，你勝了。`);
-    else { b.judged = true; tl(`六手已盡，雙方都還站著。你只剩 ${mine}% 氣血，${e.n}還有 ${theirs}%。這一局，你輸了。`); }
-  } else
+  // 六手打完還沒分出生死：下一回合接著打，每回合傷害遞增，保證一定分出生死
   if (b.over === 'win') tl(`${e.n}倒下了。你贏了。`);
   else if (b.over === 'lose') tl('你眼前一黑，栽倒在地……');
   // 進入揭牌：逐手亮出雙方的牌與勝負
@@ -585,7 +587,7 @@ function revealTick() {
 function revealSkip() { const b = UI.ov; clearTimeout(revealTimer); b.rv.step = b.rv.slots.length; b.rv.skipped = true; render(); }
 function nextRound() {
   const b = UI.ov; clearTimeout(revealTimer); b.rv = null;
-  if (!b.over) { S.mp = Math.min(maxMp(), S.mp + 3); b.round++; newRound(b); }
+  if (!b.over) { S.mp = Math.min(maxMp(), S.mp + 3); b.round++; b.esc = 1 + 0.3 * (b.round - 1); newRound(b); }
   render();
 }
 function pFlee() {
@@ -624,7 +626,7 @@ function endBattle() {
     S.losses++; hurtQ();
     r = b.lose ? b.lose(S) : defeat();
     if (r && typeof r === 'object') return handleResult(r);
-    r = (b.surr ? '你認輸了。' : b.judged ? '六手過後，你略處下風，只得收招認輸。' : '') + r + gainExp(6 + b.e.P);
+    r = (b.surr ? '你認輸了。' : '') + r + gainExp(6 + b.e.P);
   } else r = '你且戰且退，總算甩開了對手。';
   UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r + takePend(), who: b.who };
   render();

@@ -219,7 +219,7 @@ const REF = {
       <h4>氣血與內力</h4><p>氣血是「命」：起始 3 顆愛心。打輸一場戰鬥扣一顆，事件失敗（檢定沒過、受傷）也扣一顆，歸零就命喪江湖，這一世結束、由後人接續。命每過兩個月自然回一顆，金創藥回一顆，大還丹全滿，升級也會回一顆。內力是「氣團」：事件裡的運功、拚盡全力的選項會消耗，戰鬥中的絕招也用它；每二十天回一顆，回氣散回兩顆。</p>
       <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
       <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
-      <h4>戰鬥</h4><p>一局定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 10 看一半，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手打完先倒下者敗，都沒倒下就比誰剩的氣血比例高。打不過可以投降。</p>
+      <h4>戰鬥</h4><p>一回合定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 10 看一半，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻。每一手雙方都會出招：贏的一方傷害全額，輸的一方仍會還手，只是打得輕；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手後若仍未分勝負，進入決勝手，傷害逐手加重，直到一方血量歸零。打不過可以投降。</p>
       <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。路上偶爾會回城一趟，買金創藥、回氣散，或是一本武功秘笈。</p>
       <h4>年代</h4><p>目前只開放射鵰篇（1222 起）；神鵰篇、倚天篇暫時封印。</p>
       <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫；邪道：鐵掌幫。</p>
@@ -292,13 +292,13 @@ function overlay() {
   const chips = (ids) => ids.map(id => `<i class="ac r-${artRole(id)}" title="${SKILLS[id].n}">${TYPE_N[SKILLS[id].type][0]}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const adv = o.over ? null : advPct(o);
   return `<div class="veil"><div class="sheet battle">
-    <div class="bhead"><p class="tag seal">戰鬥・一局定勝負</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
+    <div class="bhead"><p class="tag seal">戰鬥・一回合定勝負</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
     <div class="vs">
       <div class="side-p"><b>${esc(S.name)}</b><span class="ico small">${hearts()}</span><span class="pw">戰力 ${Math.round(power())}</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em><div class="acs">${chips(S.eq)}</div></div>
       <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">勝算 ${adv.toFixed(1)}%</span>`}</div>
       <div class="side-e">${face(o.who, 'mini-face')}<b>${e.n}</b><span class="pw">戰力 ${Math.round(e.P)}</span>${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em><div class="acs">${fx}${e.moves.map(m => `<i class="ac r-foe">${m[0][0]}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     </div>
-    <p class="rule">只打這一局：六手出完，先倒下者敗；都沒倒下，就比誰剩的氣血比例高。輸了扣一顆命。攻克破・破克守・守克攻，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
+    <p class="rule">一回合定勝負：六手出完，雙方每一手都出招，贏的一方傷害全額，輸的一方仍會還手，只是打得輕。若六手後仍未分勝負，進入決勝手，傷害逐手加重，直到一方血量歸零。攻克破・破克守・守克攻，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
     ${o.over || !o.ins ? '' : insightHtml(o)}
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
@@ -350,14 +350,14 @@ function revealView(o) {
     ? `<ol class="blog recap">${rv.slots.map((s, i) => `<li class="${RES[s.res][1]}"><b>${'①②③④⑤⑥'[i]} ${RES[s.res][0]}</b> ${s.lines.join('')}</li>`).join('')}${rv.tail.map(t => `<li>${t}</li>`).join('')}</ol>`
     : `<div class="callout ${cur ? RES[cur.res][1] : ''}">${cur ? `<b>第${cnNum(st)}手・${RES[cur.res][0]}</b>${cur.lines.map(x => `<span>${x}</span>`).join('')}` : '<b>揭牌——</b><span>雙方同時亮出這一回合的六手。</span>'}</div>`;
   return `<div class="veil"><div class="sheet battle">
-    <p class="tag seal">戰鬥・一局定勝負・揭牌</p>
+    <p class="tag seal">戰鬥・揭牌</p>
     <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${bar(hpE, e.mhp, 'hp')}<em>${Math.max(0, hpE)}/${e.mhp}</em></div>
     <div class="duel reveal">
       <span class="who-l">敵</span>${foeRow}
       <span class="who-l"></span>${midRow}
       <span class="who-l">我</span>${myRow}
     </div>
-    <p class="score">本回合　<b class="win">勝 ${w}</b>　<b class="lose">負 ${l}</b>　<b class="tie">平 ${st - w - l}</b></p>
+    <p class="score">本回合　<b class="win">勝 ${w}</b>　<b class="lose">負 ${l}</b>　<b class="tie">平 ${st - w - l}</b>${n > 6 ? `　<b class="seal">決勝手 ${Math.min(st, n) - 6} 手</b>` : ''}</p>
     ${note}
     <div class="vitals in-battle">
       <div><span>氣血</span>${bar(hpP, maxHp(), 'hp')}<em>${Math.max(0, hpP)}/${maxHp()}</em></div>
