@@ -680,3 +680,8 @@ body { font-size: 16px; }
 
 @media (prefers-reduced-motion: reduce) {
   .bigdie, .bigdie svg, .bigdie b, .bigdie.crit::before { animation: none !important; } }
+
+/* ================= v6.3.3 3D 骰子：three.js 渲染的真實 d20 ================= */
+.bigdie canvas { width: 100% !important; height: 100% !important; display: block; overflow: visible;
+  filter: drop-shadow(0 10px 6px rgba(43,28,16,.42)) drop-shadow(0 1px 1px rgba(43,28,16,.5)); }
+.bigdie.crit canvas { filter: drop-shadow(0 10px 8px rgba(138,90,10,.5)) drop-shadow(0 0 10px rgba(255,220,120,.7)); }

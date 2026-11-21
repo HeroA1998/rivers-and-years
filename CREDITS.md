@@ -36,3 +36,7 @@
 | elder | 師長、高人 | https://linxuelian.itch.io/charres-xxwx-mob-oldman |
 | boss | 厲無咎 | https://linxuelian.itch.io/charres-xxwx-yangertian |
 | kid | 小六子 | https://linxuelian.itch.io/charres-xxwx-mob-villagechildren |
+
+## 第三方程式庫
+
+- three.js r160（`js/vendor/three.min.js`），MIT 授權，授權全文見 `js/vendor/three.LICENSE.txt`。用於戰鬥的 3D 骰子。

@@ -448,12 +448,14 @@ function startBattle(r) {
   battleOpen(UI.ov);
   render();
 }
+let ROLL_SEQ = 0;
 // 擲骰：玩家親手擲，或跳過以 10 計（100% 戰力）
 function rollBattle(skip) {
   const b = UI.ov;
   if (!b || b.k !== 'battle' || b.phase !== 'roll') return;
   const roll = skip ? 10 : ri(1, 20);
   b.roll = roll; b.god = roll === 20;
+  b.seq = ++ROLL_SEQ;                                         // 每次擲骰的序號，讓 3D 骰子知道要重新投擲
   b.mult = roll / 10 * (1 + 0.03 * fxSum('eye'));            // 10 點＝100% 戰力
   b.take = b.god ? 0 : clamp(2 - roll / 10, 0.2, 1.9);        // 點數低時，挨打也更重
   bLog(b.god ? `擲出 20！氣勢如虹，無敵！` : `擲出 ${roll}，戰力 ${Math.round(b.mult * 100)}%。`);

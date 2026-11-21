@@ -22,6 +22,8 @@ function render() {
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
   root.innerHTML = html;
+  if (DIE3) root.querySelectorAll('.bigdie[data-phase]').forEach(el => DIE3.mount(el, {
+    seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tone: el.dataset.tone }));
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
@@ -368,10 +370,10 @@ function battleView(o) {
   const ecls = `fgt e${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
   const last = o.log[o.log.length - 1];
   // 點數在骰子落定時才揭曉；落定動畫只播一次（之後的重繪不重播）
-  const dieNum = o.roll == null || o.phase === 'rolling' ? '' : o.roll;
-  const settle = o.phase === 'fight' && o.roll != null && !o.settled;
-  if (settle) o.settled = true;
-  const dieCls = `bigdie${o.phase === 'rolling' ? ' spin' : ''}${settle ? ' settle' : ''}${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
+  const tone = o.roll === 20 ? 'gold' : o.roll === 1 ? 'iron' : 'red';
+  const dieCls = `bigdie${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
+  // 3D 骰子由 DIE3 掛載（render 之後執行）；沒有 three.js 時退回平面骰
+  const dieInner = DIE3 ? '' : `${d20Svg(tone)}<b>${o.roll == null || o.phase === 'rolling' ? '' : o.roll}</b>`;
   let side;
   if (o.over) side = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${B('擲骰子（1~20）', () => rollBattle(false), 'primary big')}${B('跳過投擲（10）', () => rollBattle(true), 'big')}</div>`;
@@ -393,7 +395,7 @@ function battleView(o) {
     <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     <div class="ctrl">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
-      <div class="${dieCls}">${d20Svg(o.roll === 20 ? 'gold' : o.roll === 1 ? 'iron' : 'red')}<b>${dieNum}</b></div>
+      <div class="${dieCls}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${dieInner}</div>
       <div class="side">${side}</div>
     </div>
     <div class="vitals in-battle one"><div class="icorow"><span>內力</span><span class="ico">${orbs(Math.ceil(S.mp / (o.K || 1) - 1e-6), qiMax())}</span><em>${S.mp}</em></div></div>
