@@ -378,3 +378,133 @@ svg.orb.off { opacity: .35; } svg.orb.off path { fill: none; }
 .arena img.bg { filter: saturate(.55) brightness(1.18) contrast(.72); }
 .arena::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(60,45,25,.28)); pointer-events: none; }
 .skillrow .ico.small { max-width: 4.2em; }
+
+/* ================= v6.1 配色與質感重做 =================
+   暖色宮紙、朱砂印、金線、靛藍夜色；覆寫在前面的規則之後。 */
+:root {
+  --paper: #F3E7CC; --card: #FBF4E2; --ink: #2B1C10; --ink2: #6B5438; --line: #CDB68A;
+  --jade: #1E6E63; --on-jade: #FFF8E6; --seal: #C0392B; --gold: #B3821A; --rose: #A23B68;
+  --indigo: #27325E; --indigo2: #3A4A86; --gold-hi: #E7C35A;
+  --art-filter: saturate(1.15) contrast(1.04);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0F1530; --card: #171F40; --ink: #F3E9CF; --ink2: #B9B08F; --line: #3B4577;
+  --jade: #6FD0BE; --on-jade: #0B1A18; --seal: #F0705C; --gold: #E6BE5C; --rose: #F09BC0;
+  --indigo: #1E2750; --indigo2: #2F3C7A; --gold-hi: #F5D77C; --art-filter: saturate(1.1) brightness(.92) } }
+:root[data-theme="dark"] {
+  --paper: #0F1530; --card: #171F40; --ink: #F3E9CF; --ink2: #B9B08F; --line: #3B4577;
+  --jade: #6FD0BE; --on-jade: #0B1A18; --seal: #F0705C; --gold: #E6BE5C; --rose: #F09BC0;
+  --indigo: #1E2750; --indigo2: #2F3C7A; --gold-hi: #F5D77C; --art-filter: saturate(1.1) brightness(.92) }
+
+/* 背景：宮紙紋理＋淡墨暈染（純 CSS，不載入圖檔） */
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.45), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(179,130,26,.16), transparent 60%),
+    linear-gradient(180deg, #F6EBD0 0%, #EEDFBE 100%);
+  color: var(--ink);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body, body.dark {
+  background: radial-gradient(900px 500px at 50% -20%, #27336A 0%, transparent 60%), linear-gradient(180deg, #111A3A 0%, #0A0F26 100%); } }
+:root[data-theme="dark"] body {
+  background: radial-gradient(900px 500px at 50% -20%, #27336A 0%, transparent 60%), linear-gradient(180deg, #111A3A 0%, #0A0F26 100%); }
+
+/* 頂欄：深靛藍底、金字 */
+header.top, .top {
+  background: linear-gradient(180deg, var(--indigo2), var(--indigo));
+  margin: -8px -8px 6px; padding: 10px 14px 8px; border-bottom: 2px solid var(--gold);
+  box-shadow: 0 3px 0 rgba(43,28,16,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+}
+.top .date { color: var(--gold-hi); font-family: var(--f-brush); letter-spacing: .04em; text-shadow: 0 1px 0 #000a; }
+.top .who { color: #E9DCB8; }
+.season { background: var(--seal) !important; box-shadow: 0 0 0 2px var(--gold-hi) inset; }
+.top .btn.gear { background: rgba(255,255,255,.08); color: var(--gold-hi); border-color: var(--gold); }
+
+/* 場景圖：金框加內暈 */
+.scene { border: 2px solid var(--gold); border-radius: 4px; box-shadow: 0 0 0 3px var(--indigo), 0 6px 14px rgba(0,0,0,.25); overflow: hidden; }
+.scene img.art { filter: var(--art-filter); }
+.place { background: linear-gradient(180deg, var(--seal), #8E2319) !important; border: 1px solid var(--gold-hi); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+
+/* 生命與內力 */
+.vitals { background: var(--card); border: 1.5px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(179,130,26,.35); }
+.vitals > div > span:first-child, .icorow > span:first-child { font-family: var(--f-brush); color: var(--indigo); font-size: 14px; }
+svg.heart.on { fill: #D7263D; stroke: #7C0F1C; filter: drop-shadow(0 0 3px rgba(215,38,61,.55)); }
+svg.heart.off { fill: #D7C6A4; stroke: #A9936B; opacity: .7; }
+svg.orb.on circle { stroke: #1B6C8C; } svg.orb.on path { fill: #47B5D8; }
+svg.orb.off circle { stroke: #A9936B; } svg.orb.off path { fill: #D7C6A4; }
+.chips { font-size: 13px; }
+.chips span { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+.chips span b { color: var(--seal); }
+.lv-bar, .bar.xp i { background: linear-gradient(90deg, #D6A032, #F5D77C) !important; }
+.bar { background: #D9C9A3; }
+.bar.hp i { background: linear-gradient(90deg, #C0392B, #E9674F) !important; }
+.bar.mp i { background: linear-gradient(90deg, #1E6E63, #4FB3A0) !important; }
+
+/* 能力格：各屬性一種顏色的頂線 */
+.statrow span { background: var(--card); border-top: 3px solid var(--gold); }
+.statrow span:nth-child(1) { border-top-color: #C0392B; } .statrow span:nth-child(2) { border-top-color: #8A5A1E; }
+.statrow span:nth-child(3) { border-top-color: #3D5BA9; } .statrow span:nth-child(4) { border-top-color: #1E8C78; }
+.statrow span:nth-child(5) { border-top-color: #B3821A; } .statrow span:nth-child(6) { border-top-color: #A23B68; }
+.statrow b { color: var(--ink); } .statrow small { color: #2E7D6E; }
+.stats > div { background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--gold); box-shadow: 0 2px 0 rgba(43,28,16,.08); }
+.stats > div span { font-family: var(--f-brush); color: var(--indigo); }
+
+/* 任務／下一步卡 */
+.guide { background: linear-gradient(160deg, var(--card), #F4E6C4); border: 1.5px solid var(--gold); border-radius: 8px; box-shadow: 0 0 0 3px #F3E7CC, 0 0 0 4px var(--gold), 0 8px 16px rgba(43,28,16,.12); padding: 14px 16px; margin: 10px 0; position: relative; }
+.guide::before, .guide::after { content: '❦'; position: absolute; color: var(--gold); font-size: 14px; }
+.guide::before { top: 5px; left: 7px; } .guide::after { bottom: 5px; right: 7px; }
+.guide h3 { font-family: var(--f-brush); color: var(--seal); font-size: 22px; margin: 6px 0 4px; }
+.tag { border-width: 1.5px; font-weight: 700; }
+.tag.jade { background: var(--jade); color: var(--on-jade); border-color: var(--jade); }
+.tag.seal { background: var(--seal); color: #FFF6E4; border-color: var(--seal); }
+.tag.gold { background: var(--gold); color: #FFF6E4; border-color: var(--gold); }
+.tag.rose { background: var(--rose); color: #FFF6E4; border-color: var(--rose); }
+.tag.grey { background: #E6D7B2; color: var(--ink2); border-color: #B8A47A; }
+.quest { background: #FAF0D7; border: 1px dashed var(--gold); border-radius: 6px; }
+.quest h3 { color: var(--indigo); }
+.rum { color: var(--ink); }
+
+/* 按鈕：主按鈕如朱印，次按鈕如絹紙 */
+.btn { background: linear-gradient(180deg, #FFF9EA, #F1E2BD); color: var(--ink); border: 1.5px solid #B8A07A; border-radius: 6px; box-shadow: 0 2px 0 #B8A07A; font-family: var(--f-brush); }
+.btn:active { transform: translateY(2px); box-shadow: 0 0 0 #B8A07A; }
+.btn.primary { background: linear-gradient(180deg, #D64B3A, #A8281B); color: #FFF6E4; border-color: #6E1A12; box-shadow: 0 3px 0 #6E1A12, 0 6px 10px rgba(110,26,18,.25); text-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.btn.primary.big { font-size: 19px; }
+.btn.on, .btn.mini.on { background: linear-gradient(180deg, var(--jade), #14564D); color: var(--on-jade); border-color: #0E3F38; }
+.btn.surr { background: linear-gradient(180deg, #FFF3E0, #F6D9B0); color: var(--seal); border-color: var(--seal); }
+.tabs { background: linear-gradient(180deg, var(--indigo2), var(--indigo)); border-top: 2px solid var(--gold); box-shadow: 0 -2px 0 rgba(43,28,16,.2); }
+.tabs button { color: #D9CFAE; font-family: var(--f-brush); }
+.tabs button.on { color: var(--gold-hi); background: rgba(255,255,255,.07); box-shadow: inset 0 -3px 0 var(--gold-hi); }
+.seg { border: 1.5px solid #B8A07A; background: #EAD9B2; }
+.seg button { background: transparent; color: var(--ink2); border-right: 1px solid #B8A07A; }
+.seg button.on { background: var(--indigo); color: var(--gold-hi); }
+
+/* 卡片：絹紙加邊 */
+.card { background: var(--card); border: 1px solid #C9AE76; border-radius: 6px; box-shadow: 0 2px 0 rgba(43,28,16,.08), inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(179,130,26,.18); }
+.card .card-h b { font-family: var(--f-brush); font-size: 19px; color: var(--indigo); }
+.group { background: transparent; }
+.group h3 { font-family: var(--f-brush); color: var(--seal); border-bottom: 1px solid #C9AE76; padding-bottom: 2px; }
+
+/* 事件浮層：宣紙雙金框、印章標籤 */
+.sheet { background: linear-gradient(180deg, #FBF3DC, #F1E3BE); border: 2px solid var(--gold); box-shadow: 0 0 0 4px #F3E7CC, 0 0 0 6px var(--gold), 0 14px 30px rgba(0,0,0,.35); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sheet { background: linear-gradient(180deg, #1B2550, #121A3C); } }
+:root[data-theme="dark"] .sheet { background: linear-gradient(180deg, #1B2550, #121A3C); }
+.veil { background: rgba(20,14,8,.55); backdrop-filter: blur(2px); }
+.sheet h2 { font-family: var(--f-brush); color: var(--seal); font-size: 26px; }
+.sheet .story { font-size: 16px; line-height: 1.85; }
+.btn.choice { border-left-width: 6px; }
+.btn.choice.side-g { background: linear-gradient(90deg, #E6F1E8, #FBF3DC 60%); border-left-color: #1E6E63; }
+.btn.choice.side-e { background: linear-gradient(90deg, #F8E1D8, #FBF3DC 60%); border-left-color: #C0392B; }
+.btn.choice.side-n { background: linear-gradient(90deg, #E5E1D7, #FBF3DC 60%); border-left-color: #8A7A5C; }
+.btn.choice .side { font-family: var(--f-brush); font-size: 13px; padding: 4px 8px; box-shadow: 0 1px 0 rgba(0,0,0,.2); }
+.side-g .side { background: #1E6E63; } .side-e .side { background: #C0392B; } .side-n .side { background: #8A7A5C; }
+
+/* 戰鬥畫面的金框與按鈕 */
+.sheet.battle .arena { border: 2px solid var(--gold); box-shadow: 0 0 0 3px #F3E7CC, 0 0 0 4px #8A6410; }
+.hpbar { border-color: #6E4A10; background: #D9C9A3; }
+.vs2 b { font-family: var(--f-brush); color: var(--indigo); }
+.vs2 .adv b { font-family: var(--f-brush); }
+.bigdie b { color: #FFF6E4; text-shadow: 0 2px 0 #6E1A12; }
+
+/* 收斂 */
+h2, h3 { font-family: var(--f-brush); }
+.lvrow em, .vitals em { color: var(--ink2); }
