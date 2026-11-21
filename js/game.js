@@ -353,7 +353,8 @@ function insightRoll(e, fixed) {
   const roll = fixed || ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0) + fxSum('eye'), total = roll + mod;
   // 擲 1 什麼都看不穿，擲 20 全部看穿；2～19 約每 3 點升一張，擲 10 看一半（3 張）
   // 擲 1 什麼都看不穿，擲 20 全部看穿；2～19 約每 3 點升一張，擲 10 看一半（3 張）
-  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor((total - 1) / 3), 0, 5);
+  // 擲 1 什麼都看不穿，擲 20 全部看穿；2～4 看 1 張，5～7 看 2 張，8～10 看 3 張（擲 10 看一半），11～14 看 4 張，15～19 看 5 張
+  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : total < 5 ? 1 : total < 8 ? 2 : total < 11 ? 3 : total < 15 ? 4 : 5;
   return { roll, mod, total, reveal };
 }
 function newRound(b) {
