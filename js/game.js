@@ -328,7 +328,7 @@ function lvOk() {
 
 /* ---------- 戰鬥 ---------- */
 // 敵人戰力：fix 是敵人本身的底子，mult 是隨主角成長的比例。氣血與攻擊隨戰力加速成長，免得主角後期一路碾壓
-const FOE_K = { pm: 1.12, hp: 26, hpE: 1.18, atk: 2.4, atkE: 1.08, fixK: 0.8 };
+const FOE_K = { pm: 1.12, hp: 26, hpE: 1.18, atk: 2.1, atkE: 1.08, fixK: 0.8 };
 function foe(n, fix, mult, style, extra) {
   const P = Math.max(1, fix * FOE_K.fixK + power() * mult * FOE_K.pm);
   const hp = Math.round(30 + FOE_K.hp * Math.pow(P, FOE_K.hpE));
@@ -351,7 +351,7 @@ const FOE_PATTERNS = {
 // 看破：每回合擲 d20，加悟性調整與交手經驗；擲得越高，越能看穿對手的攻擊牌
 function insightRoll(e, fixed) {
   const roll = fixed || ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0) + fxSum('eye'), total = roll + mod;
-  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor(total / 5), 0, 5);
+  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor(total / 5), 0, 5);   // 擲 1 什麼都看不穿，擲 20 全部看穿
   return { roll, mod, total, reveal };
 }
 function newRound(b) {
@@ -372,13 +372,13 @@ function rollInsight(skip) {
   b.shown = b.foe.map((_, i) => idx.includes(i));
   render();
 }
-// 優勢：雙方各需幾手才能打倒對方的估算
+// 勝算：一局六手打完，比較雙方損失氣血的比例，估算雙方各自預期損失多少
 function advPct(b) {
   const e = b.e, bm = basicMove();
   const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + (S.weapon && ITEMS[S.weapon].wt === bm.k.type ? ITEMS[S.weapon].atk : 0)) * neiFactor() * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006));
   const op = Math.max(1, (e.atk * 1.2 * DMG_K * (1 - fxSum('foeWeak')) - pDef() * 0.25) * (1 - Math.min(0.5, fxSum('dmgRed'))));
-  const tE = Math.max(0, e.hp) / my, tP = Math.max(1, S.hp) / op;
-  return clamp(Math.round(tP / (tP + tE) * 1000) / 10, 1, 99);
+  const pe = my / Math.max(1, e.hp), pp = op / Math.max(1, S.hp);
+  return clamp(Math.round(pe / (pe + pp) * 1000) / 10, 1, 99);
 }
 function startBattle(r) {
   const prev = UI.ov || {};
@@ -524,6 +524,14 @@ function commitRound() {
   if (b.fx.weak) b.fx.weak--;
   const rg = fxSum('regen'), mr = fxSum('mpr');
   if (!b.over && S.hp > 0 && (rg || mr)) { const hv = Math.round(maxHp() * rg); S.hp = Math.min(maxHp(), S.hp + hv); S.mp = Math.min(maxMp(), S.mp + mr); tl(`你運轉內功，${hv ? `回復 ${hv} 點氣血` : ''}${hv && mr ? '、' : ''}${mr ? `${mr} 點內力` : ''}。`); }
+  // 一局定勝負：六手打完還沒分出生死，就比誰剩下的氣血比例高；同樣多則看誰贏的手數多
+  if (!b.over) {
+    const pp = S.hp / maxHp(), ep = Math.max(0, e.hp) / e.mhp, wins = marks.filter(m => m === '○').length, loses = marks.filter(m => m === '×').length;
+    const mine = Math.round(pp * 100), theirs = Math.round(ep * 100);
+    b.over = pp > ep || (pp === ep && wins >= loses) ? 'win' : 'lose';
+    if (b.over === 'win') tl(`六手已盡，雙方都還站著。你剩 ${mine}% 氣血，${e.n}只剩 ${theirs}%。這一局，你勝了。`);
+    else { b.judged = true; tl(`六手已盡，雙方都還站著。你只剩 ${mine}% 氣血，${e.n}還有 ${theirs}%。這一局，你輸了。`); }
+  } else
   if (b.over === 'win') tl(`${e.n}倒下了。你贏了。`);
   else if (b.over === 'lose') tl('你眼前一黑，栽倒在地……');
   // 進入揭牌：逐手亮出雙方的牌與勝負
@@ -576,10 +584,10 @@ function endBattle() {
     if (r && typeof r === 'object') { if (r.battle && !r.title) r.title = b.title; return handleResult(r); }
     r += x;
   } else if (b.over === 'lose') {
-    S.losses++; if (!b.surr) S.hp = 1;
+    S.losses++; if (!b.surr && !b.judged) S.hp = 1;
     r = b.lose ? b.lose(S) : defeat();
     if (r && typeof r === 'object') return handleResult(r);
-    r = (b.surr ? '你認輸了。' : '') + r + gainExp(6 + b.e.P);
+    r = (b.surr ? '你認輸了。' : b.judged ? '六手過後，你略處下風，只得收招認輸。' : '') + r + gainExp(6 + b.e.P);
   } else r = '你且戰且退，總算甩開了對手。';
   UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r, who: b.who };
   render();

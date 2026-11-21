@@ -208,7 +208,7 @@ const REF = {
       <h4>三條路</h4><p>每件事都有三個選項：正派行動、反派行動、無視或拒絕。正派讓人敬重，反派往往有立即的好處，但會讓俠義一路往下掉，名門正派也會看不起你。有些選項要擲 d20 檢定能力值。</p>
       <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
       <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
-      <h4>戰鬥</h4><p>每回合先擲骰子看破對手：點數越高，看穿越多張攻擊牌（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。打不過可以投降。</p>
+      <h4>戰鬥</h4><p>一局定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手打完先倒下者敗，都沒倒下就比誰剩的氣血比例高。打不過可以投降。</p>
       <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。</p>
       <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
       <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代。存檔存在這支手機的瀏覽器裡。</p>
@@ -273,20 +273,20 @@ function overlay() {
         <button type="button" class="mv cG"${full ? ' disabled' : h(() => planAdd({ t: 'G' }))}>${ICON.G}<b>守</b><small>反擊・克攻</small></button>
       </div>
       ${mv.length ? `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${full || left < m.mp ? ' disabled' : h(() => planAdd({ t: 'S', mv: m }))}><b>${m.n}</b><small>絕招・內力 ${m.mp}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>` : ''}
-      <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>
+      <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}</div>
       <div class="col">${full ? B('出手', commitRound, 'primary big') : B(`補滿（還差 ${6 - o.plan.length} 手）`, planFill, 'big')}</div>`;
-  if (!o.over && !o.ins) ctl = `<div class="dice-step"><p class="desc">先擲骰子看破對手：點數越高，能先看穿越多張攻擊牌。悟性${fxSum('eye') ? '、輔助武功' : ''}與交手次數有加成。</p>
+  if (!o.over && !o.ins) ctl = `<div class="dice-step"><p class="desc">先擲骰子看破對手：點數越高，越能看穿對手的攻擊牌——擲出 20 全部看穿，擲出 1 什麼也看不穿。悟性${fxSum('eye') ? '、輔助武功' : ''}與交手次數有加成。</p>
       <div class="col">${B(`${ICON.D}擲骰子（1~20）`, () => rollInsight(false), 'primary big dice')}${B('跳過投擲（10）', () => rollInsight(true), 'big')}</div></div>`;
   const chips = (ids) => ids.map(id => `<i class="ac r-${artRole(id)}" title="${SKILLS[id].n}">${TYPE_N[SKILLS[id].type][0]}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const adv = o.over ? null : advPct(o);
   return `<div class="veil"><div class="sheet battle">
-    <div class="bhead"><p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
+    <div class="bhead"><p class="tag seal">戰鬥・一局定勝負</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
     <div class="vs">
       <div class="side-p"><b>${esc(S.name)}</b><span class="pw">戰力 ${Math.round(power())}</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em><div class="acs">${chips(S.eq)}</div></div>
       <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">勝算 ${adv.toFixed(1)}%</span>`}</div>
       <div class="side-e">${face(o.who, 'mini-face')}<b>${e.n}</b><span class="pw">戰力 ${Math.round(e.P)}</span>${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em><div class="acs">${fx}${e.moves.map(m => `<i class="ac r-foe">${m[0][0]}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     </div>
-    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
+    <p class="rule">只打這一局：六手出完，先倒下者敗；都沒倒下，就比誰剩的氣血比例高。攻克破・破克守・守克攻，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
     ${o.over || !o.ins ? '' : insightHtml(o)}
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
@@ -338,7 +338,7 @@ function revealView(o) {
     ? `<ol class="blog recap">${rv.slots.map((s, i) => `<li class="${RES[s.res][1]}"><b>${'①②③④⑤⑥'[i]} ${RES[s.res][0]}</b> ${s.lines.join('')}</li>`).join('')}${rv.tail.map(t => `<li>${t}</li>`).join('')}</ol>`
     : `<div class="callout ${cur ? RES[cur.res][1] : ''}">${cur ? `<b>第${cnNum(st)}手・${RES[cur.res][0]}</b>${cur.lines.map(x => `<span>${x}</span>`).join('')}` : '<b>揭牌——</b><span>雙方同時亮出這一回合的六手。</span>'}</div>`;
   return `<div class="veil"><div class="sheet battle">
-    <p class="tag seal">戰鬥・第${cnNum(o.round)}回合・揭牌</p>
+    <p class="tag seal">戰鬥・一局定勝負・揭牌</p>
     <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${bar(hpE, e.mhp, 'hp')}<em>${Math.max(0, hpE)}/${e.mhp}</em></div>
     <div class="duel reveal">
       <span class="who-l">敵</span>${foeRow}
@@ -351,7 +351,7 @@ function revealView(o) {
       <div><span>氣血</span>${bar(hpP, maxHp(), 'hp')}<em>${Math.max(0, hpP)}/${maxHp()}</em></div>
       <div><span>內力</span>${bar(mpP, maxMp(), 'mp')}<em>${mpP}/${maxMp()}</em></div>
     </div>
-    <div class="col">${done ? (o.over ? B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big') : B('下一回合', nextRound, 'primary big')) : B('跳過動畫', revealSkip, 'big')}</div>
+    <div class="col">${done ? B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big') : B('跳過動畫', revealSkip, 'big')}</div>
   </div></div>`;
 }
 
