@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v1.5.0';
+const VERSION = 'v1.6.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -28,7 +28,7 @@ const LOCS = {
    type: nei 內功 / sword 劍法 / blade 刀法 / fist 拳掌 / dart 暗器 / qing 輕功
    attr: yang 陽剛 / yin 陰柔 / he 中和
    moves: [名稱, 解鎖層數, 耗內力, 威力, 特效]  特效: bleed 流血 poison 中毒 stun 震暈 weak 破勢 drain 吸血 pierce 破防 */
-const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', staff: '棒法', spear: '槍法', dart: '暗器', qing: '輕功' };
+const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', staff: '棒法', spear: '槍法', whip: '鞭法', dart: '暗器', qing: '輕功' };
 const ATTR_N = { yang: '陽剛', yin: '陰柔', he: '中和' };
 const TIER_N = ['', '入門', '上乘', '絕學'];
 const FX_N = { bleed: '流血', poison: '中毒', stun: '震暈', weak: '破勢', drain: '吸血', pierce: '破防' };
@@ -112,16 +112,67 @@ const SKILLS = {
   gm_sword:   { n: '玉女劍法', type: 'sword', tier: 3, attr: 'yin', d: '古墓派祖師林朝英所創，招招克制全真劍法。若與全真劍法同使，便是玉女素心劍法。', moves: [['撫琴按簫', 1, 13, 38, 'weak'], ['掃雪烹茶', 4, 21, 56], ['松下對弈', 8, 38, 90, 'pierce']] },
   gm_nei:     { n: '玉女心經', type: 'nei', tier: 3, attr: 'yin', hp: 10, mp: 18, d: '刻在古墓石室頂上的內功，練功須心如止水。' },
 
+  // ===== 射鵰：桃花島、九陰、白駝山、江南七怪、其他名家 =====
+  th_xiao: { n: '玉簫劍法', type: 'sword', tier: 3, attr: 'he', d: '黃藥師以簫代劍的劍法，劍招中藏著簫譜的節拍。', moves: [['簫史乘龍', 1, 13, 40], ['鳳鳴岐山', 4, 21, 56, 'weak'], ['玉簫劍法', 8, 38, 92, 'pierce']] },
+  th_lan: { n: '蘭花拂穴手', type: 'fist', tier: 3, attr: 'yin', d: '桃花島的點穴手法，出手如拂蘭花，優雅而準。', moves: [['拂葉', 1, 13, 40, 'stun'], ['點蕊', 4, 21, 56, 'weak'], ['蘭花拂穴', 8, 38, 92, 'stun']] },
+  th_leg: { n: '旋風掃葉腿', type: 'fist', tier: 2, attr: 'yang', d: '桃花島的腿法，連環掃出，如秋風掃落葉。', moves: [['掃葉', 1, 8, 25], ['旋風', 4, 14, 36, 'weak'], ['秋風落葉', 7, 24, 55, 'stun']] },
+  th_sea: { n: '碧海潮生曲', type: 'dart', tier: 3, attr: 'yin', d: '以簫聲傷人的內功曲子，聽者心神隨潮起伏，不能自主。', moves: [['潮起', 1, 13, 40, 'weak'], ['潮湧', 4, 21, 56, 'stun'], ['碧海潮生', 8, 38, 92, 'stun']] },
+  jy_heart: { n: '摧心掌', type: 'fist', tier: 3, attr: 'yin', evil: 1, d: '《九陰真經》下卷的掌法，掌力不傷皮肉，專碎心脈。', moves: [['摧心', 1, 13, 40, 'bleed'], ['裂肺', 4, 21, 56, 'bleed'], ['摧心掌', 8, 38, 92, 'pierce']] },
+  jy_soul: { n: '移魂大法', type: 'dart', tier: 2, attr: 'yin', d: '《九陰真經》中的攝心術，以眼神言語亂人心神。', moves: [['攝心', 1, 8, 25, 'weak'], ['移魂', 4, 14, 36, 'stun'], ['反照', 7, 24, 55, 'weak']] },
+  jy_whip: { n: '白蟒鞭法', type: 'whip', tier: 3, attr: 'yin', d: '梅超風的長鞭功夫，鞭長數丈，揮動時如白蟒翻騰。', moves: [['白蟒吐信', 1, 13, 40, 'bleed'], ['翻江', 4, 21, 56, 'stun'], ['白蟒纏身', 8, 38, 92, 'bleed']] },
+  ws_snake: { n: '靈蛇拳', type: 'fist', tier: 3, attr: 'yin', d: '西毒歐陽鋒的拳法，手臂如蛇一般彎轉，從意想不到之處打來。', moves: [['靈蛇出洞', 1, 13, 40, 'weak'], ['蛇纏', 4, 21, 56, 'pierce'], ['靈蛇拳', 8, 38, 92, 'pierce']] },
+  ws_camel: { n: '神駝雪山掌', type: 'fist', tier: 2, attr: 'yang', d: '白駝山的掌法，掌風剛猛，帶著西域雪山的寒氣。', moves: [['神駝', 1, 8, 25], ['雪山', 4, 14, 36, 'stun'], ['神駝雪山', 7, 24, 55]] },
+  jn_zhu: { n: '分筋錯骨手', type: 'fist', tier: 2, attr: 'he', d: '江南七怪朱聰的擒拿手，專拆對方關節筋骨。', moves: [['分筋', 1, 8, 25, 'weak'], ['錯骨', 4, 14, 36, 'stun'], ['分筋錯骨', 7, 24, 55, 'bleed']] },
+  jn_whip: { n: '金龍鞭法', type: 'whip', tier: 2, attr: 'yang', d: '江南七怪韓寶駒的鞭法，金龍鞭揮出時呼呼生風。', moves: [['金龍擺尾', 1, 8, 25], ['騰空', 4, 14, 36, 'stun'], ['金龍鞭', 7, 24, 55, 'bleed']] },
+  jn_ling: { n: '鐵菱', type: 'dart', tier: 2, attr: 'yang', d: '江南七怪柯鎮惡的暗器，鐵菱四角尖銳，餵有劇毒。', moves: [['飛菱', 1, 8, 25, 'poison'], ['連珠菱', 4, 14, 36, 'poison'], ['毒菱', 7, 24, 55, 'pierce']] },
+  qz_xt: { n: '先天功', type: 'nei', tier: 3, attr: 'he', hp: 15, mp: 18, sect: 'quanzhen', d: '重陽真人的絕學，玄門內功的至高境界。' },
+  qz_gold: { n: '金關玉鎖二十四訣', type: 'nei', tier: 2, attr: 'he', hp: 10, mp: 12, sect: 'quanzhen', d: '全真派正宗內功的口訣，講究呼吸吐納、心意相合。' },
+  yg_eel: { n: '泥鰍功', type: 'qing', tier: 2, attr: 'he', dodge: 2.8, d: '瑛姑在黑沼中練成的身法，滑溜如泥鰍，抓也抓不住。' },
+  zm_hand: { n: '大手印', type: 'fist', tier: 2, attr: 'yang', d: '藏地密宗的掌功，一掌拍下，青磚上留下整整齊齊的掌印。', moves: [['大手印', 1, 8, 25], ['金剛手', 4, 14, 36, 'stun'], ['密宗大手印', 7, 24, 55]] },
+  // ===== 神鵰：楊過、古墓派、李莫愁、絕情谷、金輪、其他 =====
+  yg_sad: { n: '黯然銷魂掌', type: 'fist', tier: 3, attr: 'he', d: '楊過在相思中自創的掌法，十七招，心中無情者使不出來。', moves: [['心驚肉跳', 1, 13, 40, 'weak'], ['魂不守舍', 4, 21, 56, 'stun'], ['黯然銷魂', 8, 38, 92, 'pierce']] },
+  yg_iron: { n: '玄鐵劍法', type: 'sword', tier: 3, attr: 'yang', d: '獨孤求敗中年所用的劍法：重劍無鋒，大巧不工。', moves: [['重劍無鋒', 1, 13, 40, 'stun'], ['大巧不工', 4, 21, 56, 'pierce'], ['玄鐵劍', 8, 38, 92, 'stun']] },
+  gm_fist: { n: '美女拳法', type: 'fist', tier: 2, attr: 'yin', d: '古墓派的拳法，每一招都取自一位古代美人的姿態。', moves: [['貴妃回眸', 1, 8, 25, 'weak'], ['紅玉擊鼓', 4, 14, 36], ['文姬歸漢', 7, 24, 55, 'pierce']] },
+  gm_bee: { n: '玉蜂針', type: 'dart', tier: 2, attr: 'yin', d: '古墓派的暗器，細如蜂尾，針上帶著玉蜂的毒。', moves: [['玉蜂', 1, 8, 25, 'poison'], ['蜂群', 4, 14, 36, 'poison'], ['玉蜂針', 7, 24, 55, 'poison']] },
+  lm_poison: { n: '五毒神掌', type: 'fist', tier: 3, attr: 'yin', evil: 1, d: '赤練仙子李莫愁的掌法，中掌者肌膚現出赤紅掌印。', moves: [['赤練', 1, 13, 40, 'poison'], ['五毒', 4, 21, 56, 'poison'], ['五毒神掌', 8, 38, 92, 'pierce']] },
+  lm_whip: { n: '三無三不手', type: 'whip', tier: 2, attr: 'yin', d: '李莫愁以拂塵使出的狠辣招式：無孔不入、無所不至、無所不為。', moves: [['無孔不入', 1, 8, 25, 'bleed'], ['無所不至', 4, 14, 36, 'pierce'], ['無所不為', 7, 24, 55, 'bleed']] },
+  jl_dragon: { n: '龍象般若功', type: 'nei', tier: 3, attr: 'yang', hp: 18, mp: 12, d: '金輪法王所練的密宗神功，共十三層，每練成一層，就有一龍一象之力。' },
+  gs_blade: { n: '陰陽倒亂刃法', type: 'blade', tier: 3, attr: 'he', d: '絕情谷主公孫止的刀劍功夫，刀法使劍、劍法使刀，陰陽顛倒。', moves: [['陰陽倒亂', 1, 13, 40, 'weak'], ['刀劍互換', 4, 21, 56, 'pierce'], ['黑劍金刀', 8, 38, 92, 'bleed']] },
+  qc_nail: { n: '棗核釘', type: 'dart', tier: 2, attr: 'yang', d: '裘千尺口中吐出的棗核，力道之大，可以釘入樹幹。', moves: [['棗核', 1, 8, 25], ['連珠', 4, 14, 36, 'pierce'], ['口吐棗核', 7, 24, 55, 'stun']] },
+  zz_finger: { n: '一陽書指', type: 'fist', tier: 3, attr: 'yang', d: '朱子柳把一陽指化入書法，筆意即指意，草書狂放、楷書端嚴。', moves: [['房玄齡碑', 1, 13, 40, 'stun'], ['自言帖', 4, 21, 56, 'weak'], ['一陽書指', 8, 38, 92, 'pierce']] },
+  kl_sword: { n: '崑崙劍法', type: 'sword', tier: 2, attr: 'he', d: '崑崙三聖何足道一脈的劍法，劍招清奇，帶著琴音般的節奏。', moves: [['崑崙雪', 1, 8, 25], ['琴劍', 4, 14, 36, 'weak'], ['三聖劍', 7, 24, 55, 'pierce']] },
+  // ===== 倚天：九陽神功、武當、峨嵋、少林、明教、其他門派 =====
+  jy_god: { n: '九陽神功', type: 'nei', tier: 3, attr: 'yang', hp: 22, mp: 20, d: '少林、武當、峨嵋三家九陽功出自同源。三家合一，便是九陽神功。' },
+  wd_palm: { n: '武當綿掌', type: 'fist', tier: 2, attr: 'yin', sect: 'wudang', d: '武當派的掌法，掌力綿綿不絕，看似無力，後勁極強。', moves: [['綿掌', 1, 8, 25, 'weak'], ['柔雲', 4, 14, 36], ['綿綿不絕', 7, 24, 55, 'weak']] },
+  wd_tiger: { n: '虎爪絕戶手', type: 'fist', tier: 2, attr: 'yang', sect: 'wudang', d: '武當派最狠的擒拿手，傷人下陰，張真人規定非到萬不得已不許用。', moves: [['虎爪', 1, 8, 25, 'bleed'], ['撲擊', 4, 14, 36, 'stun'], ['絕戶', 7, 24, 55, 'bleed']] },
+  wd_ytt: { n: '倚天屠龍功', type: 'fist', tier: 3, attr: 'he', sect: 'wudang', d: '張三丰為弟子受難所創，把「武林至尊，寶刀屠龍」等二十四字化成一套武功。', moves: [['武林至尊', 1, 13, 40, 'weak'], ['寶刀屠龍', 4, 21, 56, 'stun'], ['倚天不出', 8, 38, 92, 'pierce']] },
+  wd_hook: { n: '銀鉤鐵劃', type: 'sword', tier: 2, attr: 'he', sect: 'wudang', d: '張翠山以書法入武，爛銀虎頭鉤和判官筆使出的招式，如筆走龍蛇。', moves: [['銀鉤', 1, 8, 25], ['鐵劃', 4, 14, 36, 'pierce'], ['喪亂帖', 7, 24, 55, 'bleed']] },
+  em_mj: { n: '滅劍絕劍', type: 'sword', tier: 3, attr: 'yin', sect: 'emei', d: '滅絕師太的兩門絕招，滅劍一出、絕劍隨之，殺氣逼人。', moves: [['滅劍', 1, 13, 40, 'bleed'], ['絕劍', 4, 21, 56, 'pierce'], ['滅絕', 8, 38, 92, 'pierce']] },
+  em_jie: { n: '截手九式', type: 'fist', tier: 2, attr: 'yin', sect: 'emei', d: '峨嵋派的截手功夫，專截對方來勢，以快打快。', moves: [['截手', 1, 8, 25, 'weak'], ['截脈', 4, 14, 36, 'stun'], ['九式連環', 7, 24, 55]] },
+  sl_vajra: { n: '大力金剛指', type: 'fist', tier: 2, attr: 'yang', sect: 'shaolin', d: '少林七十二絕技之一，指力能捏碎骨頭。武當三俠就是被這門指力所傷。', moves: [['金剛指', 1, 8, 25, 'stun'], ['捏骨', 4, 14, 36, 'bleed'], ['大力金剛', 7, 24, 55, 'pierce']] },
+  sl_jy: { n: '少林九陽功', type: 'nei', tier: 2, attr: 'yang', hp: 14, mp: 10, sect: 'shaolin', d: '覺遠大師傳下的九陽真經，在少林的一支。' },
+  sl_circle: { n: '金剛伏魔圈', type: 'whip', tier: 3, attr: 'yang', sect: 'shaolin', d: '渡厄、渡劫、渡難三僧以黑索佈下的圈子，圈內任你神功蓋世也難以脫身。', moves: [['伏魔', 1, 13, 40, 'weak'], ['金剛索', 4, 21, 56, 'stun'], ['金剛伏魔圈', 8, 38, 92, 'pierce']] },
+  sl_body: { n: '金剛不壞體神功', type: 'nei', tier: 3, attr: 'yang', hp: 26, mp: 10, sect: 'shaolin', d: '少林護體神功，練成之後，刀槍難入。' },
+  mj_ice: { n: '寒冰綿掌', type: 'fist', tier: 3, attr: 'yin', sect: 'mingjiao', d: '青翼蝠王韋一笑的掌法，寒毒入體，中者全身發抖。', moves: [['寒冰', 1, 13, 40, 'poison'], ['綿掌', 4, 21, 56, 'weak'], ['寒冰綿掌', 8, 38, 92, 'poison']] },
+  mj_bat: { n: '蝠王身法', type: 'qing', tier: 3, attr: 'he', sect: 'mingjiao', dodge: 3.6, d: '青翼蝠王韋一笑的輕功，天下第一，來去如鬼魅。' },
+  xs_roar: { n: '獅子吼', type: 'dart', tier: 3, attr: 'yang', d: '以內力發出的長嘯，功力淺的人聽了會發瘋。金毛獅王謝遜的成名絕技。', moves: [['長嘯', 1, 13, 40, 'stun'], ['雷音', 4, 21, 56, 'stun'], ['獅子吼', 8, 38, 92, 'pierce']] },
+  kt_seven: { n: '七傷拳', type: 'fist', tier: 3, attr: 'yang', d: '崆峒派的拳法，一拳之中有七股勁力。練不得法，先傷自己。', moves: [['七傷', 1, 13, 40, 'bleed'], ['損陰', 4, 21, 56, 'pierce'], ['傷陽', 8, 38, 92, 'pierce']] },
+  kl_liangyi: { n: '兩儀劍法', type: 'sword', tier: 2, attr: 'he', d: '崑崙派的劍法，與華山派的反兩儀刀法相生相剋。', moves: [['太陽', 1, 8, 25], ['少陰', 4, 14, 36, 'weak'], ['兩儀生四象', 7, 24, 55, 'pierce']] },
+  hs_eagle: { n: '鷹蛇生死搏', type: 'fist', tier: 2, attr: 'he', d: '華山派兩位前輩合創的拳法，一人如鷹，一人如蛇。', moves: [['蒼鷹', 1, 8, 25], ['靈蛇', 4, 14, 36, 'weak'], ['鷹蛇生死搏', 7, 24, 55, 'bleed']] },
+  xm_palm: { n: '玄冥神掌', type: 'fist', tier: 3, attr: 'yin', evil: 1, d: '玄冥二老的陰毒掌力，寒毒深入骨髓，中者生不如死。', moves: [['玄冥', 1, 13, 40, 'poison'], ['陰寒', 4, 21, 56, 'poison'], ['玄冥神掌', 8, 38, 92, 'pierce']] },
+  ck_finger: { n: '幻陰指', type: 'fist', tier: 3, attr: 'yin', evil: 1, d: '成崑的陰毒指法，指力陰寒，專點要穴。', moves: [['幻陰', 1, 13, 40, 'poison'], ['陰指', 4, 21, 56, 'stun'], ['幻陰指', 8, 38, 92, 'pierce']] },
+  ck_thunder: { n: '混元霹靂手', type: 'fist', tier: 3, attr: 'yang', d: '成崑的掌法，一掌拍出，如霹靂驟響。', moves: [['混元', 1, 13, 40, 'stun'], ['霹靂', 4, 21, 56], ['混元霹靂手', 8, 38, 92, 'stun']] },
+
   // 江湖雜學
   m_blade: { n: '破風刀法', type: 'blade', tier: 1, attr: 'yang', d: '鏢行常見的刀法，大開大闔。', moves: [['力劈', 1, 3, 15], ['橫掃千軍', 4, 8, 24], ['破風', 7, 14, 34, 'pierce']] },
   m_dart:  { n: '袖箭術', type: 'dart', tier: 1, attr: 'he', d: '袖底藏機，出其不意。', moves: [['袖箭', 1, 2, 12], ['連珠', 4, 8, 22], ['回馬箭', 7, 13, 32, 'pierce']] },
 
   // 奇遇・傳承絕學
-  q_thunder: { n: '九霄雷音訣', type: 'nei', tier: 3, attr: 'yang', hp: 17, mp: 14, d: '至陽至剛，運功時隱有風雷之聲。' },
-  q_ice:     { n: '寒魄冰心訣', type: 'nei', tier: 3, attr: 'yin', hp: 12, mp: 19, d: '至陰至柔，心如冰鏡，萬念不起。' },
-  q_swan:    { n: '孤鴻劍法', type: 'sword', tier: 3, attr: 'yin', d: '劍如孤鴻掠影，來去無蹤。', moves: [['孤鴻掠影', 1, 13, 40], ['寒塘渡鶴', 4, 21, 56, 'bleed'], ['一鴻驚天', 8, 38, 92, 'pierce']] },
-  q_king:    { n: '霸王刀', type: 'blade', tier: 3, attr: 'yang', d: '力拔山兮氣蓋世，一刀既出，有進無退。', moves: [['破釜', 1, 13, 42], ['沉舟', 4, 21, 58, 'stun'], ['霸王卸甲', 8, 38, 96, 'pierce']] },
-  q_shadow:  { n: '驚鴻照影', type: 'qing', tier: 3, attr: 'he', dodge: 3.4, d: '身法之極致，敵人只見殘影。' },
+  q_thunder: { n: '九陽真經', type: 'nei', tier: 3, attr: 'yang', hp: 17, mp: 14, d: '當年覺遠大師臨終背誦的經文，至陽至剛，內力生生不息。' },
+  q_ice:     { n: '九陰真經', type: 'nei', tier: 3, attr: 'he', hp: 13, mp: 19, d: '北宋黃裳所著，天下武學總綱。上卷內功陰陽互濟，練之百病不侵。' },
+  q_swan:    { n: '越女劍法', type: 'sword', tier: 3, attr: 'yin', d: '相傳春秋時越國少女阿青傳下的劍法，輕靈迅捷。江南七怪的韓小瑩使的就是這一路。', moves: [['越女採蓮', 1, 13, 40], ['西子捧心', 4, 21, 56, 'bleed'], ['越女劍', 8, 38, 92, 'pierce']] },
+  q_king:    { n: '反兩儀刀法', type: 'blade', tier: 3, attr: 'yin', d: '華山派的刀法，與崑崙派的正兩儀劍法相生相剋，兩人合使威力倍增。', moves: [['反兩儀', 1, 13, 42], ['太陰刀', 4, 21, 58, 'bleed'], ['顛倒乾坤', 8, 38, 96, 'pierce']] },
+  q_shadow:  { n: '蛇行狸翻', type: 'qing', tier: 3, attr: 'he', dodge: 3.4, d: '《九陰真經》中的身法，形如蛇行、勢如狸翻，趕路也快了三成。' },
 };
 
 /* ---------- 門派 ----------
@@ -132,7 +183,7 @@ const SECTS = {
   quanzhen: { n: '全真教', loc: 'zhongnan', align: 1, from: 1170, to: 1400, master: '清虛道長', style: '劍法・內功・玄門正宗',
     tasks: ['下山採買糧米香燭', '在重陽宮前接待上山的香客', '抄寫道藏經卷', '清掃終南山的石階'],
     d: '重陽真人所創，天下玄門正宗。門規森嚴，弟子眾多。', req: s => s.stats.int >= 6, reqT: '悟性須達 6',
-    teach: [['qz_sword', 0, 0], ['qz_nei', 1, 60], ['qz_qing', 1, 80], ['qz_palm', 2, 160]], ults: [['qz_ult']], head: '掌教' },
+    teach: [['qz_sword', 0, 0], ['qz_nei', 1, 60], ['qz_qing', 1, 80], ['qz_palm', 2, 160], ['qz_gold', 2, 200]], ults: [['qz_ult'], ['qz_xt']], head: '掌教' },
   gaibang: { n: '丐幫', loc: 'junshan', align: 1, from: 1050, to: 1400, master: '錢八袋', style: '拳掌・市井實戰',
     tasks: ['沿街打探各路消息回報總舵', '在渡口替幫中兄弟排解糾紛', '押送一船糧米過洞庭', '照看幫裡收留的孤兒'],
     d: '天下第一大幫，弟子遍布各地，販夫走卒、乞兒流民都是兄弟。', req: () => true, reqT: '無',
@@ -140,7 +191,7 @@ const SECTS = {
   shaolin: { n: '少林寺', loc: 'shaolin', align: 1, from: 500, to: 1400, master: '慧明禪師', style: '拳掌・剛猛厚重',
     tasks: ['下山化緣、施粥濟貧', '護送香客過嵩山山道', '在藏經閣外打掃', '在羅漢堂陪練新入門的沙彌'],
     d: '武林泰山北斗，收俗家弟子，重根基，戒殺生。', req: s => s.moral >= 0 && s.stats.con >= 6, reqT: '根骨須達 6，且非奸邪之徒',
-    teach: [['sl_fist', 0, 0], ['sl_nei', 1, 60], ['sl_qing', 1, 80], ['sl_palm', 2, 160]], ults: [['sl_ult']], head: '方丈' },
+    teach: [['sl_fist', 0, 0], ['sl_nei', 1, 60], ['sl_qing', 1, 80], ['sl_palm', 2, 160], ['sl_vajra', 2, 200], ['sl_jy', 2, 240, 1262]], ults: [['sl_ult'], ['sl_circle', 1300], ['sl_body', 1300]], head: '方丈' },
   tiezhang: { n: '鐵掌幫', loc: 'tiezhang', align: -1, from: 1150, to: 1240, master: '沙香主', style: '掌法・狠辣霸道',
     tasks: ['押送一批來路不明的貨物', '替幫中收取各寨的供奉', '看守峰下的地牢'],
     d: '湘西一霸，幫主武功蓋世，暗中與金國往來。入幫者為俠義道所不齒。', req: s => s.moral <= 20, reqT: '俠義之名太盛者不收',
@@ -148,11 +199,11 @@ const SECTS = {
   wudang: { n: '武當派', loc: 'wudang', align: 1, from: 1300, to: 1400, master: '清風道長', style: '拳劍・以柔克剛',
     tasks: ['下山替百姓排解糾紛', '在紫霄宮前接待訪客', '抄寫經卷', '巡山'],
     d: '張三丰真人所創，門下七俠名動天下。', req: s => s.stats.int >= 6 && s.moral >= 0, reqT: '悟性須達 6，且非奸邪之徒',
-    teach: [['wd_fist', 0, 0], ['wd_nei', 1, 60], ['wd_qing', 1, 80], ['wd_sword', 2, 160]], ults: [['wd_zhenwu'], ['wd_taiji', 1357], ['wd_taijian', 1357]], head: '張真人' },
+    teach: [['wd_fist', 0, 0], ['wd_nei', 1, 60], ['wd_qing', 1, 80], ['wd_sword', 2, 160], ['wd_palm', 1, 90], ['wd_tiger', 2, 200], ['wd_hook', 2, 220, 1336]], ults: [['wd_zhenwu'], ['wd_ytt', 1336], ['wd_taiji', 1357], ['wd_taijian', 1357]], head: '張真人' },
   emei: { n: '峨嵋派', loc: 'emei', align: 1, from: 1285, to: 1400, master: '靜塵師太', style: '劍掌・輕靈綿密',
     tasks: ['替山下村民義診', '採集山中藥草', '巡守金頂', '抄寫經卷'],
     d: '郭襄女俠所創，門規極嚴，對魔教深惡痛絕。', req: s => s.moral >= 10 || s.stats.cha >= 7, reqT: '心存俠義（俠義 10 以上）或魅力達 7',
-    teach: [['em_sword', 0, 0], ['em_nei', 1, 60], ['em_palm', 2, 160]], ults: [['em_ult']], head: '掌門師太' },
+    teach: [['em_sword', 0, 0], ['em_nei', 1, 60], ['em_palm', 2, 160], ['em_jie', 2, 200]], ults: [['em_ult'], ['em_mj']], head: '掌門師太' },
   mingjiao: { n: '明教', loc: 'kunlun', align: 0, from: 1250, to: 1400, master: '林副使', style: '刀法・火器',
     tasks: ['替教中兄弟運送糧草', '在山下接應投奔的流民', '巡守光明頂', '探聽元軍動靜'],
     d: '源自波斯，教眾多是貧苦百姓。朝廷說他們是反賊，正派說他們是魔教。', req: s => s.moral <= 60, reqT: '名門正派出身、俠名太盛者不收',
@@ -191,15 +242,17 @@ const ITEMS = {
   w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 14, price: 400 },
   w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 7, price: 90 },
   w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 15, price: 440 },
+  w_whip1:   { n: '長鞭', kind: 'weapon', wt: 'whip', atk: 6, price: 80 },
+  w_whip2:   { n: '金龍鞭', kind: 'weapon', wt: 'whip', atk: 14, price: 420 },
   a_cloth:   { n: '牛皮護甲', kind: 'armor', def: 4, price: 70 },
   a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520 },
   bk_blade:  { n: '《破風刀譜》', kind: 'manual', skill: 'm_blade', price: 150 },
   bk_dart:   { n: '《袖箭圖解》', kind: 'manual', skill: 'm_dart', price: 150 },
 };
 const SHOPS = {
-  yanjing: ['w_spear1', 'w_spear2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
+  yanjing: ['w_whip1', 'w_whip2', 'w_spear1', 'w_spear2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
   linan:   ['w_staff1', 'jinchuang', 'huiqi', 'dahuan', 'w_dart1', 'w_dart2', 'w_sword1', 'a_cloth', 'a_gold', 'rouge', 'hairpin', 'qin', 'wine', 'bk_dart'],
-  jiaxing: ['w_staff1', 'w_spear1', 'jinchuang', 'huiqi', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
+  jiaxing: ['w_whip1', 'w_staff1', 'w_spear1', 'jinchuang', 'huiqi', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
   xiangyang: ['w_spear1', 'w_spear2', 'w_staff2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'a_cloth', 'a_gold', 'wine', 'book', 'bk_blade'],
 };
 
@@ -215,6 +268,13 @@ const COMBOS = [
   { n: '桃花島絕藝', d: '落英神劍掌與彈指神通，掌指並施', has: s => s.eq.includes('th_palm') && s.eq.includes('th_flick'), mul: 1.2 },
   { n: '左右互搏', d: '一心二用，左手一門拳、右手一門掌', has: s => s.flags && s.flags.huibo && s.eq.length === 2 && s.eq.every(x => SKILLS[x].type === 'fist'), mul: 1.25 },
   { n: '同門相濟', d: '兩門武功出自同一門派，路數相通', has: s => s.eq.length === 2 && SKILLS[s.eq[0]].sect && SKILLS[s.eq[0]].sect === SKILLS[s.eq[1]].sect, mul: 1.1 },
+];
+const LEGEND_ARMS = [
+  { n: '軟蝟甲', d: '桃花島至寶，甲上倒刺，拳腳打上去反傷自己。', hist: 'h_1224a' },
+  { n: '打狗棒', d: '丐幫幫主信物，碧綠如玉。', hist: 'h_1224b' },
+  { n: '玄鐵重劍', d: '獨孤求敗的重劍，重八八六十四斤，劍鈍無鋒。', hist: 'h_1259b' },
+  { n: '屠龍刀', d: '「武林至尊，寶刀屠龍。號令天下，莫敢不從。」', hist: 'h_1336a' },
+  { n: '倚天劍', d: '「倚天不出，誰與爭鋒。」峨嵋派掌門的佩劍。', hist: 'h_1346' },
 ];
 const activeCombo = () => S && S.eq ? COMBOS.find(c => c.has(S)) || null : null;
 

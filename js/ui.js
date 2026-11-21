@@ -137,6 +137,7 @@ const TABS = {
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>
       <section class="group"><h3>見聞</h3><p class="desc">親眼目睹 ${histCount('seen')} 件・事後耳聞 ${histCount('heard')} 件</p></section>
+      <section class="group"><h3>神兵譜</h3><p class="desc">傳說中的神兵利器，旁觀者拿不到，親眼見過就記在這裡。</p><div class="col">${LEGEND_ARMS.map(a => { const seen = (S.hist || {})[a.hist] === 'seen'; return `<article class="card"><div class="card-h"><b>${seen ? a.n : '？？？'}</b><span class="tag ${seen ? 'gold' : 'grey'}">${seen ? '親眼見過' : '未曾得見'}</span></div><p>${seen ? a.d : '要在它出現的那一天，人在現場。'}</p></article>`; }).join('')}</div></section>
       <section class="group"><h3>江湖記事</h3>${(S.journal || []).length ? `<ul class="log journal">${S.journal.map(j => `<li><time>${j.t}・${j.ch}</time>${j.s}</li>`).join('')}</ul>` : '<p class="empty">故事才剛開始。</p>'}</section>
       <section class="group"><h3>去留</h3><div class="acts">
         ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
@@ -218,8 +219,8 @@ const MENUS = {
   },
   learn: () => {
     const sc = SECTS[S.sect];
-    return [`${sc.n}學藝　貢獻 ${S.contrib}`, sc.teach.map(t => { const k = SKILLS[t[0]]; const got = knows(t[0]); const ok = S.rank >= t[1];
-      return `<article class="card row-card"><div><b>${k.n}</b> <span class="tag grey">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span><p>${k.d}<br>需${RANKS[t[1]]}・貢獻 ${t[2]}</p></div>${got ? '<span class="tag jade">已學</span>' : B('學', () => learnSect(t[0], t[2]), 'mini', !ok || S.contrib < t[2])}</article>`; }).join('') +
+    return [`${sc.n}學藝　貢獻 ${S.contrib}`, sc.teach.map(t => { const k = SKILLS[t[0]]; const got = knows(t[0]); const early = t[3] && ad() < t[3]; const ok = S.rank >= t[1] && !early;
+      return `<article class="card row-card"><div><b>${k.n}</b> <span class="tag grey">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span><p>${k.d}<br>需${RANKS[t[1]]}・貢獻 ${t[2]}${early ? `・${t[3]} 年後才有` : ''}</p></div>${got ? '<span class="tag jade">已學</span>' : B('學', () => learnSect(t[0], t[2]), 'mini', !ok || S.contrib < t[2])}</article>`; }).join('') +
       (ultsOf(S.sect).length ? `<p class="empty">鎮派絕學由${sc.head}親傳，須為長老，在山門等候傳功：${ultsOf(S.sect).map(x => `「${SKILLS[x[0]].n}」${knows(x[0]) ? '（已得傳）' : x[1] && ad() < x[1] ? `（${x[1]} 年後才有）` : ''}`).join('、')}。${sectUlt(S.sect) ? `下一門需累計貢獻 ${ultNeed(S.sect).contrib}、聲望 ${ultNeed(S.sect).fame}。` : ''}</p>` : '')];
   },
   gift: () => { const id = UI.ov.arg; return [`贈禮給${NPCS[id].n}`, Object.keys(S.inv).filter(i => ITEMS[i].kind === 'gift').map(i => `<button type="button" class="opt"${h(() => gift(id, i))}><b>${ITEMS[i].n}<i>×${S.inv[i]}</i></b></button>`).join('')]; },
