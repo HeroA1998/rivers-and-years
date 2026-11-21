@@ -22,7 +22,7 @@ function render() {
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
   root.innerHTML = html;
-  if (DIE3) root.querySelectorAll('.bigdie[data-phase]').forEach(el => DIE3.mount(el, {
+  if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
     seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tone: el.dataset.tone }));
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
@@ -393,9 +393,9 @@ function battleView(o) {
       ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▶▶ x${o.speed === 1 ? 1 : 2}</button>`}
     </div>
     <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
+    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${DIE3 ? '<span class="tray-hint">' + (o.phase === 'roll' ? '揮動骰子彈出去，或按下方按鈕' : '') + '</span>' : `<div class="${dieCls}">${dieInner}</div>`}</div>
     <div class="ctrl">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
-      <div class="${dieCls}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${dieInner}</div>
       <div class="side">${side}</div>
     </div>
     <div class="vitals in-battle one"><div class="icorow"><span>內力</span><span class="ico">${orbs(Math.ceil(S.mp / (o.K || 1) - 1e-6), qiMax())}</span><em>${S.mp}</em></div></div>
