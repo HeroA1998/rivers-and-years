@@ -328,7 +328,7 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
   const e = b.e;
   if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
   const w = S.weapon && ITEMS[S.weapon].wt === k.type ? ITEMS[S.weapon].atk : 0;
-  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K;
+  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1);
   const crit = chance(S.stats.luck * 1.3);
   if (crit) dmg *= 1.6;
   dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25)));

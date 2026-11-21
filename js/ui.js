@@ -151,7 +151,9 @@ const TABS = {
     const all = Object.keys(SKILLS), mine = Object.keys(S.skills).length;
     const book = `<section class="group"><h3>武學圖鑑</h3><p class="desc">已習得 ${mine} 門，江湖上共有 ${all.length} 門武功。各派的武功要拜師才學得到，書中名家的武功要靠奇遇，鎮派絕學由掌門親傳。</p>
       <div class="codex">${Object.keys(TYPE_N).map(t => { const ks = all.filter(id => SKILLS[id].type === t); return `<div><b>${TYPE_N[t]}</b><span>${ks.filter(id => S.skills[id]).length}/${ks.length}</span></div>`; }).join('')}</div></section>`;
-    return book + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
+    const cb = activeCombo();
+    const combo = `<section class="group"><h3>武功組合</h3><p class="desc">${cb ? `目前生效：<b>${cb.n}</b>——${cb.d}，威力 +${Math.round(cb.mul * 100 - 100)}%。` : '目前備戰的兩門武功沒有組合加成。'}<br>已知的組合：${COMBOS.map(c => c.n).join('、')}。</p></section>`;
+    return book + combo + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
       const k = SKILLS[id], sk = S.skills[id];
       const on = k.type === 'nei' ? S.nei === id : S.eq.includes(id);
       let ctl = '';
@@ -264,7 +266,7 @@ function overlay() {
   return `<div class="veil"><div class="sheet battle">
     <p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>
     <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
-    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。<br>已看穿 ${o.shown.filter(Boolean).length}/6 手（交手越多、悟性越高，看穿越多）　基本招式：${bm.n}</p>
+    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。<br>已看穿 ${o.shown.filter(Boolean).length}/6 手（交手越多、悟性越高，看穿越多）　基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
     <div class="vitals in-battle">

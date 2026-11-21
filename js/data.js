@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v1.4.0';
+const VERSION = 'v1.5.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -100,6 +100,18 @@ const SKILLS = {
   sl_dragon:  { n: '龍爪手', type: 'fist', tier: 3, attr: 'yang', d: '少林七十二絕技之一，共三十六式，專拿敵人要害。', moves: [['捕風式', 1, 13, 40], ['捉影式', 4, 21, 56, 'weak'], ['龍爪三十六', 8, 38, 92, 'pierce']] },
   ty_claw:    { n: '鷹爪擒拿手', type: 'fist', tier: 2, attr: 'yang', d: '天鷹教的看家功夫，抓、拿、扣、鎖，招招不離關節。', moves: [['鷹爪', 1, 7, 24, 'bleed'], ['擒拿', 4, 14, 36, 'stun'], ['蒼鷹搏兔', 7, 24, 56]] },
 
+  // 五絕與名家
+  yy_finger:  { n: '一陽指', type: 'fist', tier: 3, attr: 'yang', d: '南帝段氏的家傳絕學，指力純陽，點穴療傷皆可。', moves: [['點穴', 1, 13, 40, 'stun'], ['一陽化生', 4, 21, 56, 'weak'], ['一陽指', 8, 38, 92, 'pierce']] },
+  hm_toad:    { n: '蛤蟆功', type: 'fist', tier: 3, attr: 'yang', d: '西毒歐陽鋒的獨門功夫，蹲身蓄勁，一發如山崩。', moves: [['蓄勁', 1, 14, 44, 'stun'], ['蛤蟆跳', 4, 22, 60], ['蛤蟆功', 8, 42, 100, 'stun']] },
+  th_flick:   { n: '彈指神通', type: 'dart', tier: 3, attr: 'he', d: '東邪黃藥師的指上功夫，一枚石子、一片花瓣，彈出去都能傷人。', moves: [['彈指', 1, 12, 38, 'pierce'], ['指上生風', 4, 20, 54, 'pierce'], ['彈指神通', 8, 38, 92, 'stun']] },
+  kong_fist:  { n: '空明拳', type: 'fist', tier: 3, attr: 'he', d: '老頑童周伯通自創的七十二路拳法，以空為本、以柔克剛。', moves: [['空', 1, 12, 36, 'weak'], ['明', 4, 20, 52, 'weak'], ['空空明明', 8, 36, 88, 'pierce']] },
+
+  // 古墓派（不收徒，只能憑奇遇得窺一二）
+  gm_net:     { n: '天羅地網勢', type: 'fist', tier: 2, attr: 'yin', d: '古墓派入門功夫，雙掌圍堵，八十一隻麻雀也飛不出掌心。', moves: [['天羅', 1, 7, 22, 'weak'], ['地網', 4, 14, 34, 'weak'], ['八十一雀', 7, 24, 52, 'stun']] },
+  gm_needle:  { n: '冰魄銀針', type: 'dart', tier: 3, attr: 'yin', d: '古墓派的暗器，針上餵有劇毒。赤練仙子李莫愁用它殺人無數。', moves: [['冰魄', 1, 12, 38, 'poison'], ['銀針', 4, 20, 52, 'poison'], ['冰魄銀針', 8, 36, 90, 'poison']] },
+  gm_sword:   { n: '玉女劍法', type: 'sword', tier: 3, attr: 'yin', d: '古墓派祖師林朝英所創，招招克制全真劍法。若與全真劍法同使，便是玉女素心劍法。', moves: [['撫琴按簫', 1, 13, 38, 'weak'], ['掃雪烹茶', 4, 21, 56], ['松下對弈', 8, 38, 90, 'pierce']] },
+  gm_nei:     { n: '玉女心經', type: 'nei', tier: 3, attr: 'yin', hp: 10, mp: 18, d: '刻在古墓石室頂上的內功，練功須心如止水。' },
+
   // 江湖雜學
   m_blade: { n: '破風刀法', type: 'blade', tier: 1, attr: 'yang', d: '鏢行常見的刀法，大開大闔。', moves: [['力劈', 1, 3, 15], ['橫掃千軍', 4, 8, 24], ['破風', 7, 14, 34, 'pierce']] },
   m_dart:  { n: '袖箭術', type: 'dart', tier: 1, attr: 'he', d: '袖底藏機，出其不意。', moves: [['袖箭', 1, 2, 12], ['連珠', 4, 8, 22], ['回馬箭', 7, 13, 32, 'pierce']] },
@@ -195,6 +207,17 @@ const SHOPS = {
    base：沿用的出身類型（決定能遇到哪些出身事件）　loc：出生地　open：開場身世 */
 const isBirth = (s, k) => (s.birth || s.origin).includes(k);
 const yr = s => (s.y0 || 1222);
+/* ---------- 武功組合：兩門外功同時備戰時的加成 ---------- */
+const COMBOS = [
+  { n: '玉女素心劍法', d: '全真劍法與玉女劍法同使，一陽一陰，雙劍合璧', has: s => s.eq.some(x => ['qz_sword', 'qz_ult'].includes(x)) && s.eq.includes('gm_sword'), mul: 1.3 },
+  { n: '丐幫雙絕', d: '降龍十八掌與打狗棒法，一剛一柔', has: s => s.eq.includes('gb_ult') && s.eq.includes('gb_dog'), mul: 1.25 },
+  { n: '太極拳劍', d: '太極拳與太極劍，圓轉如意', has: s => s.eq.includes('wd_taiji') && s.eq.includes('wd_taijian'), mul: 1.25 },
+  { n: '桃花島絕藝', d: '落英神劍掌與彈指神通，掌指並施', has: s => s.eq.includes('th_palm') && s.eq.includes('th_flick'), mul: 1.2 },
+  { n: '左右互搏', d: '一心二用，左手一門拳、右手一門掌', has: s => s.flags && s.flags.huibo && s.eq.length === 2 && s.eq.every(x => SKILLS[x].type === 'fist'), mul: 1.25 },
+  { n: '同門相濟', d: '兩門武功出自同一門派，路數相通', has: s => s.eq.length === 2 && SKILLS[s.eq[0]].sect && SKILLS[s.eq[0]].sect === SKILLS[s.eq[1]].sect, mul: 1.1 },
+];
+const activeCombo = () => S && S.eq ? COMBOS.find(c => c.has(S)) || null : null;
+
 const ORIGINS = [
   { n: '牛家村農家子', base: '山中獵戶', from: 1200, to: 1235, loc: 'linan', st: { con: 2, agi: 1 }, herb: 2,
     d: '臨安城外牛家村的佃農之子。', open: s => [
