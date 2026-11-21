@@ -192,7 +192,8 @@ function gain(o) {
     let v = o[k];
     if (!v) continue;
     if (k in STAT_N) { S.base[k] = clamp(S.base[k] + v, 1, 30); st = true; out.push(`${STAT_N[k]}${v > 0 ? '+' : ''}${v}`); continue; }
-    if (k === 'hp') { const t = v < 0 ? hurt(1) : v >= 999 ? heal(99) : v >= 20 ? heal(1) : ''; if (t) out.push(t.replace(/^〔|〕$/g, '')); continue; }
+    // 氣血、內力的變化只有三種：扣或回一顆、999 為全滿（只用於明確的療傷或睡足）
+    if (k === 'hp') { const t = v <= -1 ? hurt(-v >= 999 ? 99 : 1) : v >= 999 ? heal(99) : v > 0 ? heal(1) : ''; if (t) out.push(t.replace(/^〔|〕$/g, '')); continue; }
     if (k === 'mp') { const t = v >= 999 ? gainQi(99) : v > 0 ? gainQi(1) : v < 0 ? gainQi(-1) : ''; if (t) out.push(t.replace(/^〔|〕$/g, '')); continue; }
     if (k === 'contrib') { S.contrib = Math.max(0, S.contrib + v); if (v > 0) S.contribTotal += v; }
     else if (k === 'silver') { v = Math.max(v, -S.silver); S.silver += v; }
@@ -268,9 +269,6 @@ function advance(days) {
     if (d.m === 9 && d.d === 1) Q.push(Object.assign({ due: today() }, FIXED.tourney));
     histTick();
   }
-  S.flags.qiD = (S.flags.qiD || 0) + days; S.flags.lifeD = (S.flags.lifeD || 0) + days;
-  while (S.flags.qiD >= 20) { S.flags.qiD -= 20; S.qi = Math.min(qiMax(), S.qi + 1); }
-  while (S.flags.lifeD >= 60) { S.flags.lifeD -= 60; S.life = Math.min(lifeMax(), S.life + 1); }
 }
 function onMonth() {
   const { y, m } = S.date;
