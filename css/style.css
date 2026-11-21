@@ -508,3 +508,11 @@ svg.orb.off circle { stroke: #A9936B; } svg.orb.off path { fill: #D7C6A4; }
 /* 收斂 */
 h2, h3 { font-family: var(--f-brush); }
 .lvrow em, .vitals em { color: var(--ink2); }
+
+/* ================= v6.1.1 觸控尺寸（依觸控介面建議：按鈕至少約 44px，字至少 16px） ================= */
+body { font-size: 16px; }
+.btn, .act, .btn.mini, .btn.gear, .mini { min-height: 44px; font-size: 15px; }
+.btn.mini { padding: 8px 14px; }
+.btn.gear { min-height: 44px; padding: 8px 14px; }
+.btn.plus { min-height: 46px; }
+.tabs button { min-height: 52px; }
