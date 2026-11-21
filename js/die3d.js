@@ -7,17 +7,18 @@ const DIE3 = (function () {
   const TRAY_H = 150, VIEW_H = 2.5;   // 骰盤高 150px 對應 2.5 個世界單位（PX = 60 px/單位，會跟著 #app 的縮放）
   const S = 0.92;                     // 骰子外接圓半徑（世界單位）
   const CAM_Z = 6;
-  const FLIGHT = 1.0, GLIDE = 0.45;   // 秒：飛行（整個螢幕）、飛回骰盤
+  const FLIGHT = 1.0, SETTLE = 0.3, GLIDE = 0.45, PIXEL = 2;   // PIXEL：每個像素格的 CSS px（像素風渲染）   // 秒：飛行（整個螢幕）、飛回骰盤
   const FRICTION = 1.3, RESTITUTION = 0.7;
   let PX = 60;                        // 螢幕 px 每世界單位
 
   let R = null, cam = null, scene = null, mesh = null, atlases = {};
-  let faceNum = [], faceOf = [], faceN = [], faceUp = [];
+  const BG = { red: '#BC2B20', gold: '#E0A92A', iron: '#8A8478' };
+  let emits = {}, faceNum = [], faceOf = [], faceN = [], faceUp = [];
   let tone = 'red', shownTone = null, sizeW = 0;
-  let anim = null, raf = 0, seq = -1, lastT = 0;
+  let anim = null, raf = 0, seq = -1, lastT = 0, away = false, wantHome = false;
   let cur = null, pos = new T.Vector2(0, 0), vel = new T.Vector2(0, 0), ang = new T.Vector3();
   let pendingToss = null;
-  let tray = null, canvasReady = false, aimC = null, aimG = null;
+  let plainMat = null, numMat = null, tray = null, canvasReady = false, aimC = null, aimG = null;
 
   // 正二十面體頂點與面（每條邊被兩面共用；對面兩數字相加為 21）
   const PHI = (1 + Math.sqrt(5)) / 2;
@@ -44,29 +45,23 @@ const DIE3 = (function () {
     return tri;
   }
 
-  // 數字圖集：5×4 格，每格 384px，數字為象牙白、帶深色描邊，清楚好認
-  function atlas(name) {
-    const CELL = 384, c = document.createElement('canvas'); c.width = CELL * 5; c.height = CELL * 4;
+  // 數字圖集：5×4 格，每格 64px，不做平滑，像素風；底色平塗，明暗交給光照形成低多邊形切面
+  function atlas(name, emit) {
+    const CELL = 64, c = document.createElement('canvas'); c.width = CELL * 5; c.height = CELL * 4;
     const g = c.getContext('2d');
-    const pal = {
-      red:  ['#E0584A', '#B3261B', '#5A0F08', '#FFFDF4', '#2A0603'],
-      gold: ['#FFF2B0', '#E0A92A', '#7A4B07', '#FFFDF2', '#3A2200'],
-      iron: ['#D9D3C4', '#8A8478', '#3B3730', '#FFFDF4', '#1E1B17'],
-    }[name];
+    const pal = { red: ['#BC2B20', '#F5CF55', '#3A0B07'], gold: ['#E0A92A', '#FFFDF2', '#5A3A05'], iron: ['#8A8478', '#FFFDF4', '#2A2722'] }[name];
     for (let n = 1; n <= 20; n++) {
       const x0 = ((n - 1) % 5) * CELL, y0 = Math.floor((n - 1) / 5) * CELL;
-      const grd = g.createRadialGradient(x0 + CELL * 0.4, y0 + CELL * 0.35, CELL * 0.05, x0 + CELL / 2, y0 + CELL / 2, CELL * 0.75);
-      grd.addColorStop(0, pal[0]); grd.addColorStop(0.55, pal[1]); grd.addColorStop(1, pal[2]);
-      g.fillStyle = grd; g.fillRect(x0, y0, CELL, CELL);
-      for (let i = 0; i < 380; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * 0.07})`; g.fillRect(x0 + Math.random() * CELL, y0 + Math.random() * CELL, 2, 2); }
-      const txt = String(n), cx = x0 + CELL / 2, cy = y0 + CELL * 0.6;
-      g.font = '900 ' + (n >= 10 ? 214 : 250) + 'px "Noto Sans TC", "Arial Black", Arial, sans-serif';
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.lineJoin = 'round'; g.lineWidth = 22; g.strokeStyle = pal[4]; g.strokeText(txt, cx, cy);
-      g.fillStyle = pal[3]; g.fillText(txt, cx, cy);
+      g.fillStyle = emit ? '#000' : pal[0]; g.fillRect(x0, y0, CELL, CELL);
+      const txt = String(n), cx = x0 + CELL / 2, cy = y0 + CELL * 0.7;
+      g.font = 'bold ' + (n >= 10 ? 30 : 40) + 'px "Courier New", monospace';
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+      if (!emit) { g.lineWidth = 5; g.strokeStyle = pal[2]; g.strokeText(txt, cx, cy); }
+      g.fillStyle = pal[1]; g.fillText(txt, cx, cy);
     }
     const tex = new T.CanvasTexture(c);
-    tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8;
+    tex.colorSpace = T.SRGBColorSpace;
+    tex.magFilter = T.NearestFilter; tex.minFilter = T.NearestFilter; tex.generateMipmaps = false;
     return tex;
   }
 
@@ -88,18 +83,19 @@ const DIE3 = (function () {
     g.setAttribute('position', new T.Float32BufferAttribute(pos3, 3));
     g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
     g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    for (let i = 0; i < 20; i++) g.addGroup(i * 3, 3, 0);
     return g;
   }
 
   function init() {
     const tri = layout();
-    R = new T.WebGLRenderer({ alpha: true, antialias: true });
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    R = new T.WebGLRenderer({ alpha: true, antialias: false });
+    R.setPixelRatio(1 / PIXEL);
     R.outputColorSpace = T.SRGBColorSpace;
     // 畫布蓋住整個螢幕，但不攔截點擊；骰子可以飛到任何地方
     const st = R.domElement.style;
     st.position = 'fixed'; st.left = '0'; st.top = '0'; st.width = '100vw'; st.height = '100vh';
-    st.pointerEvents = 'none'; st.zIndex = '60';
+    st.pointerEvents = 'none'; st.zIndex = '60'; st.imageRendering = 'pixelated';
     document.body.appendChild(R.domElement);
     scene = new T.Scene();
     cam = new T.OrthographicCamera(-1, 1, 1, -1, -50, 50);
@@ -109,18 +105,20 @@ const DIE3 = (function () {
     const as = aimC.style; as.position = 'fixed'; as.left = '0'; as.top = '0'; as.width = '100vw'; as.height = '100vh'; as.pointerEvents = 'none'; as.zIndex = '61';
     document.body.appendChild(aimC);
     sizeScreen();
-    window.addEventListener('resize', () => { sizeScreen(); if (!anim) { pos.copy(home()); renderNow(); } });
-    window.addEventListener('scroll', () => { if (!anim) { pos.copy(home()); renderNow(); } }, { passive: true });
-    scene.add(new T.AmbientLight(0xffffff, 0.6));
-    const key = new T.DirectionalLight(0xfff4e0, 2.0); key.position.set(-3, 4, 6); scene.add(key);
-    const rim = new T.DirectionalLight(0xffe2b0, 0.6); rim.position.set(4, -2, -3); scene.add(rim);
+    window.addEventListener('resize', () => { sizeScreen(); if (!anim && !away) { pos.copy(home()); renderNow(); } });
+    window.addEventListener('scroll', () => { if (!anim && !away) { pos.copy(home()); renderNow(); } }, { passive: true });
+    scene.add(new T.AmbientLight(0xffffff, 0.62));
+    const key = new T.DirectionalLight(0xffffff, 1.9); key.position.set(-3, 5, 4); scene.add(key);
     atlases = { red: atlas('red'), gold: atlas('gold'), iron: atlas('iron') };
-    const mat = new T.MeshPhysicalMaterial({ map: atlases.red, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12, flatShading: true });
-    mesh = new T.Mesh(buildGeometry(tri), mat);
+    emits = { red: atlas('red', true), gold: atlas('gold', true), iron: atlas('iron', true) };   // 數字自發光：不受光照影響，永遠亮
+    plainMat = new T.MeshLambertMaterial({ color: new T.Color(BG.red), flatShading: true });
+    numMat = new T.MeshLambertMaterial({ map: atlases.red, emissive: new T.Color(0xffffff), emissiveMap: emits.red, flatShading: true });
+    mesh = new T.Mesh(buildGeometry(tri), [plainMat, numMat]);
     mesh.scale.setScalar(S);
     scene.add(mesh);
     cur = targetQuat(20);
     mesh.quaternion.copy(cur);
+    showFace(null);
     shownTone = 'red';
   }
 
@@ -135,8 +133,7 @@ const DIE3 = (function () {
 
   function setTone(name) {
     if (shownTone === name) return;
-    mesh.material.map = atlases[name]; mesh.material.needsUpdate = true;
-    mesh.material.emissive = new T.Color(name === 'gold' ? 0x3a2400 : 0x000000);
+    plainMat.color.set(BG[name]); numMat.map = atlases[name]; numMat.emissiveMap = emits[name]; numMat.needsUpdate = true;
     shownTone = name;
   }
 
@@ -162,7 +159,11 @@ const DIE3 = (function () {
     if (Math.abs(px - PX) > 0.01) { PX = px; sizeScreen(); }
     return new T.Vector2((cx - window.innerWidth / 2) / PX, -(cy - window.innerHeight / 2) / PX);
   }
-  function renderNow() { R.render(scene, cam); }
+  function showFace(r) {            // 只有擲出的那一面有數字，其他面保持素面
+    mesh.geometry.groups.forEach((gr, i) => { gr.materialIndex = (r != null && faceNum[i] === r) ? 1 : 0; });
+  }
+  function place() { if (cur) mesh.quaternion.copy(cur); mesh.position.set(pos.x, pos.y, 0); }
+  function renderNow() { place(); R.render(scene, cam); }
 
   function quatFromSpin(w, dt) {
     const a = w.length() * dt;
@@ -187,8 +188,15 @@ const DIE3 = (function () {
         const dq = quatFromSpin(ang, dt);
         if (dq) cur = dq.multiply(cur);
         ang.multiplyScalar(Math.exp(-1.0 * dt));
-        if (now - anim.t0 >= FLIGHT * 1000) { anim.phase = 'glide'; anim.t1 = now; anim.fromPos = pos.clone(); anim.from = cur.clone(); vel.set(0, 0); }
+        if (now - anim.t0 >= FLIGHT * 1000) { anim.phase = 'settle'; anim.t1 = now; anim.from = cur.clone(); vel.set(0, 0); showFace(anim.r); }
         mesh.scale.setScalar(S);
+      } else if (anim.phase === 'settle') {
+        // 停在原地，朝向轉到結果那一面
+        const p = Math.min(1, (now - anim.t1) / (SETTLE * 1000));
+        const e = 1 - Math.pow(1 - p, 3);
+        cur = anim.from.clone().slerp(anim.to, e);
+        mesh.scale.setScalar(S * (1 + 0.05 * Math.sin(p * Math.PI) * (1 - p)));
+        if (p >= 1) { cur = anim.to.clone(); if (wantHome) startGlide(now); else { anim = null; away = true; } }
       } else {
         // 飛回骰盤：位置滑回中央，朝向轉到結果那一面，落下時微微彈一下
         const p = Math.min(1, (now - anim.t1) / (GLIDE * 1000));
@@ -196,7 +204,7 @@ const DIE3 = (function () {
         pos.copy(anim.fromPos).lerp(home(), e);
         cur = anim.from.clone().slerp(anim.to, e);
         mesh.scale.setScalar(S * (1 + 0.05 * Math.sin(p * Math.PI) * (1 - p)));
-        if (p >= 1) { cur = anim.to.clone(); pos.copy(home()); anim = null; }
+        if (p >= 1) { cur = anim.to.clone(); pos.copy(home()); anim = null; away = false; }
       }
     }
     if (cur) mesh.quaternion.copy(cur);
@@ -205,18 +213,27 @@ const DIE3 = (function () {
     if (anim) raf = requestAnimationFrame(frame);
   }
 
+  // 攻擊開始後，骰子才飛回骰盤
+  function startGlide(now) {
+    anim = { phase: 'glide', t1: now || performance.now(), fromPos: pos.clone(), from: cur.clone(), to: cur.clone() };
+    away = false;
+    if (!raf) { lastT = 0; raf = requestAnimationFrame(frame); }
+  }
+
   // 擲出：flight 階段隨機或玩家的揮動速度，settle 階段落到結果那一面
   function start(r, toss, instant) {
     if (!cur) cur = mesh.quaternion.clone();
     if (instant) {
-      anim = { phase: 'glide', t1: performance.now(), fromPos: pos.clone(), from: cur.clone(), to: targetQuat(r) };
-      vel.set(0, 0); ang.set(0, 0, 0);
+      anim = { phase: 'glide', t1: performance.now(), fromPos: pos.clone(), from: cur.clone(), to: targetQuat(r), r };
+      showFace(r); vel.set(0, 0); ang.set(0, 0, 0); away = false;
     } else {
-      if (!toss) pos.copy(home());
+      if (!away) pos.copy(home());
+      away = false;
       const v = toss || randomToss();
       vel.copy(v);
       ang.set((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 16);
-      anim = { phase: 'flight', t0: performance.now(), to: targetQuat(r) };
+      anim = { phase: 'flight', t0: performance.now(), to: targetQuat(r), r };
+      showFace(null);
     }
     if (!raf) { lastT = 0; raf = requestAnimationFrame(frame); }
   }
@@ -250,24 +267,6 @@ const DIE3 = (function () {
     // 拉繩：從骰子到手指
     g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4; g.beginPath(); g.moveTo(d0.x, d0.y); g.lineTo(fx, fy); g.stroke();
     g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(fx, fy, 9, 0, 7); g.fill();
-    if (L) {
-      // 軌跡預測：往拉的反方向，碰到螢幕邊緣會反射，長度隨拉距增加
-      const m = S * PX * 1.02, minX = m, maxX = window.innerWidth - m, minY = m, maxY = window.innerHeight - m;
-      let x = d0.x, y = d0.y, dx = L.dir[0], dy = L.dir[1], len = L.power * PX * 3.4, n = 0;
-      g.strokeStyle = '#FFE9A0'; g.lineWidth = 5; g.setLineDash([12, 9]); g.shadowColor = 'rgba(255,200,80,.9)'; g.shadowBlur = 10;
-      g.beginPath(); g.moveTo(x, y);
-      while (len > 1 && n < 4) {
-        const tx = dx > 0 ? (maxX - x) / dx : dx < 0 ? (minX - x) / dx : 1e9, ty = dy > 0 ? (maxY - y) / dy : dy < 0 ? (minY - y) / dy : 1e9;
-        const t = Math.min(tx, ty, len);
-        x += dx * t; y += dy * t; len -= t; g.lineTo(x, y);
-        if (len > 1) { if (t === tx) dx = -dx; else dy = -dy; n++; }
-      }
-      g.stroke(); g.setLineDash([]);
-      // 箭頭
-      const a = Math.atan2(dy, dx); g.fillStyle = '#FFE9A0';
-      g.beginPath(); g.moveTo(x + Math.cos(a) * 16, y + Math.sin(a) * 16);
-      g.lineTo(x + Math.cos(a + 2.5) * 14, y + Math.sin(a + 2.5) * 14); g.lineTo(x + Math.cos(a - 2.5) * 14, y + Math.sin(a - 2.5) * 14); g.fill();
-    }
     g.restore();
   }
   function bindSling(el) {
@@ -295,7 +294,7 @@ const DIE3 = (function () {
       if (!R) return;
       R.domElement.style.display = 'none'; aimC.style.display = 'none'; aimClear();
       anim = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
-      tray = null; cur = targetQuat(20); pos.set(0, 0); vel.set(0, 0);
+      tray = null; away = false; wantHome = false; showFace(null); cur = targetQuat(20); pos.set(0, 0); vel.set(0, 0);
     },
     // 目前朝向鏡頭的那一面的數字（驗證用）
     topFace() {
@@ -321,7 +320,10 @@ const DIE3 = (function () {
         cur = targetQuat(20);
       }
       if (!anim && !cur) cur = targetQuat(20);
-      if (!anim) { pos.copy(home()); if (!raf) renderNow(); }
+      wantHome = o.phase === 'fight' && o.tick > 0;           // 第一下攻擊出手後，骰子才回骰盤
+      if (!anim && away && wantHome) startGlide();
+      if (!anim && !away) pos.copy(home());
+      if (!anim && !raf) renderNow();
       if (anim && !raf) { lastT = 0; raf = requestAnimationFrame(frame); }
     },
   };

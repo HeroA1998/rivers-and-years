@@ -23,7 +23,7 @@ function render() {
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
   root.innerHTML = html;
   if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
-    seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tone: el.dataset.tone }));
+    seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tick: +el.dataset.tick, tone: el.dataset.tone }));
   if (DIE3 && !root.querySelector('.tray')) DIE3.hide();
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
@@ -378,8 +378,8 @@ function battleView(o) {
   let side;
   if (o.over) side = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${B('擲骰子（1~20）', () => rollBattle(false), 'primary big')}${B('跳過投擲（10）', () => rollBattle(true), 'big')}</div>`;
-  else side = `<div class="rollinfo"><b>${o.god ? '無敵！' : `戰力 ${Math.round(o.mult * 100)}%`}</b><small>${o.god ? '擲出 20：對手傷不了你' : `擲出 ${o.roll}・受到的傷害 ${Math.round(o.take * 100)}%`}</small></div>`;
-  return `<div class="veil"><div class="sheet battle auto">
+  else side = '';
+  return `<div class="veil bveil"><div class="sheet battle auto"><div class="bpanel">
     <div class="vs2">
       <div class="side-p"><b>${esc(S.name)}</b><span class="pw">⚔ ${pw.toFixed(1)}</span></div>
       <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">${adv.toFixed(1)}%</span>`}</div>
@@ -390,17 +390,15 @@ function battleView(o) {
       <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
       <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
       ${o.god ? '<div class="godtag">無敵</div>' : ''}
-      <p class="cap">${last || ''}</p>
       ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▶▶ x${o.speed === 1 ? 1 : 2}</button>`}
     </div>
     <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
-    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${DIE3 ? '<span class="tray-hint">' + (o.phase === 'roll' ? '按住往後拉，放開把骰子彈出去' : '') + '</span>' + (o.roll != null && o.phase !== 'rolling' ? `<span class="tray-result ${o.roll === 20 ? 'crit' : o.roll === 1 ? 'fumble' : ''}"><small>擲出</small>${o.roll}</span>` : '') : `<div class="${dieCls}">${dieInner}</div>`}</div>
-    <div class="ctrl">
+    </div>
+    <div class="bdock">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
+    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
       <div class="side">${side}</div>
     </div>
-    <div class="vitals in-battle one"><div class="icorow"><span>內力</span><span class="ico">${orbs(Math.ceil(S.mp / (o.K || 1) - 1e-6), qiMax())}</span><em>${S.mp}</em></div></div>
-    <ol class="blog">${o.log.slice(-4).map(l => `<li>${l}</li>`).join('')}</ol>
   </div></div>`;
 }
 
