@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v4.1.2';
+const VERSION = 'v5.0.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -165,6 +165,12 @@ const SKILLS = {
 
   // 江湖雜學
   m_blade: { n: '斷魂刀法', type: 'blade', tier: 1, attr: 'yang', d: '江湖上的刀法，出手狠辣，招招斷人生路。', moves: [['力劈', 1, 3, 15], ['橫掃千軍', 4, 8, 24], ['破風', 7, 14, 34, 'pierce']] },
+  m_fist:  { n: '太祖長拳', type: 'fist', tier: 1, attr: 'yang', d: '宋太祖傳下的拳法，大開大合，天下拳師幾乎人人會打幾趟。', moves: [['沖天炮', 1, 3, 15], ['鴛鴦腿', 4, 8, 24], ['翻身砸', 7, 14, 34, 'stun']] },
+  m_sword: { n: '青城劍法', type: 'sword', tier: 1, attr: 'he', d: '蜀中青城派的入門劍法，輕快靈動，市面上有抄本流傳。', moves: [['松風', 1, 3, 14], ['流雲', 4, 8, 23], ['青城飛渡', 7, 14, 33, 'weak']] },
+  m_staff: { n: '齊眉棍法', type: 'staff', tier: 1, attr: 'yang', d: '鄉間武館最常教的棍法，一根齊眉棍使得潑水不進。', moves: [['橫掃', 1, 3, 14], ['舉火燒天', 4, 8, 23], ['棍掃千軍', 7, 14, 33, 'stun']] },
+  m_spear: { n: '長槍十八扎', type: 'spear', tier: 1, attr: 'yang', d: '軍中流傳的槍法，只有扎、攔、拿三樣，勝在簡單狠。', moves: [['直扎', 1, 3, 15], ['攔拿', 4, 8, 24], ['回馬槍', 7, 14, 34, 'pierce']] },
+  m_whip:  { n: '九節鞭法', type: 'whip', tier: 1, attr: 'he', d: '江湖賣藝人常耍的軟兵器功夫，九節鋼鞭可長可短。', moves: [['盤龍', 1, 3, 14], ['抽梁', 4, 8, 23], ['九節連環', 7, 14, 33, 'bleed']] },
+  m_qing:  { n: '燕子三抄水', type: 'qing', tier: 1, attr: 'he', dodge: 1.8, d: '入門的輕身提縱術，據說練到深處能踏水而過。' },
   m_dart:  { n: '袖箭', type: 'dart', tier: 1, attr: 'he', d: '袖底藏機，出其不意。', moves: [['袖箭', 1, 2, 12], ['連珠', 4, 8, 22], ['回馬箭', 7, 13, 32, 'pierce']] },
 
   // 奇遇・傳承絕學
@@ -263,11 +269,11 @@ const sectOpen = id => { const k = SECTS[id], y = typeof ad === 'function' && S 
 
 /* ---------- 物品 ---------- */
 const ITEMS = {
-  jinchuang: { n: '金創藥', kind: 'med', price: 30, hp: 70, d: '回復 70 氣血' },
-  huiqi:     { n: '回氣散', kind: 'med', price: 40, mp: 45, d: '回復 45 內力' },
-  dahuan:    { n: '大還丹', kind: 'med', price: 320, hp: 9999, mp: 9999, d: '氣血內力全滿' },
+  jinchuang: { n: '金創藥', kind: 'med', price: 30, hp: 70, life: 1, d: '回復 1 點氣血（戰鬥中回復 70 鬥氣）' },
+  huiqi:     { n: '回氣散', kind: 'med', price: 40, mp: 45, qi: 2, d: '回復 2 點內力（戰鬥中回復 45）' },
+  dahuan:    { n: '大還丹', kind: 'med', price: 320, hp: 9999, mp: 9999, life: 99, qi: 99, d: '氣血與內力全滿' },
   herb:      { n: '草藥', kind: 'misc', price: 16, d: '藥舖收購；三株可請藥舖煉成金創藥' },
-  lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, d: '服下後根骨+1、氣血上限+30' },
+  lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, d: '服下後根骨+1、氣血上限+1（多一顆命）' },
   wine:      { n: '陳年花雕', kind: 'gift', price: 60, d: '贈禮' },
   rouge:     { n: '蘇州胭脂', kind: 'gift', price: 60, d: '贈禮' },
   hairpin:   { n: '白玉簪', kind: 'gift', price: 150, d: '贈禮' },
@@ -298,6 +304,12 @@ const ITEMS = {
   acc_ring:   { n: '翡翠扳指', kind: 'acc', price: 220, st: { int: 1, cha: 1 } },
   acc_boots:  { n: '千層底快靴', kind: 'acc', price: 160, st: { agi: 2 } },
   acc_sachet: { n: '百花香囊', kind: 'acc', price: 120, st: { cha: 1, luck: 1 } },
+  bk_fist:   { n: '《太祖長拳譜》', kind: 'manual', skill: 'm_fist', price: 120 },
+  bk_sword:  { n: '《青城劍訣》', kind: 'manual', skill: 'm_sword', price: 140 },
+  bk_staff:  { n: '《齊眉棍法》', kind: 'manual', skill: 'm_staff', price: 120 },
+  bk_spear:  { n: '《長槍十八扎》', kind: 'manual', skill: 'm_spear', price: 140 },
+  bk_whip:   { n: '《九節鞭法》', kind: 'manual', skill: 'm_whip', price: 140 },
+  bk_qing:   { n: '《燕子三抄水》', kind: 'manual', skill: 'm_qing', price: 160 },
   bk_blade:  { n: '《斷魂刀譜》', kind: 'manual', skill: 'm_blade', price: 150 },
   bk_dart:   { n: '《袖箭圖解》', kind: 'manual', skill: 'm_dart', price: 150 },
 };

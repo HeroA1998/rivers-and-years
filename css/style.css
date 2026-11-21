@@ -305,3 +305,23 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .btn.dice svg { width: 26px; height: 26px; }
 .vitals > div:nth-child(3) { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; align-items: center; }
 .vitals.one { grid-template-columns: 1fr; } .adv span.win { color: var(--jade); } .adv span.lose { color: var(--seal); }
+
+/* ---------- v5：命與氣團圖標 ---------- */
+.icorow { display: flex; align-items: center; gap: 8px; }
+.icorow > span:first-child { font-size: 13px; min-width: 2.6em; }
+.ico { display: inline-flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.ico svg { width: 22px; height: 22px; }
+.ico.small svg { width: 16px; height: 16px; }
+.icorow.big svg { width: 28px; height: 28px; }
+.icorow.big { margin: 4px 0; }
+svg.heart { stroke: var(--seal); stroke-width: 1.6; stroke-linejoin: round; }
+svg.heart.on { fill: var(--seal); } svg.heart.off { fill: none; opacity: .45; }
+svg.orb circle { stroke: var(--jade); stroke-width: 1.6; fill: none; }
+svg.orb path { stroke: var(--jade); stroke-width: 1.2; fill: var(--jade); }
+svg.orb.off { opacity: .35; } svg.orb.off path { fill: none; }
+.vitals { grid-template-columns: 1fr !important; }
+.vitals > .icorow, .vitals > div:nth-child(1), .vitals > div:nth-child(2) { display: flex; }
+.vitals em { min-width: 0; }
+.opt.sealed { opacity: .5; border-style: dashed; cursor: default; }
+.vs .side-p .ico.small { margin: 1px 0; }
+.vitals.in-battle .icorow em { font-size: 12px; color: var(--ink2); font-style: normal; }

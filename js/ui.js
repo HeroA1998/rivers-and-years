@@ -45,7 +45,9 @@ const SCREENS = {
       <h2>${c.legacy ? `第${cnNum(c.legacy.gen + 1)}代傳人` : '初入江湖'}</h2>
       ${c.legacy ? `<p class="note">承襲自${esc(c.legacy.from)}：${SKILLS[c.legacy.skill.id].n}第${cnNum(c.legacy.skill.lv)}層、銀兩 ${c.legacy.silver}${c.legacy.weapon ? '、' + ITEMS[c.legacy.weapon].n : ''}${c.legacy.blood ? '、血脈天賦（悟性根骨各+1）' : ''}</p>` : ''}
       <div class="field">年代</div>
-      <div class="col">${eraOptions(c).map(x => `<button type="button" class="opt ${c.year === x.y ? 'on' : ''}"${h(() => { c.year = x.y; render(); })}><b>${x.n}<i>${reign(x.y)}・${x.y}年</i></b><span>${x.d}</span></button>`).join('')}</div>
+      <div class="col">${eraOptions(c).map(x => x.sealed
+        ? `<button type="button" class="opt sealed" disabled><b>${x.n}<i>封印中</i></b><span>暫時不開放，先專心走完射鵰篇。</span></button>`
+        : `<button type="button" class="opt ${c.year === x.y ? 'on' : ''}"${h(() => { c.year = x.y; render(); })}><b>${x.n}<i>${reign(x.y)}・${x.y}年</i></b><span>${x.d}</span></button>`).join('')}</div>
       <label class="field" for="nm">姓名<input id="nm" maxlength="6" placeholder="例：沈孤雁" value="${esc(c.name)}" autocomplete="off"></label>
       <div class="field">性別<div class="row">${['男', '女'].map(g => B(g, () => { c.gender = g; render(); }, c.gender === g ? 'on' : '')).join('')}</div></div>
       <p class="note">出身由天：投胎到什麼人家、生在哪裡，要等踏入江湖才知道。不同出身另有天資加成。</p>
@@ -65,8 +67,8 @@ const SCREENS = {
       </header>
       <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
       <div class="vitals">
-        <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${S.hp}/${maxHp()}</em></div>
-        <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}</em></div>
+        <div class="icorow"><span>氣血</span><span class="ico">${hearts()}</span></div>
+        <div class="icorow"><span>內力</span><span class="ico">${orbs(S.qi, qiMax())}</span></div>
         <div><span>Lv ${S.lv}</span>${bar(S.exp, expNeed(S.lv), 'xp')}<em>${S.exp}/${expNeed(S.lv)}</em></div>
         ${statRow()}
         <div class="chips"><span>銀兩 <b>${S.silver}</b></span><span>聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
@@ -79,7 +81,7 @@ const SCREENS = {
     const heir = S.child ? `子女「${S.child}」` : S.disciple ? `弟子「${S.disciple.n}」` : null;
     return `<div class="ending">
       ${art('end', 'end', 'hero')}
-      <p class="tag jade">${e.reason === '壽終' ? '壽終正寢' : '封劍歸隱'}・享年${cnNum(age())}</p>
+      <p class="tag jade">${e.reason === '壽終' ? '壽終正寢' : e.reason === '戰死' ? '命喪江湖' : '封劍歸隱'}・享年${cnNum(age())}</p>
       <h1>${e.title}</h1>
       <p class="story">${esc(S.name)}，${S.birth || S.origin}。${e.text}</p>
       <div class="stats end-stats">
@@ -95,11 +97,18 @@ const SCREENS = {
 };
 
 /* ---------- 分頁 ---------- */
+const heartSvg = on => `<svg class="heart ${on ? 'on' : 'off'}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.6-4.7-9.6-9.3C1 8.3 3.2 4.8 6.6 4.8c2 0 3.7 1.1 5.4 3 1.7-1.9 3.4-3 5.4-3 3.4 0 5.6 3.5 4.2 6.9C19.6 16.300 12 21 12 21z"/></svg>`;
+const orbSvg = on => `<svg class="orb ${on ? 'on' : 'off'}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18 4.500 4.500 0 010-9 4.500 4.500 0 000-9z"/></svg>`;
+const hearts = (n = S.life, m = lifeMax()) => Array.from({ length: m }, (_, i) => heartSvg(i < n)).join('');
+const orbs = (n, m) => Array.from({ length: m }, (_, i) => orbSvg(i < n)).join('');
 const statRow = () => `<div class="statrow">${Object.keys(STAT_N).map(k => `<span><i>${STAT_N[k]}</i><b>${S.stats[k]}</b>${S.bonus && S.bonus[k] ? `<small>+${S.bonus[k]}</small>` : ''}</span>`).join('')}</div>`;
 function eraOptions(c) {
   const out = [];
-  if (c.legacy) out.push({ y: c.legacy.year, n: '承接上一代', d: `緊接著${c.legacy.from}歸隱的第二年。江湖上的人和事，都還記得${c.legacy.from}。` });
-  for (const e of ERAS) if (!c.legacy || e.y > c.legacy.year + 5) out.push(c.legacy ? Object.assign({}, e, { n: `${e.n}（數十年後的後人）` }) : e);
+  if (c.legacy) out.push(c.legacy.reset
+    ? { y: ERAS[0].y, n: '後人重走射鵰年代', d: `${c.legacy.from}的年代已成舊事，江湖上的人和事重新開場，你是他們的後人。` }
+    : { y: c.legacy.year, n: '承接上一代', d: `緊接著${c.legacy.from}歸隱的第二年。江湖上的人和事，都還記得${c.legacy.from}。` });
+  else for (const e of ERAS) if (e.y <= SEAL_YEAR) out.push(e);
+  for (const e of ERAS) if (e.y > SEAL_YEAR) out.push(Object.assign({}, e, { sealed: true }));
   return out;
 }
 const SUBS = [['status', '狀態'], ['skill', '武功'], ['people', '人脈']];
@@ -122,6 +131,7 @@ const TABS = {
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}・貢獻 ${S.contrib}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負<br>
       戰力 ${Math.round(power())}　閃避 ${Math.round(pDodge())}　防禦 ${Math.round(pDef())}</p>
+      <div class="icorow big"><span>氣血</span><span class="ico">${hearts()}</span></div><div class="icorow big"><span>內力</span><span class="ico">${orbs(S.qi, qiMax())}</span></div>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>本身 ${S.base[k]}${S.bonus[k] ? `　裝備 +${S.bonus[k]}` : ''}<br>${STAT_D[k]}</small></div>`).join('')}</div>
       <p class="desc">能力值只會因為升級配點、故事中的遭遇，以及裝備的兵刃、護甲、飾品與武功而改變。</p></section>`;
   },
@@ -206,11 +216,13 @@ const REF = {
   help: () => `<div class="help">
       <h4>怎麼玩</h4><p>唯一的主行動是「歷練」：按一次過約一個月，路上會遇到各種事。拜師、學藝、晉升、買賣、情緣、奇遇，全都在事件裡發生。</p>
       <h4>三條路</h4><p>每件事都有三個選項：正派行動、反派行動、無視或拒絕。正派讓人敬重，反派往往有立即的好處，但會讓俠義一路往下掉，名門正派也會看不起你。有些選項要擲 d20 檢定能力值。</p>
+      <h4>氣血與內力</h4><p>氣血是「命」：起始 3 顆愛心。打輸一場戰鬥扣一顆，事件失敗（檢定沒過、受傷）也扣一顆，歸零就命喪江湖，這一世結束、由後人接續。命每過兩個月自然回一顆，金創藥回一顆，大還丹全滿，升級也會回一顆。內力是「氣團」：事件裡的運功、拚盡全力的選項會消耗，戰鬥中的絕招也用它；每二十天回一顆，回氣散回兩顆。</p>
       <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
       <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
       <h4>戰鬥</h4><p>一局定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 10 看一半，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手打完先倒下者敗，都沒倒下就比誰剩的氣血比例高。打不過可以投降。</p>
-      <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。</p>
-      <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
+      <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。路上偶爾會回城一趟，買金創藥、回氣散，或是一本武功秘笈。</p>
+      <h4>年代</h4><p>目前只開放射鵰篇（1222 起）；神鵰篇、倚天篇暫時封印。</p>
+      <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫；邪道：鐵掌幫。</p>
       <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代。存檔存在這支手機的瀏覽器裡。</p>
     </div>`,
   credits: () => `<div class="credits-wrap">${CRED_HTML()}</div>`,
@@ -282,16 +294,16 @@ function overlay() {
   return `<div class="veil"><div class="sheet battle">
     <div class="bhead"><p class="tag seal">戰鬥・一局定勝負</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
     <div class="vs">
-      <div class="side-p"><b>${esc(S.name)}</b><span class="pw">戰力 ${Math.round(power())}</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em><div class="acs">${chips(S.eq)}</div></div>
+      <div class="side-p"><b>${esc(S.name)}</b><span class="ico small">${hearts()}</span><span class="pw">戰力 ${Math.round(power())}</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em><div class="acs">${chips(S.eq)}</div></div>
       <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">勝算 ${adv.toFixed(1)}%</span>`}</div>
       <div class="side-e">${face(o.who, 'mini-face')}<b>${e.n}</b><span class="pw">戰力 ${Math.round(e.P)}</span>${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em><div class="acs">${fx}${e.moves.map(m => `<i class="ac r-foe">${m[0][0]}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     </div>
-    <p class="rule">只打這一局：六手出完，先倒下者敗；都沒倒下，就比誰剩的氣血比例高。攻克破・破克守・守克攻，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
+    <p class="rule">只打這一局：六手出完，先倒下者敗；都沒倒下，就比誰剩的氣血比例高。輸了扣一顆命。攻克破・破克守・守克攻，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
     ${o.over || !o.ins ? '' : insightHtml(o)}
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
     <div class="vitals in-battle one">
-      <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}${planMp(o) ? `（本回合將用 ${planMp(o)}）` : ''}</em></div>
+      <div class="icorow"><span>內力</span><span class="ico">${orbs(Math.ceil(S.mp / (o.K || 1) - 1e-6), qiMax())}</span><em>${S.mp}${planMp(o) ? `（本回合將用 ${planMp(o)}）` : ''}</em></div>
     </div>${ctl}</div></div>`;
 }
 

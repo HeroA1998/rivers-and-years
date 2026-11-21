@@ -4,7 +4,7 @@
 
 /* ---------- d20 檢定 ---------- */
 const d20 = () => ri(1, 20);
-const half = s => { s.hp = Math.max(1, Math.round(maxHp() * 0.3)); };
+const half = () => {};                  // 戰鬥打輸扣命已在 endBattle 統一處理
 // 檢定加值：能力調整值（每 2 點差 1）；難度隨等級慢慢提高
 const statMod = k => Math.floor((S.stats[k] - 5) / 2);
 const dcOf = dc => dc + Math.floor(((S.lv || 1) - 1) / 4);
@@ -26,9 +26,9 @@ const $g = o => Object.assign(o, { s: 'g' }), $e = o => Object.assign(o, { s: 'e
 const XP = n => () => battleXp(n) || '';
 const XN = n => () => xp(S.nei, n) || '';
 const HERB = n => () => addItem('herb', n);
-const HEAL = () => { S.hp = Math.min(maxHp(), S.hp + Math.round(maxHp() * 0.25)); return ''; };
-const FULL = () => { S.hp = maxHp(); S.mp = maxMp(); return ''; };
-const HURT = p => () => { S.hp = Math.max(1, S.hp - Math.round(maxHp() * p)); return ''; };
+const HEAL = () => heal(1);
+const FULL = () => heal(1) + gainQi(99);
+const HURT = () => () => hurt(1);       // 事件中受傷：扣一顆命
 const GOSSIP = () => gossipReveal();
 const ITEM = id => () => addItem(id);
 const money = n => s => s.silver >= n;
@@ -221,6 +221,10 @@ const CARDS = [
   { id: 'y_learn', ctx: ['sect'], w: 40, cond: s => s.sect && LOCS[s.loc].sect === s.sect && sectNext(), make: learnCard },
   { id: 'y_promote', ctx: ['sect'], w: 45, cond: s => LOCS[s.loc].sect === s.sect && canPromote(), make: promoteCard },
 
+  /* ===== 回城 ===== */
+  { id: 'y_townmed', ctx: ['city', 'wild', 'sect'], w: s => s.life < lifeMax() ? 38 : 9, make: townMedCard },
+  { id: 'y_townart', ctx: ['city', 'wild', 'sect'], w: s => s.silver >= 150 ? 20 : 5, cond: s => artShop(s).length > 0, make: townArtCard },
+
   /* ===== 買賣 ===== */
   { id: 'y_market', ctx: ['city'], w: 10, make: marketCard },
   { id: 'y_smith', ctx: ['city'], w: 9, make: smithCard },
@@ -283,6 +287,34 @@ function promoteCard(s) {
     opts: [$g(F('弟子領命', [e, 3 + s.rank * 6, 0.55, k.align < 0 ? 'blade' : 'master'], ['', {}, () => { S.rank++; return `你通過了考核，晉升為${k.n}${RANKS[S.rank]}！` + gain({ fame: 15 * S.rank }); }], ['你未能撐過考核。師父道：「回去再練，來日方長。」', {}], { noFlee: true })),
       $e(P(`私下塞給執事長老 ${cost} 兩`, ['', {}, () => { S.silver -= cost; S.rank++; return `考核走了個過場。你晉升為${k.n}${RANKS[S.rank]}，可師兄弟們背後都在議論。` + gain({ fame: -10 }); }], { req: money(cost), reqT: `需 ${cost} 兩` })),
       $n(P('「弟子還想再練練。」', ['師父笑了笑：「不急。」']))] };
+}
+
+/* ---------- 回城：隨機回到城裡買藥、買武功 ---------- */
+function goTown() {
+  if (LOCS[S.loc] && LOCS[S.loc].kind === 'city') return;
+  const to = Object.keys(LOCS).filter(id => LOCS[id].kind === 'city').sort((a, b) => travelDays(a) - travelDays(b))[0];
+  const d = travelDays(to), from = LOCS[S.loc] ? LOCS[S.loc].n : '路上';
+  log(`這個月你回了一趟${LOCS[to].n}，路上走了${cnNum(d)}日。`);
+  S.flags.moved = [from, LOCS[to].n];
+  S.loc = '_road'; advance(d); S.loc = to;
+}
+const artShop = s => Object.keys(ITEMS).filter(id => ITEMS[id].kind === 'manual' && !knows(ITEMS[id].skill));
+function townMedCard(s) {
+  goTown();
+  const n = Math.max(1, Math.min(3, Math.floor(s.silver / 30))), cost = 30 * n, qiToo = s.silver - cost >= 40;
+  const hurtNow = s.life < lifeMax();
+  return { title: '回城買藥', art: 'city', text: `你回到${LOCS[s.loc].n}，${hurtNow ? `身上的傷還沒好利索（氣血 ${s.life}/${lifeMax()}），` : ''}順路拐進了老字號的藥舖。掌櫃從櫃檯後探出頭：「金創藥三十兩一份，回氣散四十兩，貨真價實，不摻假。」\n\n你身上有 ${s.silver} 兩，金創藥 ${s.inv.jinchuang || 0} 份。`,
+    opts: [$g(P(`買金創藥 ×${n}${qiToo ? '、回氣散 ×1' : ''}（${cost + (qiToo ? 40 : 0)} 兩）`, ['你付了銀子，掌櫃把藥包好遞過來。', { silver: -(cost + (qiToo ? 40 : 0)) }, () => addItem('jinchuang', n) + (qiToo ? addItem('huiqi') : '')], { req: money(30), reqT: '需 30 兩' })),
+      $e(O('趁掌櫃轉身，順手抓幾包藥', 'agi', 12, ['你的手比眼快，兩包金創藥和一包回氣散已經進了袖子。', {}, () => addItem('jinchuang', 2) + addItem('huiqi')], ['掌櫃一把攥住你的手腕，喊來了夥計。你賠了錢，還挨了一頓打。', { silver: -Math.min(s.silver, 40), fame: -3 }])),
+      $n(P('只在客店歇一晚', ['你要了間客房，睡了個踏實覺，內息順暢了不少。', { silver: -Math.min(s.silver, 10) }, () => gainQi(99)]))] };
+}
+function townArtCard(s) {
+  goTown();
+  const id = pick(artShop(s)), it = ITEMS[id], sk = SKILLS[it.skill];
+  return { title: '回城買武功', art: 'city', text: `你回到${LOCS[s.loc].n}，在書肆的角落裡翻到一本${it.n}。掌櫃擦著眼鏡：「${sk.n}，${TIER_N[sk.tier]}${TYPE_N[sk.type]}。${sk.d}${it.price} 兩，要就拿去。」\n\n你身上有 ${s.silver} 兩。`,
+    opts: [$g(P(`付 ${it.price} 兩買下，回去研讀`, ['你付了銀子，把秘笈揣進懷裡。', { silver: -it.price }, () => learn(it.skill)], { req: money(it.price), reqT: `需 ${it.price} 兩` })),
+      $e(O('趁掌櫃打盹，把秘笈揣進懷裡', 'agi', 13, ['你抄起秘笈，若無其事地走出了書肆。', {}, () => learn(it.skill)], ['掌櫃一嗓子喊來了鄰舖的夥計。你被扭送出門，秘笈也沒拿到。', { silver: -Math.min(s.silver, 50), fame: -4 }])),
+      $n(P('翻了翻，放回架上', ['你把書放回了原處。'])) ] };
 }
 
 /* ---------- 買賣 ---------- */
@@ -380,7 +412,7 @@ function cardEvent(card) {
   const prefix = S.flags.moved ? `（這個月你從${S.flags.moved[0]}來到了${S.flags.moved[1]}。）\n\n` : '';
   S.flags.moved = null;
   return { type: card.type || '歷練', title: card.title, art: card.art || LOCS[S.loc].art, text: prefix + card.text, who: card.who,
-    choices: card.opts.map(o => ({ s: o.s, t: `${o.t}${reqLine(o) ? '　' + reqLine(o) : ''}`, req: o.req, reqT: o.reqT, go: () => resolveOpt(o) })) };
+    choices: card.opts.map(o => ({ s: o.s, t: `${o.t}${reqLine(o) ? '　' + reqLine(o) : ''}`, req: o.req, reqT: o.reqT, qi: o.qi != null ? o.qi : (o.fight ? 0 : (['agi', 'str', 'con'].includes(o.stat) && o.dc >= 12) || QI_KEY.test(o.t) ? 1 : 0), go: () => resolveOpt(o) })) };
 }
 function resolveOpt(o) {
   if (o.days) advanceSteps(o.days);
@@ -390,7 +422,9 @@ function resolveOpt(o) {
   }
   if (!o.stat) return applyOutcome(o.ok);
   const c = check(o.stat, o.dc);
-  return rollLine(c) + applyOutcome(c.ok ? o.ok : (o.no || ['你沒能成功。'])) + (c.ok ? gainExp(6) : '');
+  if (c.ok) return rollLine(c) + applyOutcome(o.ok) + gainExp(6);
+  const l0 = S.life, t = rollLine(c) + applyOutcome(o.no || ['你沒能成功。']);
+  return t + (S.life === l0 ? hurt(1) : '');             // 檢定失敗一定吃虧：結果裡沒扣命，就補扣一顆
 }
 
 /* ---------- 推進時間 ---------- */

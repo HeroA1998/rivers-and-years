@@ -56,6 +56,7 @@ function newGame(c, legacy) {
     v: 4, name: c.name || '無名', gender: c.gender, origin: o.base, birth: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
     y0: year, date: { y: 1, m: 1, d: 1 }, loc: o.loc, base, stats: Object.assign({}, base), bonus: {},
     lv: 1, exp: 0, pts: 0,
+    life: 3, qi: 3, bonusLife: 0,
     hp: 1, mp: 1, bonusHp: 0, bonusMp: 0, silver: 120 + (o.silver || 0), fame: 0, moral: 0,
     sect: null, rank: 0, contrib: 0, contribTotal: 0,
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist', 'tuna'],
@@ -73,7 +74,7 @@ function newGame(c, legacy) {
     if (legacy.blood) { S.base.int++; S.base.con++; }
   }
   recalc();
-  S.hp = maxHp(); S.mp = maxMp();
+  S.life = lifeMax(); S.qi = qiMax(); S.hp = maxHp(); S.mp = maxMp();
   Q = [];
   histInit();
   // 開局先讓玩家知道下一件大事，免得頭幾個月無所適從
@@ -89,13 +90,18 @@ function newGame(c, legacy) {
 }
 // 舊存檔（v3 以前）轉成新制：能力值分成本身與加成，內功、身法也放進五格武功
 function migrate(s) {
-  if (s.v >= 4) return s;
+  if (s.v >= 5) return s;
+  if (!(s.v >= 4)) migrate4(s);
+  s.v = 5; s.bonusLife = s.bonusLife || 0;
+  s.life = 3 + Math.floor(((s.lv || 1) - 1) / 5) + s.bonusLife; s.qi = 3;
+  return s;
+}
+function migrate4(s) {
   s.v = 4; s.base = Object.assign({}, s.stats); s.bonus = {}; s.lv = s.lv || 1; s.exp = s.exp || 0; s.pts = s.pts || 0; s.acc = s.acc || null;
   const eq = [s.nei, ...(s.eq || [])];
   const q = Object.keys(s.skills).filter(id => SKILLS[id].type === 'qing').sort((a, b) => s.skills[b].lv * SKILLS[b].dodge - s.skills[a].lv * SKILLS[a].dodge)[0];
   if (q) eq.push(q);
   s.eq = [...new Set(eq.filter(Boolean))].slice(0, EQ_MAX);
-  return s;
 }
 
 /* ---------- 能力值：本身（初始天資、升級配點、故事）＋裝備加成（兵刃、護甲、飾品、武功） ---------- */
@@ -114,8 +120,28 @@ function recalc() {
   for (const id of S.eq) if (SKILLS[id].type === 'nei' && (!best || SKILLS[id].tier * 20 + S.skills[id].lv > SKILLS[best].tier * 20 + S.skills[best].lv)) best = id;
   S.nei = best;
   S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp());
+  S.life = Math.min(S.life, lifeMax()); S.qi = Math.min(S.qi, qiMax());
 }
 const fxSum = key => S.eq.reduce((t, id) => t + (artFx(id)[key] || 0), 0);
+
+/* ---------- 命（氣血）與氣團（內力） ----------
+   氣血是「命」：起始 3 顆愛心，打輸一場、事件失敗各扣一顆，歸零就是命喪江湖。
+   內力是「氣團」：事件中的運功、動手會消耗，戰鬥中的絕招也用它；每過二十天回一顆。
+   戰鬥內部仍用數值血條（S.hp、S.mp 只在戰鬥中有意義），每場開打時由命與氣團換算。 */
+const lifeMax = () => 3 + Math.floor(((S.lv || 1) - 1) / 5) + (S.bonusLife || 0);
+const qiMax = () => clamp(Math.round(maxMp() / 22), 3, 9);
+let PEND = [];                                   // 先記下、等事件結果顯示時再附上的提示
+const takePend = () => { const t = PEND.join(''); PEND = []; return t; };
+function hurt(n = 1) {
+  if (S.life <= 0) return '';
+  const d = Math.min(n, S.life); S.life -= d;
+  return `〔氣血-${d}${S.life <= 0 ? '・氣血耗盡' : ''}〕`;
+}
+function heal(n = 1) { const d = Math.min(n, lifeMax() - S.life); S.life += d; return d ? `〔氣血+${d}〕` : ''; }
+function gainQi(n) { const d = clamp(n, -S.qi, qiMax() - S.qi); S.qi += d; return d ? `〔內力${d > 0 ? '+' : ''}${d}〕` : ''; }
+const QI_KEY = /運功|施展|迎雷|逼毒|催逼/;
+const autoQi = c => QI_KEY.test(c.t || '') ? 1 : 0;
+const hurtQ = () => { PEND.push(hurt(1)); }, healQ = () => { PEND.push(heal(1)); };
 
 /* ---------- 衍生數值 ---------- */
 function neiSum(key) {
@@ -157,7 +183,7 @@ const moralName = () => S.moral >= 60 ? '俠肝義膽' : S.moral >= 20 ? '心存
 
 /* ---------- 增減與學習 ---------- */
 function log(s) { S.log.push({ t: dateStr(), s }); if (S.log.length > 40) S.log.shift(); }
-const GAIN_N = { silver: '銀兩', fame: '聲望', moral: '俠義', hp: '氣血', mp: '內力', contrib: '門派貢獻', bonusHp: '氣血上限', bonusMp: '內力上限' };
+const GAIN_N = { silver: '銀兩', fame: '聲望', moral: '俠義', hp: '氣血', mp: '內力', contrib: '門派貢獻', bonusHp: '鬥氣上限', bonusMp: '內力上限', bonusLife: '氣血上限' };
 function gain(o) {
   const out = [];
   let st = false;
@@ -165,17 +191,17 @@ function gain(o) {
     let v = o[k];
     if (!v) continue;
     if (k in STAT_N) { S.base[k] = clamp(S.base[k] + v, 1, 30); st = true; out.push(`${STAT_N[k]}${v > 0 ? '+' : ''}${v}`); continue; }
+    if (k === 'hp') { const t = v < 0 ? hurt(1) : v >= 999 ? heal(99) : v >= 20 ? heal(1) : ''; if (t) out.push(t.replace(/^〔|〕$/g, '')); continue; }
+    if (k === 'mp') { const t = v >= 999 ? gainQi(99) : v > 0 ? gainQi(1) : v < 0 ? gainQi(-1) : ''; if (t) out.push(t.replace(/^〔|〕$/g, '')); continue; }
     if (k === 'contrib') { S.contrib = Math.max(0, S.contrib + v); if (v > 0) S.contribTotal += v; }
     else if (k === 'silver') { v = Math.max(v, -S.silver); S.silver += v; }
-    else if (k === 'hp') S.hp = clamp(S.hp + v, 1, maxHp());
-    else if (k === 'mp') S.mp = clamp(S.mp + v, 0, maxMp());
     else if (k === 'moral') S.moral = clamp(S.moral + v, -100, 100);
     else S[k] += v;
     if (k === 'fame') S.fame = Math.max(0, S.fame);
     if (v && Math.abs(v) < 900) out.push(`${GAIN_N[k]}${v > 0 ? '+' : ''}${Math.round(v)}`);
   }
-  if (st) recalc();
-  S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp());
+  if (st || o.bonusLife || o.bonusMp) recalc();
+  S.life = Math.min(S.life, lifeMax()); S.qi = Math.min(S.qi, qiMax());
   return out.length ? `〔${out.join('　')}〕` : '';
 }
 function addItem(id, n = 1) { S.inv[id] = (S.inv[id] || 0) + n; if (S.inv[id] <= 0) { delete S.inv[id]; for (const sl of ['weapon', 'armor', 'acc']) if (S[sl] === id) { S[sl] = null; recalc(); } } return n > 0 ? `〔獲得 ${ITEMS[id].n}${n > 1 ? '×' + n : ''}〕` : ''; }
@@ -190,7 +216,7 @@ function gainExp(n) {
   S.exp += n;
   let up = 0;
   while (S.exp >= expNeed(S.lv)) { S.exp -= expNeed(S.lv); S.lv++; S.pts += 3; up++; }
-  if (up) { S.hp = maxHp(); S.mp = maxMp(); }
+  if (up) { S.life = Math.min(lifeMax(), S.life + 1); S.qi = qiMax(); }
   return `〔閱歷+${n}〕` + (up ? `〔等級提升至 ${S.lv}！屬性點數+${3 * up}〕` : '');
 }
 function autoEquip(id) {
@@ -241,8 +267,9 @@ function advance(days) {
     if (d.m === 9 && d.d === 1) Q.push(Object.assign({ due: today() }, FIXED.tourney));
     histTick();
   }
-  S.hp = Math.min(maxHp(), Math.round(S.hp + days * maxHp() * 0.02));
-  S.mp = Math.min(maxMp(), Math.round(S.mp + days * maxMp() * 0.06));
+  S.flags.qiD = (S.flags.qiD || 0) + days; S.flags.lifeD = (S.flags.lifeD || 0) + days;
+  while (S.flags.qiD >= 20) { S.flags.qiD -= 20; S.qi = Math.min(qiMax(), S.qi + 1); }
+  while (S.flags.lifeD >= 60) { S.flags.lifeD -= 60; S.life = Math.min(lifeMax(), S.life + 1); }
 }
 function onMonth() {
   const { y, m } = S.date;
@@ -268,6 +295,7 @@ function rollEvent(ctx) {
   return null;
 }
 function pump() {
+  if (S.life <= 0 && UI.screen === 'game' && !(UI.ov && UI.ov.k === 'battle')) { UI.ov = null; return retire('戰死'); }
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
   const h = histDue();
@@ -293,7 +321,8 @@ function showEvent(ev) {
   const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
   const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const raw = typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || [];
-  const choices = sides(raw).map(c => Object.assign({}, c, { dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S))) }));
+  const choices = sides(raw).map(c => { const qi = c.qi != null ? c.qi : autoQi(c); return Object.assign({}, c, { qi, t: c.t + (qi ? `〔耗內力${qi}〕` : ''), dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S)) || (qi && S.qi < qi)), reqT: c.reqT || (qi && S.qi < qi ? '內力不足' : '') }); });
+  if (choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
   UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who, big: ['歷史', '傳承', '奇遇', '奇緣'].includes(ev.type) };
   log(`【${ev.type}】${ev.title}`);
   render();
@@ -301,6 +330,7 @@ function showEvent(ev) {
 function choose(i) {
   const o = UI.ov, c = o.choices[i];
   if (!c || c.dis) return;
+  if (c.qi) S.qi = Math.max(0, S.qi - c.qi);
   S.moral = clamp(S.moral + (c.s === 'g' ? 1 : c.s === 'e' ? -2 : 0), -100, 100);
   const r = c.go ? c.go(S) : '';
   o.side = c.s;
@@ -311,7 +341,7 @@ function handleResult(r) {
   if (r && typeof r === 'object' && r.battle) return startBattle(r);
   if (r && typeof r === 'object' && r.end) return retire(r.end);
   const ov = UI.ov && UI.ov.k === 'event' ? UI.ov : (UI.ov = { k: 'event', type: '江湖', title: '', text: '' });
-  ov.result = r || '此事就此揭過。';
+  ov.result = (r || '此事就此揭過。') + takePend();
   ov.choices = [];
   render();
 }
@@ -322,7 +352,7 @@ function lvReset() { UI.ov.add = {}; render(); }
 function lvOk() {
   const o = UI.ov;
   for (const k in o.add) { S.base[k] += o.add[k]; S.pts -= o.add[k]; }
-  recalc(); S.hp = maxHp(); S.mp = maxMp();
+  recalc();
   UI.ov = null; pump();
 }
 
@@ -390,6 +420,9 @@ function startBattle(r) {
     k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
     log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null,
   };
+  PEND = [];
+  const K = maxMp() / Math.max(1, qiMax());           // 一顆氣團＝K 點戰鬥內力
+  UI.ov.K = K; S.hp = maxHp(); S.mp = Math.round(S.qi * K);
   newRound(UI.ov);
   battleOpen(UI.ov);
   render();
@@ -572,12 +605,13 @@ function pSurrender() {
 }
 function defeat() {
   const lost = Math.round(S.silver * 0.2);
-  S.silver -= lost; S.hp = Math.round(maxHp() * 0.3);
+  S.silver -= lost;
   advance(15);
   return `你身受重傷，被好心人抬去醫治，躺了半個月才能下床。〔銀兩-${lost}　耗時十五日〕`;
 }
 function endBattle() {
   const b = UI.ov;
+  S.qi = clamp(Math.ceil(S.mp / (b.K || 1) - 1e-6), 0, qiMax());
   S.seen = S.seen || {}; S.seen[b.e.n] = (S.seen[b.e.n] || 0) + 1;
   let r;
   if (b.over === 'win') {
@@ -587,12 +621,12 @@ function endBattle() {
     if (r && typeof r === 'object') { if (r.battle && !r.title) r.title = b.title; return handleResult(r); }
     r += x;
   } else if (b.over === 'lose') {
-    S.losses++; if (!b.surr && !b.judged) S.hp = 1;
+    S.losses++; hurtQ();
     r = b.lose ? b.lose(S) : defeat();
     if (r && typeof r === 'object') return handleResult(r);
     r = (b.surr ? '你認輸了。' : b.judged ? '六手過後，你略處下風，只得收招認輸。' : '') + r + gainExp(6 + b.e.P);
   } else r = '你且戰且退，總算甩開了對手。';
-  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r, who: b.who };
+  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r + takePend(), who: b.who };
   render();
 }
 
@@ -601,13 +635,20 @@ const healer = () => fxSum('heal') > 0;
 function useMed(id) {
   const it = ITEMS[id];
   addItem(id, -1);
+  if (!(UI.ov && UI.ov.k === 'battle')) {            // 平時：回復的是命與氣團
+    const t = (it.life ? heal(it.life) : '') + (it.qi ? gainQi(it.qi) : '');
+    return t;
+  }
   if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (healer() && it.hp < 999 ? 1.5 : 1)));
   if (it.mp) S.mp = Math.min(maxMp(), S.mp + it.mp);
 }
 function useItem(id) {
   const it = ITEMS[id];
-  if (it.kind === 'med') { useMed(id); toast(`服下${it.n}`); }
-  else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain({ con: 1, bonusHp: 30 })); }
+  if (it.kind === 'med') {
+    if (!(S.life < lifeMax() && it.life) && !(S.qi < qiMax() && it.qi)) return toast('氣血與內力都是滿的，用不著');
+    toast(`服下${it.n}` + useMed(id));
+  }
+  else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain({ con: 1, bonusLife: 1 })); }
   else if (it.kind === 'acc') { S.acc = S.acc === id ? null : id; recalc(); }
   else if (it.kind === 'manual') {
     if (knows(it.skill)) return toast('這門功夫你已經會了');
@@ -630,6 +671,9 @@ function toastRender(s) { toast(s); render(); }
 /* ---------- 下一步：唯一的主行動是「歷練」，其餘一切都在事件裡發生 ---------- */
 function nextGoal() {
   const t = today();
+  // 神鵰篇、倚天篇封印中：射鵰篇的故事走完，這一世就在這裡收尾
+  if (ad() > SEAL_YEAR) return { title: '射鵰篇落幕', desc: '你親眼見過的、聽人說過的，都已成了往事。後面的年代（神鵰篇、倚天篇）暫時封印著，這一世的故事就走到這裡。', note: '歸隱後可以選一門武功傳給後人，讓後人重走射鵰的年代。',
+    acts: [['歸隱，把武功傳給後人', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
   const known = histRumors(720, false).find(r => { const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc); return t + need < hEnd(h); });
   const unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]);
   const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t).sort((a, b) => hStart(a) - hStart(b))[0];
@@ -676,7 +720,8 @@ function retire(reason) {
   const sn = histCount('seen');
   let score = S.fame + S.wins * 3 + power() * 8 + (S.spouse ? 80 : 0) + sn * 60;
   let end;
-  if (sn >= 8) end = ['江湖見證者', `你這一生親眼看過${cnNum(sn)}件後來被寫進傳說的事。晚年你常坐在茶樓角落，聽說書人講那些故事，偶爾小聲糾正一兩句：「不對，那天下著雪。」`];
+  if (reason === '戰死') end = ['客死江湖', `你倒在了江湖路上，${S.fame >= 300 ? '身後留下的名字，說書人還會講上一陣子。' : '沒有人記得是誰。只有路邊一座小小的土堆。'}`];
+  else if (sn >= 8) end = ['江湖見證者', `你這一生親眼看過${cnNum(sn)}件後來被寫進傳說的事。晚年你常坐在茶樓角落，聽說書人講那些故事，偶爾小聲糾正一兩句：「不對，那天下著雪。」`];
   else if (sn >= 4 && S.fame >= 300) end = ['亂世遊俠', `你在那個英雄輩出的年代裡走過一遭，親眼見過${cnNum(sn)}次風雲際會，自己也闖出了一點名堂。`];
   else if (S.fame >= 800) end = [S.moral <= -40 ? '一代梟雄' : '一代大俠', '你的事蹟被說書人編成了段子，在酒樓茶肆裡一講就是幾十年。'];
   else if (S.spouse && S.fame < 300) end = ['神仙眷侶', `你與${NPCS[S.spouse].n}歸隱山林，種花釀酒。江湖上沒有你們的傳說，你們也不在乎。`];
@@ -689,7 +734,7 @@ function inherit() {
   const e = UI.end;
   const heir = S.child ? `${S.name}之子女` : S.disciple ? `${S.name}的弟子${S.disciple.n}` : null;
   const legacy = {
-    gen: S.gen, from: S.name, blood: !!S.child, year: ad() + 1,
+    gen: S.gen, from: S.name, blood: !!S.child, year: ad() + 1 > SEAL_YEAR ? ERAS[0].y : ad() + 1, reset: ad() + 1 > SEAL_YEAR,
     skill: { id: e.pick, lv: Math.max(1, Math.ceil(S.skills[e.pick].lv * (heir ? 0.5 : 0.3))) },
     silver: Math.round(S.silver * (heir ? 0.3 : 0.1)), weapon: heir ? S.weapon : null,
   };
