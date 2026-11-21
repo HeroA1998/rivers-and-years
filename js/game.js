@@ -93,6 +93,7 @@ function migrate(s) {
   if (s.v >= 5) return s;
   if (!(s.v >= 4)) migrate4(s);
   s.v = 5; s.bonusLife = s.bonusLife || 0;
+  if (s.flags && s.flags.lover && !loveOK(s, s.flags.lover)) { s.flags.lover = null; if (s.spouse && !loveOK(s, s.spouse)) s.spouse = null; }
   s.life = 3 + Math.floor(((s.lv || 1) - 1) / 5) + s.bonusLife; s.qi = 3;
   return s;
 }

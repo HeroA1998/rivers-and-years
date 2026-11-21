@@ -23,10 +23,10 @@ const RUMORS = [
 // 同陣營：主角所屬門派的陣營（1 正道、0 中立、-1 邪道）與指定陣營相同。無門無派視為中立
 const sameSide = (s, align) => { const a = s.sect && SECTS[s.sect] ? SECTS[s.sect].align : 0; return a === align; };
 const win = (e, w, l, x) => Object.assign({ battle: e, win: w, lose: l }, x || {});
-const topNpc = min => { let b = null; for (const id in S.npcs) { const n = S.npcs[id]; if (n.met && n.fav >= min && (!b || n.fav > S.npcs[b].fav)) b = id; } return S.spouse || b; };
+const topNpc = min => { let b = null; for (const id in S.npcs) { const n = S.npcs[id]; if (n.met && loveOK(S, id) && n.fav >= min && (!b || n.fav > S.npcs[b].fav)) b = id; } return S.spouse || b; };
 
 // 已有伴侶或定情之人後，雨中共傘只會是那個人
-const rainNpc = s => Object.keys(s.npcs).find(i => s.npcs[i].met && s.npcs[i].fav >= 25 && NPCS[i].loc === s.loc && (!(s.spouse || s.flags.lover) || i === (s.spouse || s.flags.lover)));
+const rainNpc = s => Object.keys(s.npcs).find(i => s.npcs[i].met && loveOK(s, i) && s.npcs[i].fav >= 25 && NPCS[i].loc === s.loc && (!(s.spouse || s.flags.lover) || i === (s.spouse || s.flags.lover)));
 // 節日能否相伴：對方就在此地，或已成親同行
 const nearNpc = min => { const id = topNpc(min); return id && (id === S.spouse || NPCS[id].loc === S.loc) ? id : null; };
 
@@ -649,7 +649,7 @@ const EVENTS = [
   /* ================= 戀愛（邂逅與插曲） ================= */
   ...Object.keys(NPCS).map(id => ({
     id: 'm_' + id, who: id, type: '戀愛', title: `邂逅・${NPCS[id].n}`, ctx: ['city', 'sect', 'travel'], loc: NPCS[id].loc, w: 16, once: true, art: 'love',
-    cond: s => daysIn(s) > 90 && MEET[id].cond(s),
+    cond: s => daysIn(s) > 90 && loveOK(s, id) && MEET[id].cond(s),
     text: s => MEET[id].text ? MEET[id].text(s) : NPCS[id].meet,
     choices: [
       C('g', '上前攀談', () => { const n = npc(id); n.met = true; n.fav += 8; return `你與${NPCS[id].n}（${NPCS[id].title}）就此相識。${NPCS[id].d}〔好感+8〕`; }),

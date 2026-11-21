@@ -364,7 +364,7 @@ function pharmCard(s) {
 
 /* ---------- 情緣 ---------- */
 // 在對方的地方就能拜訪；好感夠了，對方也會在路上和你重逢
-const visitNpc = s => { const gap = today() - (s.flags.lastVisit || -999), met = Object.keys(NPCS).filter(id => s.npcs[id] && s.npcs[id].met && (!(s.spouse || s.flags.lover) || id === (s.spouse || s.flags.lover)));
+const visitNpc = s => { const gap = today() - (s.flags.lastVisit || -999), met = Object.keys(NPCS).filter(id => loveOK(s, id) && s.npcs[id] && s.npcs[id].met && (!(s.spouse || s.flags.lover) || id === (s.spouse || s.flags.lover)));
   return met.find(id => NPCS[id].loc === s.loc && gap > 30) || met.filter(id => s.npcs[id].fav >= 15 && gap > 75).sort((a, b) => s.npcs[b].fav - s.npcs[a].fav)[0]; };
 function visitCard(s) {
   const id = visitNpc(s), k = NPCS[id], n = npc(id);
@@ -483,7 +483,7 @@ function maybeMove() {
   let to = pick(cand);
   if (home && home !== S.loc && chance(40)) to = home;
   else if (love && love !== S.loc && chance(25)) to = love;
-  else if (!love && chance(15)) { const f = Object.keys(S.npcs).filter(id => S.npcs[id].met && S.npcs[id].fav >= 10 && NPCS[id].loc !== S.loc).sort((a, b) => S.npcs[b].fav - S.npcs[a].fav)[0]; if (f) to = NPCS[f].loc; }
+  else if (!love && chance(15)) { const f = Object.keys(S.npcs).filter(id => loveOK(S, id) && S.npcs[id].met && S.npcs[id].fav >= 10 && NPCS[id].loc !== S.loc).sort((a, b) => S.npcs[b].fav - S.npcs[a].fav)[0]; if (f) to = NPCS[f].loc; }
   else if (sectLocs.length && chance(20)) to = pick(sectLocs);
   const d = travelDays(to), from = LOCS[S.loc].n;
   log(`這個月你離開${from}，一路行了${cnNum(d)}日，到了${LOCS[to].n}。`);

@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.2.0';
+const VERSION = 'v6.2.1';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -445,6 +445,8 @@ const STAT_N = { str: '臂力', con: '根骨', int: '悟性', agi: '身法', luc
 const STAT_D = { str: '外功傷害', con: '氣血與防禦', int: '修煉速度', agi: '命中與閃避', luck: '奇遇與暴擊', cha: '人緣與情緣' };
 
 /* ---------- 可結緣之人 ---------- */
+// 戀愛只限異性：男主角的有緣人須為「她」，女主角須為「他」
+const loveOK = (s, id) => !!NPCS[id] && (s.gender === '男' ? NPCS[id].ta === '她' : NPCS[id].ta === '他');
 const NPCS = {
   su: { n: '蘇晚晴', ta: '她', loc: 'zhongnan', title: '全真教女弟子', like: 'qin', bonus: ['agi', 2],
     d: '白衣如雪，話少劍快。觀中上下都怕她，卻沒人說得出她哪裡不好。',
