@@ -24,6 +24,7 @@ function render() {
   root.innerHTML = html;
   if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
     seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tone: el.dataset.tone }));
+  if (DIE3 && !root.querySelector('.tray')) DIE3.hide();
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
@@ -393,7 +394,7 @@ function battleView(o) {
       ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▶▶ x${o.speed === 1 ? 1 : 2}</button>`}
     </div>
     <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
-    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${DIE3 ? '<span class="tray-hint">' + (o.phase === 'roll' ? '揮動骰子彈出去，或按下方按鈕' : '') + '</span>' : `<div class="${dieCls}">${dieInner}</div>`}</div>
+    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tone="${tone}">${DIE3 ? '<span class="tray-hint">' + (o.phase === 'roll' ? '按住往後拉，放開把骰子彈出去' : '') + '</span>' + (o.roll != null && o.phase !== 'rolling' ? `<span class="tray-result ${o.roll === 20 ? 'crit' : o.roll === 1 ? 'fumble' : ''}"><small>擲出</small>${o.roll}</span>` : '') : `<div class="${dieCls}">${dieInner}</div>`}</div>
     <div class="ctrl">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
       <div class="side">${side}</div>

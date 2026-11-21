@@ -7,7 +7,7 @@ const DIE3 = (function () {
   const TRAY_H = 150, VIEW_H = 2.5;   // 骰盤高 150px 對應 2.5 個世界單位（PX = 60 px/單位，會跟著 #app 的縮放）
   const S = 0.92;                     // 骰子外接圓半徑（世界單位）
   const CAM_Z = 6;
-  const FLIGHT = 0.8, GLIDE = 0.45;   // 秒：飛行（整個螢幕）、飛回骰盤
+  const FLIGHT = 1.0, GLIDE = 0.45;   // 秒：飛行（整個螢幕）、飛回骰盤
   const FRICTION = 1.3, RESTITUTION = 0.7;
   let PX = 60;                        // 螢幕 px 每世界單位
 
@@ -17,7 +17,7 @@ const DIE3 = (function () {
   let anim = null, raf = 0, seq = -1, lastT = 0;
   let cur = null, pos = new T.Vector2(0, 0), vel = new T.Vector2(0, 0), ang = new T.Vector3();
   let pendingToss = null;
-  let tray = null, canvasReady = false;
+  let tray = null, canvasReady = false, aimC = null, aimG = null;
 
   // 正二十面體頂點與面（每條邊被兩面共用；對面兩數字相加為 21）
   const PHI = (1 + Math.sqrt(5)) / 2;
@@ -102,8 +102,12 @@ const DIE3 = (function () {
     st.pointerEvents = 'none'; st.zIndex = '60';
     document.body.appendChild(R.domElement);
     scene = new T.Scene();
-    cam = new T.PerspectiveCamera(40, 1, 0.1, 80);
-    cam.position.set(0, 0, CAM_Z);
+    cam = new T.OrthographicCamera(-1, 1, 1, -1, -50, 50);
+    cam.position.set(0, 0, 10);
+    // 瞄準線畫在另一張蓋住整個螢幕的 2D 畫布上
+    aimC = document.createElement('canvas'); aimG = aimC.getContext('2d');
+    const as = aimC.style; as.position = 'fixed'; as.left = '0'; as.top = '0'; as.width = '100vw'; as.height = '100vh'; as.pointerEvents = 'none'; as.zIndex = '61';
+    document.body.appendChild(aimC);
     sizeScreen();
     window.addEventListener('resize', () => { sizeScreen(); if (!anim) { pos.copy(home()); renderNow(); } });
     window.addEventListener('scroll', () => { if (!anim) { pos.copy(home()); renderNow(); } }, { passive: true });
@@ -140,10 +144,10 @@ const DIE3 = (function () {
   function sizeScreen() {
     const W = window.innerWidth, H = window.innerHeight;
     R.setSize(W, H, false);
-    cam.aspect = W / H;
-    const visH = H / PX;
-    cam.fov = 2 * Math.atan(visH / 2 / CAM_Z) * 180 / Math.PI;
+    cam.left = -W / 2 / PX; cam.right = W / 2 / PX; cam.top = H / 2 / PX; cam.bottom = -H / 2 / PX;
     cam.updateProjectionMatrix();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    aimC.width = W * dpr; aimC.height = H * dpr; aimG.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   function bounds() {
     const halfW = window.innerWidth / 2 / PX, halfH = window.innerHeight / 2 / PX;
@@ -154,7 +158,8 @@ const DIE3 = (function () {
     if (!tray) return new T.Vector2(0, 0);
     const r = tray.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    PX = Math.max(30, r.height / VIEW_H);
+    const px = Math.max(30, r.height / VIEW_H);
+    if (Math.abs(px - PX) > 0.01) { PX = px; sizeScreen(); }
     return new T.Vector2((cx - window.innerWidth / 2) / PX, -(cy - window.innerHeight / 2) / PX);
   }
   function renderNow() { R.render(scene, cam); }
@@ -228,35 +233,70 @@ const DIE3 = (function () {
     if (W !== sizeW) { sizeW = W; }
   }
 
-  // 玩家在骰盤上揮動：記錄最後一段軌跡，換算成骰盤世界單位的速度
-  function bindFlick(el) {
-    let pts = null;
+  // ---- 怪物彈珠式操作：在骰盤上按住往後拉，放開後骰子往反方向彈出去 ----
+  const MAXPULL = 3.2;                                   // 最大拉距（世界單位）
+  function diePx() { const h = home(); return { x: h.x * PX + window.innerWidth / 2, y: -h.y * PX + window.innerHeight / 2 }; }
+  function launchOf(fx, fy) {
+    const d0 = diePx(), px = d0.x - fx, py = d0.y - fy, d = Math.hypot(px, py);
+    if (d < 22) return null;                             // 拉得太短：視為點一下，隨機彈出
+    const power = Math.min(d / PX, MAXPULL), sp = 8 + power * 6;
+    return { dir: [px / d, py / d], power, speed: sp, vel: new T.Vector2(px / d * sp, -py / d * sp), d0, d };
+  }
+  function aimClear() { if (aimG) aimG.clearRect(0, 0, window.innerWidth, window.innerHeight); }
+  function aimDraw(fx, fy) {
+    aimClear();
+    const d0 = diePx(), L = launchOf(fx, fy), g = aimG;
+    g.save(); g.lineCap = 'round';
+    // 拉繩：從骰子到手指
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4; g.beginPath(); g.moveTo(d0.x, d0.y); g.lineTo(fx, fy); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(fx, fy, 9, 0, 7); g.fill();
+    if (L) {
+      // 軌跡預測：往拉的反方向，碰到螢幕邊緣會反射，長度隨拉距增加
+      const m = S * PX * 1.02, minX = m, maxX = window.innerWidth - m, minY = m, maxY = window.innerHeight - m;
+      let x = d0.x, y = d0.y, dx = L.dir[0], dy = L.dir[1], len = L.power * PX * 3.4, n = 0;
+      g.strokeStyle = '#FFE9A0'; g.lineWidth = 5; g.setLineDash([12, 9]); g.shadowColor = 'rgba(255,200,80,.9)'; g.shadowBlur = 10;
+      g.beginPath(); g.moveTo(x, y);
+      while (len > 1 && n < 4) {
+        const tx = dx > 0 ? (maxX - x) / dx : dx < 0 ? (minX - x) / dx : 1e9, ty = dy > 0 ? (maxY - y) / dy : dy < 0 ? (minY - y) / dy : 1e9;
+        const t = Math.min(tx, ty, len);
+        x += dx * t; y += dy * t; len -= t; g.lineTo(x, y);
+        if (len > 1) { if (t === tx) dx = -dx; else dy = -dy; n++; }
+      }
+      g.stroke(); g.setLineDash([]);
+      // 箭頭
+      const a = Math.atan2(dy, dx); g.fillStyle = '#FFE9A0';
+      g.beginPath(); g.moveTo(x + Math.cos(a) * 16, y + Math.sin(a) * 16);
+      g.lineTo(x + Math.cos(a + 2.5) * 14, y + Math.sin(a + 2.5) * 14); g.lineTo(x + Math.cos(a - 2.5) * 14, y + Math.sin(a - 2.5) * 14); g.fill();
+    }
+    g.restore();
+  }
+  function bindSling(el) {
+    let down = false;
     el.onpointerdown = e => {
       if (el.dataset.phase !== 'roll') return;
-      pts = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
-      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+      down = true; el.setPointerCapture && el.setPointerCapture(e.pointerId); aimDraw(e.clientX, e.clientY);
     };
-    el.onpointermove = e => { if (pts) { pts.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (pts.length > 12) pts.shift(); } };
+    el.onpointermove = e => { if (down) aimDraw(e.clientX, e.clientY); };
+    el.onpointercancel = () => { down = false; aimClear(); };
     el.onpointerup = e => {
-      if (!pts) return;
-      const now = performance.now();
-      const recent = pts.filter(p => now - p.t < 140);
-      let toss = null;
-      if (recent.length >= 2) {
-        const a = recent[0], b = recent[recent.length - 1], dtS = Math.max(0.016, (b.t - a.t) / 1000);
-        let vx = (b.x - a.x) / dtS / PX, vy = -(b.y - a.y) / dtS / PX;      // 螢幕 px/秒 → 世界單位/秒
-        const sp = Math.hypot(vx, vy);
-        if (sp > 2) { const m = Math.min(sp, 26) / sp; toss = new T.Vector2(vx * m, vy * m); }
-      }
-      pts = null;
+      if (!down) return;
+      down = false; aimClear();
+      const L = launchOf(e.clientX, e.clientY);
       if (typeof rollBattle === 'function' && UI.ov && UI.ov.phase === 'roll') {
-        pendingToss = toss;             // 揮動即擲骰；沒有明顯揮動就照一般擲骰
+        pendingToss = L ? L.vel : null;                  // 拉出去的力道決定速度；點一下則隨機
         rollBattle(false);
       }
     };
   }
 
   return {
+    // 離開戰鬥畫面：藏起骰子與瞄準線，停掉動畫
+    hide() {
+      if (!R) return;
+      R.domElement.style.display = 'none'; aimC.style.display = 'none'; aimClear();
+      anim = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      tray = null; cur = targetQuat(20); pos.set(0, 0); vel.set(0, 0);
+    },
     // 目前朝向鏡頭的那一面的數字（驗證用）
     topFace() {
       if (!mesh) return null;
@@ -268,8 +308,9 @@ const DIE3 = (function () {
     mount(el, o) {
       tray = el;
       ensureRenderer(el);
+      R.domElement.style.display = ''; aimC.style.display = '';
       el.classList.add('live3d');
-      if (o.phase === 'roll') bindFlick(el);
+      if (o.phase === 'roll') bindSling(el); else aimClear();
       setTone(o.tone || 'red');
       if (o.roll != null && o.seq !== seq) {
         seq = o.seq;

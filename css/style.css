@@ -697,3 +697,10 @@ body { font-size: 16px; }
 .tray-hint { position: absolute; left: 0; right: 0; top: 8px; text-align: center; font: 13px var(--f-brush); color: rgba(255,246,222,.78); letter-spacing: .08em; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .tray .bigdie { margin: 0 auto; }
 .tray .bigdie { position: relative; top: 25px; }
+
+/* ================= v6.4.3 擲出的點數、彈珠式拉彈 ================= */
+.tray-result { position: absolute; right: 14px; top: 10px; display: flex; flex-direction: column; align-items: center; line-height: 1; pointer-events: none;
+  font: 800 52px/1 var(--f-ui); color: #FFF6DC; text-shadow: 0 2px 0 #5A1009, 0 0 12px rgba(0,0,0,.55); }
+.tray-result small { font: 700 13px var(--f-brush); letter-spacing: .15em; margin-bottom: 4px; color: rgba(255,246,222,.85); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.tray-result.crit { color: #FFE27A; text-shadow: 0 2px 0 #7A4B07, 0 0 14px rgba(255,220,120,.9); }
+.tray-result.fumble { color: #D5D0C4; text-shadow: 0 2px 0 #3B3730, 0 0 10px rgba(0,0,0,.6); }
