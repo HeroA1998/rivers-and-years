@@ -252,9 +252,12 @@ function handleResult(r) {
 function closeEvent() { UI.ov = null; pump(); }
 
 /* ---------- 戰鬥 ---------- */
+// 敵人戰力：fix 是敵人本身的底子，mult 是隨主角成長的比例。氣血與攻擊隨戰力加速成長，免得主角後期一路碾壓
+const FOE_K = { pm: 1.12, hp: 26, hpE: 1.18, atk: 2.4, atkE: 1.08, fixK: 0.8 };
 function foe(n, fix, mult, style, extra) {
-  const P = Math.max(1, fix + power() * mult);
-  return Object.assign({ n, P, hp: Math.round(30 + P * 16), mhp: Math.round(30 + P * 16), atk: 5 + P * 2, def: P * 0.6, agi: 3 + P * 0.6, moves: FOE_MOVES[style], style }, extra || {});
+  const P = Math.max(1, fix * FOE_K.fixK + power() * mult * FOE_K.pm);
+  const hp = Math.round(30 + FOE_K.hp * Math.pow(P, FOE_K.hpE));
+  return Object.assign({ n, P, hp, mhp: hp, atk: 5 + FOE_K.atk * Math.pow(P, FOE_K.atkE), def: P * 0.6, agi: 3 + P * 0.6, moves: FOE_MOVES[style], style }, extra || {});
 }
 /* 猜拳式對決：每回合雙方各排六手。攻克破、破克守、守克攻；同招各傷一半；絕招無視克制。
    敵人各有慣用套路，交手越多、悟性越高，能預先看穿的手數越多。 */
@@ -620,7 +623,7 @@ function sectTask() {
 }
 function spar() {
   const k = SECTS[S.sect];
-  const e = foe(pick(['同門師兄', '同門師姐', '同輩翹楚']), 1 + S.rank * 2, 0.5 + S.rank * 0.08, k.align < 0 ? 'blade' : 'sword');
+  const e = foe(pick(['同門師兄', '同門師姐', '同輩翹楚']), 1 + S.rank * 3, 0.5 + S.rank * 0.03, k.align < 0 ? 'blade' : 'sword');
   advance(2);
   Q.unshift({ type: '戰鬥', title: '同門切磋', art: 'fight', text: `演武場上，${e.n}應了你的邀約：「點到為止，請。」`,
     choices: [{ t: '請賜教', go: () => ({ battle: e, noFlee: true, win: () => '你勝了半招，對方心悅誠服。這一戰讓你獲益良多。' + gain({ contrib: 10 }) + battleXp(40 + S.stats.int * 3), lose: () => { S.hp = Math.round(maxHp() * 0.4); return '你敗下陣來，卻也看清了自己的破綻。' + battleXp(30); } }) }] });

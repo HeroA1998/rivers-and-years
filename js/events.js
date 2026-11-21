@@ -84,7 +84,7 @@ const EVENTS = [
   { id: 'j_bounty', type: '江湖', title: '官府懸賞', ctx: ['city'], w: 7, art: 'fight', cond: s => s.fame >= 50,
     text: '城門口貼著懸賞告示：江洋大盜「飛天蜈蚣」連犯七案，賞銀二百兩。告示旁有人低聲說，那大盜今夜就藏在城東破窯。',
     choices: [
-      { t: '夜探破窯，擒拿大盜', go: () => win(foe('飛天蜈蚣', 4, 0.7, 'blade'), () => '你把五花大綁的大盜扔在衙門口，領了賞銀。' + gain({ silver: 200, fame: 18, moral: 4 }), null) },
+      { t: '夜探破窯，擒拿大盜', go: () => win(foe('飛天蜈蚣', 5, 0.6, 'blade'), () => '你把五花大綁的大盜扔在衙門口，領了賞銀。' + gain({ silver: 200, fame: 18, moral: 4 }), null) },
       { t: '沒把握，不蹚這渾水', go: () => '你揭過了這一頁。' },
     ] },
   { id: 'j_gamble', type: '江湖', title: '賭坊試手氣', ctx: ['city'], w: 6, art: 'city', cond: s => s.silver >= 50,
@@ -98,7 +98,7 @@ const EVENTS = [
       '「又見面了。」秦昭比上次沉穩了不少，手上的繭也厚了。「上回是我輕敵。這兩年我沒有一天不想著再打一場。」',
       '秦昭站在長亭外等你，身後的馬已備好鞍。「我要去塞外了。走之前最後打一場，不論輸贏，你都是我秦昭這輩子唯一的對手。」'][s.rival],
     choices: [
-      { t: '奉陪', go: s => win(foe('秦昭', 2 + s.rival * 5, 0.7 + s.rival * 0.08, 'sword'), () => { s.rival++; if (s.rival === 3) return '秦昭大笑著把佩劍拋給你：「痛快！這柄劍送你，塞外若聽到你的名字，我就知道沒輸給庸人。」' + (has('w_sword2') || has('w_sword3') ? gain({ silver: 300 }) : addItem('w_sword2')) + gain({ fame: 30 }); return '秦昭咬著牙爬起來：「下次，下次我一定贏你！」' + gain({ fame: 10 }); },
+      { t: '奉陪', go: s => win(foe('秦昭', 3 + s.rival * 7, 0.6, 'sword'), () => { s.rival++; if (s.rival === 3) return '秦昭大笑著把佩劍拋給你：「痛快！這柄劍送你，塞外若聽到你的名字，我就知道沒輸給庸人。」' + (has('w_sword2') || has('w_sword3') ? gain({ silver: 300 }) : addItem('w_sword2')) + gain({ fame: 30 }); return '秦昭咬著牙爬起來：「下次，下次我一定贏你！」' + gain({ fame: 10 }); },
           () => { s.rival++; S.hp = Math.round(maxHp() * 0.4); return '秦昭收劍，神色複雜：「你讓我失望了。……把傷養好，下次別這麼不經打。」' + gain({ fame: -5 }); }, { noFlee: true }) },
       { t: '「今日沒空。」', go: () => '秦昭哼了一聲：「怕了就直說。我改日再來。」' },
     ] },
@@ -107,7 +107,7 @@ const EVENTS = [
   { id: 'o_escort', type: '江湖', title: '父親的鏢旗', ctx: ['city', 'travel'], w: 14, once: true, art: 'fight', cond: s => isBirth(s, '鏢') && s.date.y >= 2,
     text: '酒肆角落裡，一個刀疤臉正拿一面殘破的鏢旗擦桌子。你認得那面旗——那是你爹走的最後一趟鏢。刀疤臉見你盯著看，咧嘴笑了：「怎麼，認得？當年那老鏢頭骨頭倒硬，可惜刀不夠快。」',
     choices: [
-      { t: '「把旗放下。」', go: () => win(foe('「斷魂刀」屠九', 5, 0.72, 'blade'), () => '屠九倒在碎桌爛椅之間。你把鏢旗疊好收進懷裡，從他身上搜出一本染血的刀譜——封皮上是你爹的字跡。' + learn('m_blade') + gain({ fame: 25, moral: 3, str: 1 }), () => { S.hp = Math.round(maxHp() * 0.3); S.done.o_escort = 0; return '你被一腳踹出門外。屠九把鏢旗扔在你臉上：「回去再練十年。」這筆帳，你記下了。'; }, { noFlee: true }) },
+      { t: '「把旗放下。」', go: () => win(foe('「斷魂刀」屠九', 7, 0.6, 'blade'), () => '屠九倒在碎桌爛椅之間。你把鏢旗疊好收進懷裡，從他身上搜出一本染血的刀譜——封皮上是你爹的字跡。' + learn('m_blade') + gain({ fame: 25, moral: 3, str: 1 }), () => { S.hp = Math.round(maxHp() * 0.3); S.done.o_escort = 0; return '你被一腳踹出門外。屠九把鏢旗扔在你臉上：「回去再練十年。」這筆帳，你記下了。'; }, { noFlee: true }) },
       { t: '記住這張臉，日後再算', go: s => { s.done.o_escort = 0; return '你攥緊了拳頭，慢慢鬆開。君子報仇，十年不晚。'; } },
     ] },
   { id: 'o_scholar', type: '江湖', title: '舊日恩師', ctx: ['city'], w: 14, once: true, art: 'city', cond: s => s.origin === '書香門第',
@@ -146,17 +146,17 @@ const EVENTS = [
     ] },
   { id: 'b_assassin', type: '戰鬥', title: '夜半刺客', ctx: ['city', 'sect'], w: 7, art: 'night', cond: s => s.fame >= 150,
     text: '夜深人靜，窗紙上映出一道黑影。你翻身滾下床榻的瞬間，三枚喪門釘釘入了枕頭。',
-    choices: [{ t: '迎敵', go: () => win(foe('蒙面刺客', 4, 0.72, 'sword'), () => '刺客服毒自盡，身上只搜出一塊血色腰牌。看來你的名聲，已經讓某些人睡不著了。' + gain({ fame: 10, silver: 60 }), null, { noFlee: true }) }] },
+    choices: [{ t: '迎敵', go: () => win(foe('蒙面刺客', 6, 0.6, 'sword'), () => '刺客服毒自盡，身上只搜出一塊血色腰牌。看來你的名聲，已經讓某些人睡不著了。' + gain({ fame: 10, silver: 60 }), null, { noFlee: true }) }] },
   { id: 'b_sectwar', type: '戰鬥', title: '狹路相逢', ctx: ['travel'], w: 10, art: 'fight', cond: s => s.sect && SECTS[s.sect].align !== 0,
     text: s => SECTS[s.sect].align > 0 ? '道旁茶棚裡，幾個橫行鄉里的惡徒正在逼問一個過路的鏢師。其中一人認出了你的門派服色，冷笑著站起身來：「名門正派的小雜毛，也敢管閒事？」' : '你被幾個名門弟子堵在渡口。「你是那幫惡賊的人！」為首的青年拔劍出鞘，「今日替天行道！」',
     choices: [
-      { t: '動手', go: s => win(foe(SECTS[s.sect].align > 0 ? '惡徒頭目' : '名門少俠', 2, 0.65, SECTS[s.sect].align > 0 ? 'blade' : 'sword'), () => '你為師門掙了臉面。消息傳回山門，師父頗為嘉許。' + gain({ contrib: 30, fame: 8, moral: SECTS[s.sect].align * 3 }), null) },
+      { t: '動手', go: s => win(foe(SECTS[s.sect].align > 0 ? '惡徒頭目' : '名門少俠', 3, 0.6, SECTS[s.sect].align > 0 ? 'blade' : 'sword'), () => '你為師門掙了臉面。消息傳回山門，師父頗為嘉許。' + gain({ contrib: 30, fame: 8, moral: SECTS[s.sect].align * 3 }), null) },
       { t: '不願多生事端，避走', go: () => '你壓低斗笠，從人群中悄然離開。' },
     ] },
   { id: 'b_kick', type: '戰鬥', title: '武館踢館', ctx: ['city'], w: 6, art: 'fight', cond: s => power() >= 8,
     text: '「振威武館」的招牌寫著「拳打三山、腳踢五嶽」。門口的教頭見你駐足，嗤笑道：「看什麼看？有本事進來討教兩招。」',
     choices: [
-      { t: '進去討教', go: () => win(foe('振威館主', 3, 0.68, 'thug'), () => '館主捂著胸口，親手摘下了那塊招牌。街坊都說，早該有人治治他了。' + gain({ fame: 14, silver: 50 }), () => { S.hp = Math.round(maxHp() * 0.3); return '你被抬出了武館。' + gain({ fame: -6 }); }, { noFlee: true }) },
+      { t: '進去討教', go: () => win(foe('振威館主', 4, 0.6, 'thug'), () => '館主捂著胸口，親手摘下了那塊招牌。街坊都說，早該有人治治他了。' + gain({ fame: 14, silver: 50 }), () => { S.hp = Math.round(maxHp() * 0.3); return '你被抬出了武館。' + gain({ fame: -6 }); }, { noFlee: true }) },
       { t: '一笑置之', go: () => '你笑了笑，走開了。' },
     ] },
   { id: 'b_flower', type: '戰鬥', title: '月黑風高', ctx: ['city'], w: 6, art: 'night',
@@ -168,7 +168,7 @@ const EVENTS = [
   { id: 'b_duel', type: '戰鬥', title: '名劍客下戰書', ctx: ['city', 'sect'], w: 6, art: 'fight', cond: s => s.fame >= 300,
     text: '一封戰書釘在你的門上，字跡如劍：「久聞大名。明日午時，城外十里亭，一決高下。——『一劍寒』薛孤城」',
     choices: [
-      { t: '如約赴會', go: () => win(foe('薛孤城', 8, 0.78, 'master'), () => '薛孤城的劍斷成兩截。他看著斷劍，忽然笑了：「好。三十年來，第一次有人讓我想重新練劍。」' + gain({ fame: 45 }), () => { S.hp = Math.round(maxHp() * 0.3); return '劍尖停在你咽喉前一寸。薛孤城收劍：「還差得遠。但你敢來，比許多人強。」' + gain({ fame: 5 }); }, { noFlee: true }) },
+      { t: '如約赴會', go: () => win(foe('薛孤城', 10, 0.6, 'master'), () => '薛孤城的劍斷成兩截。他看著斷劍，忽然笑了：「好。三十年來，第一次有人讓我想重新練劍。」' + gain({ fame: 45 }), () => { S.hp = Math.round(maxHp() * 0.3); return '劍尖停在你咽喉前一寸。薛孤城收劍：「還差得遠。但你敢來，比許多人強。」' + gain({ fame: 5 }); }, { noFlee: true }) },
       { t: '避而不戰', go: () => '江湖上傳開了你怯戰的消息。' + gain({ fame: -15 }) },
     ] },
 
@@ -182,7 +182,7 @@ const EVENTS = [
   { id: 'a_herb', type: '奇遇', title: '千年靈芝', ctx: ['wild'], w: 6, art: 'cave',
     text: '絕壁的石縫間，一株紫芝正吐著幽光，傘蓋足有海碗大。你剛伸出手，一條水桶粗的赤鱗大蛇從岩後昂起了頭。',
     choices: [
-      { t: '鬥蛇奪芝', go: () => win(foe('赤鱗巨蟒', 5, 0.7, 'beast'), () => '巨蟒癱軟在地。你小心翼翼地把靈芝連根採下。' + addItem('lingzhi'), null) },
+      { t: '鬥蛇奪芝', go: () => win(foe('赤鱗巨蟒', 6, 0.6, 'beast'), () => '巨蟒癱軟在地。你小心翼翼地把靈芝連根採下。' + addItem('lingzhi'), null) },
       { t: '靈物有主，退走', go: () => '你慢慢後退，大蛇盤回了原處。' },
     ] },
   { id: 'a_beggar', who: 'elder', type: '奇遇', title: '討酒的老乞丐', ctx: ['city'], w: 7, once: true, art: 'city',
@@ -401,7 +401,7 @@ const EVENTS = [
     choices: [{ t: '撿一根粗重的鐵棍，照著劍痕揮', go: () => { advance(20); return '你在谷裡揮了二十天，手臂腫了又消，消了又腫。最後一天，你一棍揮出，瀑布的水被生生劈開了一瞬。〔耗時二十日〕' + learn('yg_iron'); } }] },
   { id: 'k_luzhuang', type: '奇遇', title: '陸家莊', ctx: ['city'], loc: 'jiaxing', w: 14, once: true, art: 'night', cond: () => ad() >= 1240 && ad() <= 1241,
     text: '嘉興陸家莊的牆上，被人按了九個血紅的手印。街坊說，那是赤練仙子的記號——她要殺陸家滿門。\n\n那天夜裡，一個杏黃道袍的女子帶著一個年輕女弟子來了。你躲在對街的屋簷下，看見那女弟子先動了手，一招一式都像古畫裡的美人。',
-    choices: [{ t: '記下那女弟子的拳招', go: () => '她每一招都有個好聽的名字，你聽見她師父在旁邊喊：「貴妃回眸！文姬歸漢！」你一招一招記了下來。' + learn('gm_fist') + gain({ moral: -2 }) },
+    choices: [{ t: '記下那女弟子的拳招', go: () => '她每一招都有個好聽的名字，你聽見她師父在旁邊喊：「木蘭彎弓！文姬歸漢！」你一招一招記了下來。' + learn('gm_fist') + gain({ moral: -2 }) },
       { t: '去附近報官、喊人', go: () => '等你喊來人時，莊子裡已經沒有活口了。只有兩個小姑娘被一個瘋瘋癲癲的老頭和一個道姑救走了。' + gain({ moral: 5 }) }] },
   { id: 'k_jinlun', type: '奇遇', title: '蒙古軍營', ctx: ['wild', 'travel'], loc: 'mobei', w: 9, once: true, art: 'desert', cond: s => ad() >= 1243 && ad() <= 1259 && s.stats.con >= 10,
     text: '你在蒙古軍營裡當了幾個月的民夫。營裡有個高大的藏僧，人人敬他是國師。他的大弟子力氣大得驚人，一個人能扛起一頭牛。\n\n那大弟子腦子不太靈光，卻很喜歡跟你說話。',
@@ -582,7 +582,7 @@ EVENTS.push(...[
 /* ================= 定期與主線事件 ================= */
 function tourneyRound(i) {
   const names = ['「鐵臂」張猛', '「千手」唐秋娘', '上屆魁首「小孟嘗」裴照'];
-  const e = foe(names[i], [3, 6, 10][i], [0.55, 0.65, 0.75][i], ['thug', 'sword', 'master'][i]);
+  const e = foe(names[i], [3, 7, 12][i], [0.55, 0.6, 0.6][i], ['thug', 'sword', 'master'][i]);
   return { battle: e, noFlee: true, title: '重陽擂台', intro: `第${cnNum(i + 1)}輪，你的對手是${e.n}。鑼聲一響，全場肅靜。`,
     win: () => {
       if (i < 2) { S.hp = Math.min(maxHp(), S.hp + Math.round(maxHp() * 0.3)); S.mp = Math.min(maxMp(), S.mp + Math.round(maxMp() * 0.4)); battleXp(40); return tourneyRound(i + 1); }
