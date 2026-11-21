@@ -10,7 +10,7 @@ const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
-const TYPE_CLS = { '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
+const TYPE_CLS = { '身世': 'jade', '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
   H = [];
@@ -40,8 +40,7 @@ const SCREENS = {
       <p class="ver">${VERSION}</p></div>`;
   },
   create() {
-    const c = UI.create, o = ORIGINS[c.origin];
-    const st = Object.assign({}, c.stats); for (const k in o.st) st[k] += o.st[k];
+    const c = UI.create, st = c.stats;
     return `<div class="create">
       <h2>${c.legacy ? `第${cnNum(c.legacy.gen + 1)}代傳人` : '初入江湖'}</h2>
       ${c.legacy ? `<p class="note">承襲自${esc(c.legacy.from)}：${SKILLS[c.legacy.skill.id].n}第${cnNum(c.legacy.skill.lv)}層、銀兩 ${c.legacy.silver}${c.legacy.weapon ? '、' + ITEMS[c.legacy.weapon].n : ''}${c.legacy.blood ? '、血脈天賦（悟性根骨各+1）' : ''}</p>` : ''}
@@ -49,8 +48,7 @@ const SCREENS = {
       <div class="col">${eraOptions(c).map(x => `<button type="button" class="opt ${c.year === x.y ? 'on' : ''}"${h(() => { c.year = x.y; render(); })}><b>${x.n}<i>${reign(x.y)}・${x.y}年</i></b><span>${x.d}</span></button>`).join('')}</div>
       <label class="field" for="nm">姓名<input id="nm" maxlength="6" placeholder="例：沈孤雁" value="${esc(c.name)}" autocomplete="off"></label>
       <div class="field">性別<div class="row">${['男', '女'].map(g => B(g, () => { c.gender = g; render(); }, c.gender === g ? 'on' : '')).join('')}</div></div>
-      <div class="field">出身</div>
-      <div class="col">${ORIGINS.map((x, i) => `<button type="button" class="opt ${c.origin === i ? 'on' : ''}"${h(() => { c.origin = i; render(); })}><b>${x.n}</b><span>${x.d}</span></button>`).join('')}</div>
+      <p class="note">出身由天：投胎到什麼人家、生在哪裡，要等踏入江湖才知道。不同出身另有天資加成。</p>
       <div class="field">天資 ${B('重擲', () => { c.stats = rollStats(); render(); }, 'mini')}</div>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${st[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div>
       ${B('踏入江湖', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); newGame(c, c.legacy); }, 'primary big')}
@@ -78,7 +76,7 @@ const SCREENS = {
       ${art('end', 'end', 'hero')}
       <p class="tag jade">${e.reason === '壽終' ? '壽終正寢' : '封劍歸隱'}・享年${cnNum(age())}</p>
       <h1>${e.title}</h1>
-      <p class="story">${esc(S.name)}，${S.origin}。${e.text}</p>
+      <p class="story">${esc(S.name)}，${S.birth || S.origin}。${e.text}</p>
       <div class="stats end-stats">
         <div><span>聲望</span><b>${S.fame}</b></div><div><span>勝場</span><b>${S.wins}</b></div><div><span>江湖評價</span><b>${e.score}</b></div>
         <div><span>門派</span><b>${S.sect ? SECTS[S.sect].n : '無門無派'}</b></div><div><span>伴侶</span><b>${S.spouse ? NPCS[S.spouse].n : '孑然一身'}</b></div><div><span>心性</span><b>${moralName()}</b></div>
@@ -134,7 +132,7 @@ const TABS = {
   },
   me() {
     return `<section class="group"><h3>${esc(S.name)}</h3>
-      <p class="desc">${S.gender}・${S.origin}・${cnNum(age())}歲${S.gen > 1 ? `・第${cnNum(S.gen)}代（承${esc(S.legacyFrom)}遺澤）` : ''}<br>
+      <p class="desc">${S.gender}・${S.birth || S.origin}・${cnNum(age())}歲${S.gen > 1 ? `・第${cnNum(S.gen)}代（承${esc(S.legacyFrom)}遺澤）` : ''}<br>
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>

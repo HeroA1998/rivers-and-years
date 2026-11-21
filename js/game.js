@@ -48,12 +48,13 @@ function rollStats() {
   return st;
 }
 function newGame(c, legacy) {
-  const o = ORIGINS[c.origin];
+  const year = c.year || 1222, pool = originsFor(year);
+  const o = typeof c.origin === 'number' ? pool[c.origin % pool.length] : pick(pool);   // 投胎由天
   const st = Object.assign({}, c.stats);
   for (const k in o.st) st[k] += o.st[k];
   S = {
-    name: c.name || '無名', gender: c.gender, origin: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
-    y0: c.year || 1222, date: { y: 1, m: 1, d: 1 }, loc: 'linan', stats: st, drill: {},
+    name: c.name || '無名', gender: c.gender, origin: o.base, birth: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
+    y0: year, date: { y: 1, m: 1, d: 1 }, loc: o.loc, stats: st, drill: {},
     hp: 1, mp: 1, bonusHp: 0, bonusMp: 0, silver: 120 + (o.silver || 0), fame: 0, moral: 0,
     sect: null, rank: 0, contrib: 0, contribTotal: 0,
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
@@ -77,9 +78,8 @@ function newGame(c, legacy) {
   const nx = histRumors(1000, true)[0];
   if (nx) S.flags.heardOf = { [nx.h.id]: 1 };
   const era = [...ERAS].reverse().find(x => x.y <= S.y0);
-  log(legacy
-    ? `${reign(S.y0)}（${S.y0}年）。${S.name}帶著${legacy.from}的遺澤來到臨安。上一代的故事已成傳說，這一代的才剛開始。`
-    : `${reign(S.y0)}（${S.y0}年）。${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到臨安城。`);
+  log(`${reign(S.y0)}（${S.y0}年）。${S.name}，${o.n}，年方十六，${legacy ? `身上帶著${legacy.from}留下的遺澤，` : ''}在${LOCS[o.loc].n}踏上了江湖路。`);
+  Q.push({ type: '身世', title: o.n, art: LOCS[o.loc].art, pages: () => o.open(S), choices: o.choices });
   if (era) log(era.d);
   UI = { screen: 'game', tab: 'world', ov: null };
   pump();

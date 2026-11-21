@@ -65,8 +65,8 @@ const EVENTS = [
     } }] },
   { id: 'j_escort', type: '江湖', title: '鏢局缺人', ctx: ['city'], w: 8, art: 'road',
     // 鏢局只找信得過的人：同行之後、有名聲者，或帶著兵刃且看得出練過的人
-    cond: s => s.origin === '鏢師之後' || s.fame >= 40 || (s.weapon && power() >= 5 && s.origin !== '破廟孤兒'),
-    text: s => s.origin === '鏢師之後' ? '威遠鏢局的總鏢頭在門口張望，一見你就愣住了：「你這眉眼……是老鏢頭家的孩子吧？你爹當年和我一口鍋裡吃過飯。正好，有趟短鏢缺個信得過的人，五日來回，酬勞從優。」'
+    cond: s => isBirth(s, '鏢') || s.fame >= 40 || (s.weapon && power() >= 5 && s.origin !== '破廟孤兒'),
+    text: s => isBirth(s, '鏢') ? '威遠鏢局的總鏢頭在門口張望，一見你就愣住了：「你這眉眼……是老鏢頭家的孩子吧？你爹當年和我一口鍋裡吃過飯。正好，有趟短鏢缺個信得過的人，五日來回，酬勞從優。」'
       : s.fame >= 40 ? `威遠鏢局的總鏢頭迎出門來，抱拳道：「可是${s.name}少俠？久聞大名。敝局有趟短鏢缺個壓陣的好手，五日來回，酬勞從優。」`
       : `威遠鏢局的總鏢頭在門口張望，看見你腰間的${ITEMS[s.weapon].n}，又打量了一下你的步子，眼睛一亮：「這位少俠是練家子。有趟短鏢缺個人手，五日來回，酬勞從優。」`,
     choices: [
@@ -102,7 +102,7 @@ const EVENTS = [
     ] },
 
   /* ================= 出身（各出身獨有） ================= */
-  { id: 'o_escort', type: '江湖', title: '父親的鏢旗', ctx: ['city', 'travel'], w: 14, once: true, art: 'fight', cond: s => s.origin === '鏢師之後' && s.date.y >= 2,
+  { id: 'o_escort', type: '江湖', title: '父親的鏢旗', ctx: ['city', 'travel'], w: 14, once: true, art: 'fight', cond: s => isBirth(s, '鏢') && s.date.y >= 2,
     text: '酒肆角落裡，一個刀疤臉正拿一面殘破的鏢旗擦桌子。你認得那面旗——那是你爹走的最後一趟鏢。刀疤臉見你盯著看，咧嘴笑了：「怎麼，認得？當年那老鏢頭骨頭倒硬，可惜刀不夠快。」',
     choices: [
       { t: '「把旗放下。」', go: () => win(foe('「斷魂刀」屠九', 5, 0.72, 'blade'), () => '屠九倒在碎桌爛椅之間。你把鏢旗疊好收進懷裡，從他身上搜出一本染血的刀譜——封皮上是你爹的字跡。' + learn('m_blade') + gain({ fame: 25, moral: 3, str: 1 }), () => { S.hp = Math.round(maxHp() * 0.3); S.done.o_escort = 0; return '你被一腳踹出門外。屠九把鏢旗扔在你臉上：「回去再練十年。」這筆帳，你記下了。'; }, { noFlee: true }) },
@@ -126,7 +126,7 @@ const EVENTS = [
       { t: '運功逼毒，掀桌動手', go: () => { S.hp = Math.max(1, Math.round(S.hp * 0.7)); return win(foe('綁匪頭子', 2, 0.6, 'thug'), () => '你把綁匪捆成一串扔進柴房。這一回你總算明白：家世在江湖上不是護身符，是靶子。' + gain({ fame: 12, silver: 60, con: 1 }), () => { const l = Math.round(S.silver * 0.5); S.silver -= l; S.hp = Math.round(maxHp() * 0.3); advance(20); return `你被關了二十天，直到家裡送來贖金。隨身的銀兩也被搜走大半。〔銀兩-${l}　耗時二十日〕`; }, { noFlee: true, intro: '藥力未散，你只剩七成氣力，仍咬牙站了起來。' }); } },
       { t: '「我自己寫信，要多少給多少。」', go: () => { advance(12); return '家裡的銀子來得很快。綁匪頭子臨走還拍了拍你的臉：「小財神，江湖不是這麼闖的。」' + gain({ fame: -8 }) + '〔耗時十二日〕'; } },
     ] },
-  { id: 'o_orphan', who: 'kid', type: '江湖', title: '破廟舊友', ctx: ['city'], w: 16, once: true, art: 'city', cond: s => s.origin === '破廟孤兒',
+  { id: 'o_orphan', who: 'kid', type: '江湖', title: '破廟舊友', ctx: ['city'], w: 16, once: true, art: 'city', cond: s => isBirth(s, '孤兒'),
     text: '「喂！是你！」一個精瘦的少年從牆頭跳下來，一拳捶在你肩上。是小六子，當年和你在破廟裡分過半個冷饅頭的小六子。他如今背上掛著兩個麻袋，神氣得很：「我入了丐幫啦，是二袋弟子！你呢，還是一個人？」',
     choices: [
       { t: '「帶我去見見你們丐幫的人。」', cond: s => !s.sect, go: () => { S.sect = 'gaibang'; S.rank = 0; S.contrib = 60; S.contribTotal = 60; return '小六子拍著胸脯作保。帶他的錢八袋只看了你一眼就笑了：「吃過苦的孩子，錯不了。」你成了丐幫弟子，小六子還替你墊了一筆見面功勞。' + learn('gb_fist') + '〔門派貢獻+60〕'; } },
