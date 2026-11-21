@@ -34,7 +34,7 @@ const SCREENS = {
       <h1>江湖歲月錄</h1>
       <p class="lead">你不是郭靖，也不是張無忌。你只是那個年代裡的一個江湖人——親眼看著傳說發生，也過著自己的一生。</p>
       <div class="col">
-        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${reign((sv.y0 || 1222) + sv.date.y - 1)}</small>`, () => { S = sv; UI = { screen: 'game', tab: 'world', ov: null }; render(); }, 'primary big') : ''}
+        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${reign((sv.y0 || 1222) + sv.date.y - 1)}</small>`, () => { S = migrate(sv); recalc(); UI = { screen: 'game', tab: 'world', ov: null }; render(); }, 'primary big') : ''}
         ${B('初入江湖', () => { UI.screen = 'create'; UI.create = { name: '', gender: '男', origin: 0, stats: rollStats(), year: ERAS[0].y }; render(); }, sv ? 'big' : 'primary big')}
       </div>
       <p class="ver">${VERSION}</p></div>`;
@@ -67,7 +67,9 @@ const SCREENS = {
       <div class="vitals">
         <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${S.hp}/${maxHp()}</em></div>
         <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}</em></div>
-        <div class="chips"><span>銀兩 <b>${S.silver}</b></span><span>聲望 <b>${S.fame}</b></span><span>${moralName()}</span></div>
+        <div><span>Lv ${S.lv}</span>${bar(S.exp, expNeed(S.lv), 'xp')}<em>${S.exp}/${expNeed(S.lv)}</em></div>
+        ${statRow()}
+        <div class="chips"><span>銀兩 <b>${S.silver}</b></span><span>聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
       </div>
       <main>${TABS[UI.tab]()}</main>
       <nav class="tabs">${[['world', '江湖'], ['me', '人物'], ['bag', '行囊']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${t[1]}</button>`).join('')}</nav>`;
@@ -93,6 +95,7 @@ const SCREENS = {
 };
 
 /* ---------- 分頁 ---------- */
+const statRow = () => `<div class="statrow">${Object.keys(STAT_N).map(k => `<span><i>${STAT_N[k]}</i><b>${S.stats[k]}</b>${S.bonus && S.bonus[k] ? `<small>+${S.bonus[k]}</small>` : ''}</span>`).join('')}</div>`;
 function eraOptions(c) {
   const out = [];
   if (c.legacy) out.push({ y: c.legacy.year, n: '承接上一代', d: `緊接著${c.legacy.from}歸隱的第二年。江湖上的人和事，都還記得${c.legacy.from}。` });
@@ -106,75 +109,52 @@ const TABS = {
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
   world() {
-    const L = LOCS[S.loc], k = L.kind;
-    const logs = S.log.slice(-5).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
-    let g = [];
-    const common = A('修煉', '武功或體魄・十日', () => openMenu('train')) + A('趕路', '前往他處', () => openMenu('travel')) + A('閉關一年', '武功大進・錯過這一年的事', () => confirmBox('閉關一年？', '這一年裡武功與內力會大有長進，但江湖上發生的事，你都只能出關後聽說。', retreat));
-    if (k === 'city') {
-      g.push(['城中', A('客棧歇息', '三日・10 兩・全復', () => rest(3, 10, '在客棧好好歇了三日，氣血內力盡復。')) + A('露宿街頭', '三日・免費・復六成', roughSleep) + A('市集', '買賣物品', () => openMenu('shop')) + A('碼頭做工', '十日・賺銀兩', work) + A('酒樓打聽', '一日・5 兩・易遇事', gossip) + A('擂台比武', '二日・名利雙收', arena) + A('藥舖煉藥', '草藥×3 → 金創藥', brew, (S.inv.herb || 0) < 3)]);
-    } else if (k === 'wild') {
-      g.push(['野外', A('歷練', '五日・多遇強敵', explore) + A('採藥', '五日', gather) + A('露宿休整', '五日・全復', () => rest(5, 0, '尋了處避風的山坳，休整五日。'))]);
-    } else {
-      const sc = SECTS[L.sect];
-      if (!sectOpen(L.sect)) {
-        g.push([L.n, `<p class="desc">${ad() < sc.from ? `這時候山上還沒有${sc.n}。` : `${sc.n}已經風流雲散，山上只剩斷壁殘垣。`}</p>` + A('露宿休整', '五日・全復', () => rest(5, 0, '尋了處避風的地方，休整五日。')) + A('歷練', '五日・多遇強敵', explore)]);
-      } else if (S.sect === L.sect) {
-        const canUp = S.rank < 3 && S.contribTotal >= RANK_NEED[S.rank + 1];
-        g.push([`${sc.n}・${RANKS[S.rank]}`, A('門派任務', '十日・得貢獻', sectTask) + A('學藝', `貢獻 ${S.contrib}`, () => openMenu('learn')) + A('同門切磋', '二日・長進武功', spar) + A('晉升考核', S.rank >= 3 ? '已至長老' : `累計貢獻 ${S.contribTotal}/${RANK_NEED[S.rank + 1]}`, promote, !canUp) + A('回房歇息', '三日・全復', () => rest(3, 0, '在弟子房中歇息三日。'))]);
-      } else {
-        g.push([sc.n, `<p class="desc">${sc.d}<br>武學：${sc.style}　掌事：${sc.master}　入門條件：${sc.reqT}</p>` + (S.sect ? '' : A('拜師入門', `成為${sc.n}弟子`, () => joinSect(L.sect))) + A('借宿', '三日・10 兩・全復', () => rest(3, 10, `在${sc.n}的客舍借宿三日。`))]);
-      }
-    }
-    const here = Object.keys(NPCS).filter(id => NPCS[id].loc === S.loc && S.npcs[id] && S.npcs[id].met);
-    if (here.length) g.push(['故人', here.map(id => {
-      const n = S.npcs[id], kN = NPCS[id];
-      let s = A(`拜訪${kN.n}`, `二日・好感 ${n.fav}`, () => visit(id)) + A(`贈禮`, `送給${kN.n}`, () => openMenu('gift', id), !Object.keys(S.inv).some(i => ITEMS[i].kind === 'gift'));
-      if (n.stage === 3 && !S.spouse && S.flags.lover === id) s += A('提親', n.fav >= 95 ? '500 兩' : '好感須達 95', () => propose(id), n.fav < 95);
-      return s;
-    }).join('')]);
-    g.push(['行止', common]);
+    const logs = S.log.slice(-6).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
     const rum = histRumors(720);
-    const heard = S.flags.heardOf || {};
-    const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : `<p>眼下江湖上沒有什麼大消息。到酒樓坐坐，${Object.keys(heard).length ? '' : '或許能'}聽到一年後的事。</p>`}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
+    const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>'}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
     const ng = nextGoal();
     const guide = `<section class="guide"><span class="tag jade">下一步</span><h3>${ng.title}</h3><p>${ng.desc}</p>${ng.note ? `<small>${ng.note}</small>` : ''}<div class="col">${ng.acts.map(a => B(a[0], a[1], 'primary big')).join('')}</div></section>`;
-    const more = UI.more ? g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('') : '';
-    return guide + `<ul class="log">${logs}</ul>` + `<div class="col">${B(UI.more ? '收起其他行動' : '其他行動（修煉、買賣、拜師、情緣…）', () => { UI.more = !UI.more; render(); }, 'big')}</div>` + (UI.more ? `<p class="desc">${L.d}</p>` + quest + more : '');
+    return guide + `<p class="desc">${LOCS[S.loc].d}</p>` + quest + `<ul class="log">${logs}</ul>`;
   },
   status() {
-    return `<section class="group"><h3>${esc(S.name)}</h3>
+    return `<section class="group"><h3>${esc(S.name)}・Lv ${S.lv}</h3>
       <p class="desc">${S.gender}・${S.birth || S.origin}・${cnNum(age())}歲${S.gen > 1 ? `・第${cnNum(S.gen)}代（承${esc(S.legacyFrom)}遺澤）` : ''}<br>
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
-      門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
-      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>`;
+      門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}・貢獻 ${S.contrib}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負<br>
+      戰力 ${Math.round(power())}　閃避 ${Math.round(pDodge())}　防禦 ${Math.round(pDef())}</p>
+      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>本身 ${S.base[k]}${S.bonus[k] ? `　裝備 +${S.bonus[k]}` : ''}<br>${STAT_D[k]}</small></div>`).join('')}</div>
+      <p class="desc">能力值只會因為升級配點、故事中的遭遇，以及裝備的兵刃、護甲、飾品與武功而改變。</p></section>`;
   },
   skill() {
-    const ids = Object.keys(S.skills).sort((a, b) => Object.keys(TYPE_N).indexOf(SKILLS[a].type) - Object.keys(TYPE_N).indexOf(SKILLS[b].type) || SKILLS[b].tier - SKILLS[a].tier);
+    const ids = Object.keys(S.skills).sort((a, b) => (S.eq.includes(b) - S.eq.includes(a)) || ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(a)) - ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(b)) || SKILLS[b].tier - SKILLS[a].tier);
     const cb = activeCombo();
-    const combo = `<section class="group"><h3>武功組合</h3><p class="desc">${cb ? `目前生效：<b>${cb.n}</b>——${cb.d}，威力 +${Math.round(cb.mul * 100 - 100)}%。` : '目前備戰的兩門武功沒有組合加成。'}<br>已知的組合：${COMBOS.map(c => c.n).join('、')}。</p></section>`;
-    return combo + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
-      const k = SKILLS[id], sk = S.skills[id];
-      const on = k.type === 'nei' ? S.nei === id : S.eq.includes(id);
-      let ctl = '';
-      if (k.type === 'nei') ctl = on ? '<span class="tag jade">主修</span>' : B('設為主修', () => { S.nei = id; S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp()); save(); render(); }, 'mini');
-      else if (k.type !== 'qing') ctl = on ? B('卸下', () => { if (S.eq.length > 1) S.eq = S.eq.filter(x => x !== id); else toast('至少要備戰一門外功'); save(); render(); }, 'mini on') : B('備戰', () => { if (S.eq.length >= 2) S.eq.shift(); S.eq.push(id); save(); render(); }, 'mini');
-      const detail = k.type === 'nei' ? `每層 氣血+${k.hp} 內力+${k.mp}${k.heal ? '・療傷效果提升' : ''}${k.evil ? '・每升一層俠義-3' : ''}`
+    const slots = `<section class="group"><h3>武學裝備 ${S.eq.length}/${EQ_MAX}</h3><div class="slots">${[0, 1, 2, 3, 4].map(i => { const id = S.eq[i]; return id ? `<div class="slot r-${artRole(id)}"><i>${ROLE_N[artRole(id)]}</i><b>${SKILLS[id].n}</b><small>${artRole(id) === 'atk' ? `攻擊 ${artAtk(id)}` : `第${cnNum(S.skills[id].lv)}層`}</small></div>` : '<div class="slot empty"><i>空</i><b>—</b><small>未裝備</small></div>'; }).join('')}</div>
+      <p class="desc">${S.nei ? `主修內功：${SKILLS[S.nei].n}（${ATTR_N[SKILLS[S.nei].attr]}）——與招式屬性相合則威力大增。` : '沒有裝備內功：氣血內力較少，出招也沒有內力加成。'}${cb ? `<br>武功組合：<b>${cb.n}</b>，威力 +${Math.round(cb.mul * 100 - 100)}%。` : ''}<br>每門裝備中的武功依類別加能力值（入門 +1、上乘 +2、絕學 +3）；只有裝備中的武功會在實戰中長進。</p></section>`;
+    return slots + ids.map(id => {
+      const k = SKILLS[id], sk = S.skills[id], r = artRole(id), on = S.eq.includes(id), st = artSt(id), fx = artFxText(id);
+      const ctl = on ? B('卸下', () => unequipArt(id), 'mini on') : B('裝備', () => equipArt(id), 'mini', S.eq.length >= EQ_MAX);
+      const stat = Object.keys(st).map(x => `${STAT_N[x]}+${st[x]}`).join('、');
+      const detail = k.type === 'nei' ? `每層 氣血+${k.hp} 內力+${k.mp}${k.evil ? '・每升一層俠義-3' : ''}`
         : k.type === 'qing' ? `每層 閃避+${k.dodge}`
+        : r === 'sup' ? '不出招，只提供戰鬥效果'
         : k.moves.map(m => `<span class="${sk.lv >= m[1] ? '' : 'locked'}">${m[0]}${m[4] ? `〔${FX_N[m[4]]}〕` : ''}${sk.lv >= m[1] ? '' : `（${m[1]}層）`}</span>`).join('、');
-      return `<article class="card"><div class="card-h"><b>${k.n}</b><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
+      return `<article class="card${on ? ' equipped' : ''}"><div class="card-h"><b>${k.n}</b><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
         <div class="lvrow">第${cnNum(sk.lv)}層 ${sk.lv >= 10 ? '<em>圓滿</em>' : bar(sk.exp, xpNeed(sk.lv, k.tier), 'xp') + `<em>${sk.exp}/${xpNeed(sk.lv, k.tier)}</em>`}</div>
+        <p class="props">${r === 'atk' ? `<span>攻擊力 <b>${artAtk(id)}</b></span>` : ''}<span>裝備加成 <b>${stat}</b></span>${fx ? `<span>效果 <b>${fx}</b></span>` : ''}</p>
         <p>${k.d}</p><p class="moves">${detail}</p></article>`;
     }).join('');
   },
   bag() {
     const ids = Object.keys(S.inv);
-    return `<p class="desc">兵刃：${S.weapon ? `${ITEMS[S.weapon].n}（${TYPE_N[ITEMS[S.weapon].wt]}威力+${ITEMS[S.weapon].atk}，僅對同類武功有效）` : '空手'}<br>護甲：${S.armor ? `${ITEMS[S.armor].n}（防禦+${ITEMS[S.armor].def}）` : '布衣'}</p>` +
+    const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
+    const desc = it => it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `可習得${SKILLS[it.skill].n}` : '');
+    const slot = (n, id) => `<div><span>${n}</span><b>${id ? ITEMS[id].n : '—'}</b><small>${id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備'}</small></div>`;
+    return `<section class="group"><h3>裝備</h3><div class="stats gear">${slot('兵刃', S.weapon)}${slot('護甲', S.armor)}${slot('飾品', S.acc)}</div><p class="desc">兵刃、護甲、飾品在路上的市集、鐵匠舖、貨郎那裡買得到，也可能在奇遇裡得到。</p></section>` +
       (ids.length ? ids.map(id => {
         const it = ITEMS[id];
-        const eqd = S.weapon === id || S.armor === id;
-        const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上' }[it.kind];
-        const d = it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}` : it.kind === 'armor' ? `防禦+${it.def}` : `可習得${SKILLS[it.skill].n}`);
-        return `<article class="card row-card"><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${d}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
+        const eqd = S.weapon === id || S.armor === id || S.acc === id;
+        const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
+        return `<article class="card row-card"><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${[desc(it), stx(it)].filter(Boolean).join('・')}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
       }).join('') : '<p class="empty">行囊空空如也。</p>');
   },
   people() {
@@ -185,7 +165,7 @@ const TABS = {
       return `<article class="card has-face">${face(id)}<div class="card-h"><b>${k.n}</b><span class="tag rose">${st}</span><span class="tag grey">${LOCS[k.loc].n}</span></div>
         <div class="lvrow">好感 ${bar(n.fav, 100, 'fav')}<em>${n.fav}/100</em></div><p>${k.title}。${k.d}</p></article>`;
     }).join('');
-    if (met.length < Object.keys(NPCS).length) s += `<p class="empty">江湖上還有 ${Object.keys(NPCS).length - met.length} 位有緣人尚未相遇。多去各地走走，在酒樓打聽消息。</p>`;
+    if (met.length < Object.keys(NPCS).length) s += `<p class="empty">江湖上還有 ${Object.keys(NPCS).length - met.length} 位有緣人尚未相遇。歷練時走到不同的地方，自然會遇上。</p>`;
     let fam = '';
     if (S.spouse) fam += `<p>伴侶：${NPCS[S.spouse].n}</p>`;
     if (S.child) fam += `<p>子女：${S.child}</p>`;
@@ -205,27 +185,6 @@ const CRED_HTML = () => {
   return `<p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p><ul class="credits">${list}</ul>`;
 };
 const MENUS = {
-  travel: () => ['前往何處', Object.keys(LOCS).filter(id => id !== S.loc).sort((a, b) => travelDays(a) - travelDays(b)).map(id =>
-    `<button type="button" class="opt"${h(() => travel(id))}><b>${LOCS[id].n}<i>${cnNum(travelDays(id))}日</i></b><span>${LOCS[id].d}</span></button>`).join('')],
-  train: () => {
-    const sk = Object.keys(S.skills).map(id => { const k = SKILLS[id], s = S.skills[id]; return `<button type="button" class="opt"${s.lv >= 10 ? ' disabled' : h(() => train(id))}><b>${k.n}<i>${TYPE_N[k.type]}・第${cnNum(s.lv)}層</i></b><span>${s.lv >= 10 ? '已臻圓滿' : `進度 ${s.exp}/${xpNeed(s.lv, k.tier)}　每次約 +${Math.round((40 + S.stats.int * 5))}`}</span></button>`; }).join('');
-    const dr = ['str', 'con', 'agi', 'int'].map(k => `<button type="button" class="opt"${S.stats[k] >= 20 ? ' disabled' : h(() => drill(k))}><b>鍛鍊${STAT_N[k]}<i>現為 ${S.stats[k]}</i></b><span>進度 ${S.drill[k] || 0}/${S.stats[k] * 25}　每次 +50</span></button>`).join('');
-    return ['修煉十日', `<h4>武功</h4>${sk}<h4>體魄</h4>${dr}`];
-  },
-  shop: () => {
-    const buy = SHOPS[S.loc].map(id => { const it = ITEMS[id]; const d = it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}` : it.kind === 'armor' ? `防禦+${it.def}` : `可習得${SKILLS[it.skill].n}`);
-      return `<article class="card row-card"><div><b>${it.n}</b> <span class="price">${it.price} 兩</span><p>${d}${S.inv[id] ? `・已有 ${S.inv[id]}` : ''}</p></div>${B('買', () => { S.silver -= it.price; addItem(id); render(); }, 'mini', S.silver < it.price)}</article>`; }).join('');
-    const sell = Object.keys(S.inv).filter(id => id !== S.weapon && id !== S.armor).map(id => { const it = ITEMS[id]; const p = Math.max(5, Math.round((it.price || 400) * 0.5));
-      return `<article class="card row-card"><div><b>${it.n}</b> ×${S.inv[id]} <span class="price">${p} 兩</span></div>${B('賣', () => { S.silver += p; addItem(id, -1); render(); }, 'mini')}</article>`; }).join('');
-    return [`市集　銀兩 ${S.silver}`, `<h4>買入</h4>${buy}<h4>賣出</h4>${sell || '<p class="empty">沒有可賣的東西。</p>'}`];
-  },
-  learn: () => {
-    const sc = SECTS[S.sect];
-    return [`${sc.n}學藝　貢獻 ${S.contrib}`, sc.teach.map(t => { const k = SKILLS[t[0]]; const got = knows(t[0]); const early = t[3] && ad() < t[3]; const ok = S.rank >= t[1] && !early;
-      return `<article class="card row-card"><div><b>${k.n}</b> <span class="tag grey">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span><p>${k.d}<br>需${RANKS[t[1]]}・貢獻 ${t[2]}${early ? `・${t[3]} 年後才有` : ''}</p></div>${got ? '<span class="tag jade">已學</span>' : B('學', () => learnSect(t[0], t[2]), 'mini', !ok || S.contrib < t[2])}</article>`; }).join('') +
-      (ultsOf(S.sect).length ? `<p class="empty">鎮派絕學由${sc.head}親傳，須為長老，在山門等候傳功：${ultsOf(S.sect).map(x => `「${SKILLS[x[0]].n}」${knows(x[0]) ? '（已得傳）' : x[1] && ad() < x[1] ? `（${x[1]} 年後才有）` : ''}`).join('、')}。${sectUlt(S.sect) ? `下一門需累計貢獻 ${ultNeed(S.sect).contrib}、聲望 ${ultNeed(S.sect).fame}。` : ''}</p>` : '')];
-  },
-  gift: () => { const id = UI.ov.arg; return [`贈禮給${NPCS[id].n}`, Object.keys(S.inv).filter(i => ITEMS[i].kind === 'gift').map(i => `<button type="button" class="opt"${h(() => gift(id, i))}><b>${ITEMS[i].n}<i>×${S.inv[i]}</i></b></button>`).join('')]; },
   confirm: () => { const o = UI.ov; return [o.title, `<p class="desc">${o.text}</p><div class="col">${B('確定', () => { UI.ov = null; o.yes(); }, 'primary big')}</div>`]; },
 };
 
@@ -245,12 +204,14 @@ const REF = {
     return `<p class="desc">只列出你親眼見過或聽說過的事。還沒發生、沒打聽到的，不會顯示。</p>` + (rows.length ? `<ul class="log journal">${rows.map(h => `<li><time>${reign(h.y)}${MONTH_N[h.m]}${h.d ? cnDay(h.d) : ''}・${S.hist[h.id] === 'seen' ? '親見' : '耳聞'}</time>${h.news}</li>`).join('')}</ul>` : '<p class="empty">還沒有。</p>');
   },
   help: () => `<div class="help">
-      <h4>怎麼玩</h4><p>「江湖」頁最上方的「下一步」會告訴你現在最該做什麼，只按它就能一路看完一生遇得上的大事。其他行動收在「其他行動」裡。</p>
-      <h4>時間與大事</h4><p>每個行動都耗天數。歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。在酒樓打聽能知道一年後的事。</p>
-      <h4>戰鬥</h4><p>每回合雙方各排六手。攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。對手的牌會露出幾張，交手越多、悟性越高，看穿越多。</p>
-      <h4>武功與門派</h4><p>主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖打折。備戰外功最多兩門，特定組合有加成。升到長老後，可由掌門親傳鎮派絕學。</p>
-      <h4>陣營</h4><p>師父在事件中示範武功時，陣營與師父相同的人可以一同學，其他人只能旁觀。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
-      <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代，接著上一代，或跳到後面的年代。存檔存在這支手機的瀏覽器裡。</p>
+      <h4>怎麼玩</h4><p>唯一的主行動是「歷練」：按一次過約一個月，路上會遇到各種事。拜師、學藝、晉升、買賣、情緣、奇遇，全都在事件裡發生。</p>
+      <h4>三條路</h4><p>每件事都有三個選項：正派行動、反派行動、無視或拒絕。正派讓人敬重，反派往往有立即的好處，但會讓俠義一路往下掉，名門正派也會看不起你。有些選項要擲 d20 檢定能力值。</p>
+      <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
+      <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
+      <h4>戰鬥</h4><p>每回合先擲骰子看破對手：點數越高，看穿越多張攻擊牌（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。打不過可以投降。</p>
+      <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。</p>
+      <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
+      <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代。存檔存在這支手機的瀏覽器裡。</p>
     </div>`,
   credits: () => `<div class="credits-wrap">${CRED_HTML()}</div>`,
 };
@@ -281,7 +242,16 @@ function overlay() {
       ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
         : o.pages && o.pi < o.pages.length - 1
           ? `<p class="story">${o.pages[o.pi]}</p><div class="col">${B(`繼續　${o.pi + 1}/${o.pages.length}`, () => { o.pi++; render(); document.querySelector('.sheet').scrollTop = 0; }, 'primary big')}</div>`
-          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => B(c.t, () => choose(i), 'choice')).join('')}</div>`}
+          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => `<button type="button" class="btn choice side-${c.s}"${c.dis ? ' disabled' : h(() => choose(i))}><i class="side">${SIDE_LABEL[c.s]}</i><span>${c.t}${c.dis && c.reqT ? `<small>（${c.reqT}）</small>` : ''}</span></button>`).join('')}</div>`}
+    </div></div>`;
+  }
+  if (o.k === 'lvup') {
+    const used = Object.values(o.add).reduce((a, b) => a + b, 0), left = S.pts - used;
+    return `<div class="veil"><div class="sheet lvup">
+      <h2>等級提升！</h2><p class="lv">Lv ${S.lv}</p>
+      <p class="desc">屬性點數 <b class="pts">${left}</b>　分配到想要的能力上（下列為本身數值，不含裝備加成）。</p>
+      <div class="lvrows">${Object.keys(STAT_N).map(k => `<div class="lvr"><span>${STAT_N[k]}<small>${STAT_D[k]}</small></span><b>${S.base[k] + (o.add[k] || 0)}${o.add[k] ? `<em>+${o.add[k]}</em>` : ''}</b>${B('＋', () => lvAdd(k), 'plus', left <= 0 || S.base[k] + (o.add[k] || 0) >= 30)}</div>`).join('')}</div>
+      <div class="row">${B('重置', lvReset, 'big', !used)}${B('確認', lvOk, 'primary big', left > 0)}</div>
     </div></div>`;
   }
   // 戰鬥：猜拳式對決
@@ -305,15 +275,22 @@ function overlay() {
       ${mv.length ? `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${full || left < m.mp ? ' disabled' : h(() => planAdd({ t: 'S', mv: m }))}><b>${m.n}</b><small>絕招・內力 ${m.mp}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>` : ''}
       <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}${B('脫身', pFlee, 'mini', !!o.noFlee)}</div>
       <div class="col">${full ? B('出手', commitRound, 'primary big') : B(`補滿（還差 ${6 - o.plan.length} 手）`, planFill, 'big')}</div>`;
+  if (!o.over && !o.ins) ctl = `<div class="dice-step"><p class="desc">先擲骰子看破對手：點數越高，能先看穿越多張攻擊牌。悟性${fxSum('eye') ? '、輔助武功' : ''}與交手次數有加成。</p>
+      <div class="col">${B(`${ICON.D}擲骰子（1~20）`, () => rollInsight(false), 'primary big dice')}${B('跳過投擲（10）', () => rollInsight(true), 'big')}</div></div>`;
+  const chips = (ids) => ids.map(id => `<i class="ac r-${artRole(id)}" title="${SKILLS[id].n}">${TYPE_N[SKILLS[id].type][0]}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
+  const adv = o.over ? null : advPct(o);
   return `<div class="veil"><div class="sheet battle">
-    <p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>
-    <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
+    <div class="bhead"><p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>${o.over ? '' : B('投降', pSurrender, 'mini surr')}</div>
+    <div class="vs">
+      <div class="side-p"><b>${esc(S.name)}</b><span class="pw">戰力 ${Math.round(power())}</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em><div class="acs">${chips(S.eq)}</div></div>
+      <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">勝算 ${adv.toFixed(1)}%</span>`}</div>
+      <div class="side-e">${face(o.who, 'mini-face')}<b>${e.n}</b><span class="pw">戰力 ${Math.round(e.P)}</span>${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em><div class="acs">${fx}${e.moves.map(m => `<i class="ac r-foe">${m[0][0]}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
+    </div>
     <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
-    ${o.over ? '' : insightHtml(o)}
+    ${o.over || !o.ins ? '' : insightHtml(o)}
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
-    <div class="vitals in-battle">
-      <div><span>氣血</span>${bar(S.hp, maxHp(), 'hp')}<em>${Math.max(0, S.hp)}/${maxHp()}</em></div>
+    <div class="vitals in-battle one">
       <div><span>內力</span>${bar(S.mp, maxMp(), 'mp')}<em>${S.mp}/${maxMp()}${planMp(o) ? `（本回合將用 ${planMp(o)}）` : ''}</em></div>
     </div>${ctl}</div></div>`;
 }
@@ -329,6 +306,7 @@ const ICON = {
   H: svg('<path d="M4 13a8 8 0 1113.5 5.8M12 13a3.2 3.2 0 10-3.2-3.2M8 20.5h8"/>'),                                                                                          // 調息
   '?': svg('<path d="M12 3l9 9-9 9-9-9z"/><path d="M12 8l4 4-4 4-4-4z" fill="currentColor" fill-opacity=".25"/>'),
   '-': svg('<path d="M5 8c2-3 5 3 7 0s5 3 7 0M5 15c2-3 5 3 7 0s5 3 7 0"/>'),
+  D: svg('<path d="M12 2.5l8.5 5v9L12 21.5l-8.5-5v-9z" fill="currentColor" fill-opacity=".18"/><path d="M12 2.5v9.5m0 0l8.5-4.5M12 12l-8.5-4.5M12 12v9.5"/>'),
 };
 ICON.X = ICON.S;
 const CARD_N = { A: '攻', B: '破', G: '守', S: '絕', X: '絕', I: '藥', H: '息', '?': '？', '-': '暈' };
@@ -336,7 +314,7 @@ const card = (t, cls = '', extra = '') => `<i class="cell card c${t === '?' ? 'U
 
 function insightHtml(o) {
   const n = o.ins, fresh = o.fresh; o.fresh = false;
-  return `<div class="insight"><span>看破</span><b class="die${fresh ? ' roll' : ''}${n.roll === 20 ? ' crit' : n.roll === 1 ? ' fumble' : ''}">${n.roll}</b><span class="rollline">悟性 ${n.mod >= 0 ? '+' : ''}${n.mod} ＝ ${n.total}　→ <em class="${n.reveal >= 3 ? 'win' : 'lose'}">看穿 ${n.reveal} 手</em>${n.roll === 20 ? '（大成功）' : n.roll === 1 ? '（大失手）' : ''}</span></div>`;
+  return `<div class="insight"><span>看破${n.skip ? '（跳過）' : ''}</span><b class="die${fresh ? ' roll' : ''}${n.roll === 20 ? ' crit' : n.roll === 1 ? ' fumble' : ''}">${n.roll}</b><span class="rollline">加值 ${n.mod >= 0 ? '+' : ''}${n.mod} ＝ ${n.total}　→ <em class="${n.reveal >= 3 ? 'win' : 'lose'}">看穿 ${n.reveal} 手</em>${n.roll === 20 ? '（大成功）' : n.roll === 1 ? '（大失手）' : ''}</span></div>`;
 }
 function revealView(o) {
   const rv = o.rv, e = o.e, n = rv.slots.length, st = rv.step, done = st >= n;

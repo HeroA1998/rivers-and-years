@@ -50,15 +50,16 @@ function rollStats() {
 function newGame(c, legacy) {
   const year = c.year || 1222, pool = originsFor(year);
   const o = typeof c.origin === 'number' ? pool[c.origin % pool.length] : pick(pool);   // 投胎由天
-  const st = Object.assign({}, c.stats);
-  for (const k in o.st) st[k] += o.st[k];
+  const base = Object.assign({}, c.stats);
+  for (const k in o.st) base[k] += o.st[k];
   S = {
-    name: c.name || '無名', gender: c.gender, origin: o.base, birth: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
-    y0: year, date: { y: 1, m: 1, d: 1 }, loc: o.loc, stats: st, drill: {},
+    v: 4, name: c.name || '無名', gender: c.gender, origin: o.base, birth: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
+    y0: year, date: { y: 1, m: 1, d: 1 }, loc: o.loc, base, stats: Object.assign({}, base), bonus: {},
+    lv: 1, exp: 0, pts: 0,
     hp: 1, mp: 1, bonusHp: 0, bonusMp: 0, silver: 120 + (o.silver || 0), fame: 0, moral: 0,
     sect: null, rank: 0, contrib: 0, contribTotal: 0,
-    skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
-    weapon: null, armor: null, inv: { jinchuang: 2 },
+    skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist', 'tuna'],
+    weapon: null, armor: null, acc: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
     done: {}, flags: {}, log: [], journal: [], seen: {}, hist: null, chain: {}, wins: 0, losses: 0, legacyFrom: null,
   };
@@ -69,8 +70,9 @@ function newGame(c, legacy) {
     S.silver += legacy.silver;
     if (legacy.skill) { S.skills[legacy.skill.id] = { lv: legacy.skill.lv, exp: 0 }; autoEquip(legacy.skill.id); }
     if (legacy.weapon) { S.inv[legacy.weapon] = 1; S.weapon = legacy.weapon; }
-    if (legacy.blood) { S.stats.int++; S.stats.con++; }
+    if (legacy.blood) { S.base.int++; S.base.con++; }
   }
+  recalc();
   S.hp = maxHp(); S.mp = maxMp();
   Q = [];
   histInit();
@@ -85,32 +87,63 @@ function newGame(c, legacy) {
   pump();
   window.scrollTo(0, 0);
 }
+// 舊存檔（v3 以前）轉成新制：能力值分成本身與加成，內功、身法也放進五格武功
+function migrate(s) {
+  if (s.v >= 4) return s;
+  s.v = 4; s.base = Object.assign({}, s.stats); s.bonus = {}; s.lv = s.lv || 1; s.exp = s.exp || 0; s.pts = s.pts || 0; s.acc = s.acc || null;
+  const eq = [s.nei, ...(s.eq || [])];
+  const q = Object.keys(s.skills).filter(id => SKILLS[id].type === 'qing').sort((a, b) => s.skills[b].lv * SKILLS[b].dodge - s.skills[a].lv * SKILLS[a].dodge)[0];
+  if (q) eq.push(q);
+  s.eq = [...new Set(eq.filter(Boolean))].slice(0, EQ_MAX);
+  return s;
+}
+
+/* ---------- 能力值：本身（初始天資、升級配點、故事）＋裝備加成（兵刃、護甲、飾品、武功） ---------- */
+function equipBonus() {
+  const b = {};
+  const add = o => { for (const x in o || {}) b[x] = (b[x] || 0) + o[x]; };
+  for (const id of S.eq) add(artSt(id));
+  for (const sl of ['weapon', 'armor', 'acc']) if (S[sl] && ITEMS[S[sl]]) add(ITEMS[S[sl]].st);
+  return b;
+}
+function recalc() {
+  S.bonus = equipBonus();
+  for (const k in STAT_N) S.stats[k] = Math.max(1, (S.base[k] || 1) + (S.bonus[k] || 0));
+  // 主修內功：裝備中最強的一門
+  let best = null;
+  for (const id of S.eq) if (SKILLS[id].type === 'nei' && (!best || SKILLS[id].tier * 20 + S.skills[id].lv > SKILLS[best].tier * 20 + S.skills[best].lv)) best = id;
+  S.nei = best;
+  S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp());
+}
+const fxSum = key => S.eq.reduce((t, id) => t + (artFx(id)[key] || 0), 0);
 
 /* ---------- 衍生數值 ---------- */
 function neiSum(key) {
   let t = 0;
-  for (const id in S.skills) {
+  for (const id of S.eq) {
     const k = SKILLS[id];
     if (k.type === 'nei') t += S.skills[id].lv * k[key] * (id === S.nei ? 1 : 0.5);
   }
   return Math.round(t);
 }
-const maxHp = () => 80 + S.stats.con * 12 + neiSum('hp') + S.bonusHp;
-const maxMp = () => 30 + S.stats.int * 2 + S.stats.con * 3 + neiSum('mp') + S.bonusMp;
-const neiLv = () => S.skills[S.nei] ? S.skills[S.nei].lv : 0;
-const neiFactor = () => 1 + neiLv() * 0.035 * SKILLS[S.nei].tier;
+const maxHp = () => 80 + S.stats.con * 12 + neiSum('hp') + S.bonusHp + ((S.lv || 1) - 1) * 6;
+const maxMp = () => 30 + S.stats.int * 2 + S.stats.con * 3 + neiSum('mp') + S.bonusMp + ((S.lv || 1) - 1) * 3;
+const neiLv = () => S.nei && S.skills[S.nei] ? S.skills[S.nei].lv : 0;
+const neiFactor = () => S.nei ? 1 + neiLv() * 0.035 * SKILLS[S.nei].tier : 1;
 function qingBonus() {
   let b = 0;
-  for (const id in S.skills) if (SKILLS[id].type === 'qing') b = Math.max(b, S.skills[id].lv * SKILLS[id].dodge);
+  for (const id of S.eq) if (SKILLS[id].type === 'qing') b = Math.max(b, S.skills[id].lv * SKILLS[id].dodge);
   return b;
 }
 const pDodge = () => S.stats.agi * 1.2 + qingBonus();
 const pDef = () => S.stats.con * 0.8 + (S.armor ? ITEMS[S.armor].def : 0) + neiLv() * 0.5;
+// 戰力只算裝備中的武功
 function power() {
   let s = 0;
-  for (const id in S.skills) s += S.skills[id].lv * SKILLS[id].tier;
-  return s / 3 + (S.stats.str + S.stats.con + S.stats.agi) / 6 + ((S.weapon ? ITEMS[S.weapon].atk : 0) + (S.armor ? ITEMS[S.armor].def : 0)) / 6;
+  for (const id of S.eq) s += S.skills[id].lv * SKILLS[id].tier;
+  return s / 3 + (S.stats.str + S.stats.con + S.stats.agi) / 6 + ((S.weapon ? ITEMS[S.weapon].atk : 0) + (S.armor ? ITEMS[S.armor].def : 0)) / 6 + ((S.lv || 1) - 1) * 0.3;
 }
+const artAtk = id => { const k = SKILLS[id]; return k.moves && artRole(id) === 'atk' ? Math.round(k.moves[0][3] * (1 + 0.15 * (S.skills[id].lv - 1))) : 0; };
 function fameTitle() {
   const f = S.fame, evil = S.moral <= -40;
   if (f < 50) return '無名小卒';
@@ -127,10 +160,11 @@ function log(s) { S.log.push({ t: dateStr(), s }); if (S.log.length > 40) S.log.
 const GAIN_N = { silver: '銀兩', fame: '聲望', moral: '俠義', hp: '氣血', mp: '內力', contrib: '門派貢獻', bonusHp: '氣血上限', bonusMp: '內力上限' };
 function gain(o) {
   const out = [];
+  let st = false;
   for (const k in o) {
     let v = o[k];
     if (!v) continue;
-    if (k in STAT_N) { S.stats[k] = clamp(S.stats[k] + v, 1, 20); out.push(`${STAT_N[k]}${v > 0 ? '+' : ''}${v}`); continue; }
+    if (k in STAT_N) { S.base[k] = clamp(S.base[k] + v, 1, 30); st = true; out.push(`${STAT_N[k]}${v > 0 ? '+' : ''}${v}`); continue; }
     if (k === 'contrib') { S.contrib = Math.max(0, S.contrib + v); if (v > 0) S.contribTotal += v; }
     else if (k === 'silver') { v = Math.max(v, -S.silver); S.silver += v; }
     else if (k === 'hp') S.hp = clamp(S.hp + v, 1, maxHp());
@@ -138,42 +172,60 @@ function gain(o) {
     else if (k === 'moral') S.moral = clamp(S.moral + v, -100, 100);
     else S[k] += v;
     if (k === 'fame') S.fame = Math.max(0, S.fame);
-    if (v) out.push(`${GAIN_N[k]}${v > 0 ? '+' : ''}${Math.round(v)}`);
+    if (v && Math.abs(v) < 900) out.push(`${GAIN_N[k]}${v > 0 ? '+' : ''}${Math.round(v)}`);
   }
+  if (st) recalc();
   S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp());
   return out.length ? `〔${out.join('　')}〕` : '';
 }
-function addItem(id, n = 1) { S.inv[id] = (S.inv[id] || 0) + n; if (S.inv[id] <= 0) delete S.inv[id]; return `〔獲得 ${ITEMS[id].n}${n > 1 ? '×' + n : ''}〕`; }
+function addItem(id, n = 1) { S.inv[id] = (S.inv[id] || 0) + n; if (S.inv[id] <= 0) { delete S.inv[id]; for (const sl of ['weapon', 'armor', 'acc']) if (S[sl] === id) { S[sl] = null; recalc(); } } return n > 0 ? `〔獲得 ${ITEMS[id].n}${n > 1 ? '×' + n : ''}〕` : ''; }
 const has = id => (S.inv[id] || 0) > 0;
 const knows = id => !!S.skills[id];
 const xpNeed = (lv, tier) => Math.round(40 * Math.pow(lv, 1.6) * [1, 1.5, 2.2][tier - 1]);
-function autoEquip(id) {
-  const k = SKILLS[id];
-  if (k.type === 'nei') { if (!S.skills[S.nei] || k.tier > SKILLS[S.nei].tier) S.nei = id; }
-  else if (k.type !== 'qing' && !S.eq.includes(id)) {
-    if (S.eq.length < 2) S.eq.push(id);
-    else { const weak = S.eq.findIndex(e => SKILLS[e].tier < k.tier); if (weak >= 0) S.eq[weak] = id; }
-  }
+// 等級：閱歷來自事件與戰鬥；升一級得三點屬性點數
+const expNeed = lv => 50 + 30 * lv + 6 * lv * lv;
+function gainExp(n) {
+  n = Math.round(n);
+  if (n <= 0) return '';
+  S.exp += n;
+  let up = 0;
+  while (S.exp >= expNeed(S.lv)) { S.exp -= expNeed(S.lv); S.lv++; S.pts += 3; up++; }
+  if (up) { S.hp = maxHp(); S.mp = maxMp(); }
+  return `〔閱歷+${n}〕` + (up ? `〔等級提升至 ${S.lv}！屬性點數+${3 * up}〕` : '');
 }
+function autoEquip(id) {
+  if (S.eq.includes(id)) return true;
+  if (S.eq.length < EQ_MAX) { S.eq.push(id); recalc(); return true; }
+  const r = artRole(id), same = S.eq.filter(x => artRole(x) === r).sort((a, b) => SKILLS[a].tier - SKILLS[b].tier || S.skills[a].lv - S.skills[b].lv);
+  if (same.length && SKILLS[same[0]].tier < SKILLS[id].tier) { S.eq[S.eq.indexOf(same[0])] = id; recalc(); return true; }
+  return false;
+}
+function equipArt(id) {
+  if (S.eq.includes(id)) return;
+  if (S.eq.length >= EQ_MAX) return toastRender('最多裝備五門武功，先卸下一門');
+  S.eq.push(id); recalc(); save(); render();
+}
+function unequipArt(id) { S.eq = S.eq.filter(x => x !== id); recalc(); save(); render(); }
 function learn(id, lv = 1) {
   if (knows(id)) return xp(id, 200) || `〔${SKILLS[id].n} 的領悟加深了〕`;
   S.skills[id] = { lv, exp: 0 };
-  autoEquip(id);
-  return `〔習得${TIER_N[SKILLS[id].tier]}${TYPE_N[SKILLS[id].type]}：${SKILLS[id].n}〕`;
+  const on = autoEquip(id);
+  return `〔習得${TIER_N[SKILLS[id].tier]}${TYPE_N[SKILLS[id].type]}：${SKILLS[id].n}${on ? '・已裝備' : '・可在人物頁裝備'}〕`;
 }
 function xp(id, n) {
-  const sk = S.skills[id], k = SKILLS[id];
+  const sk = id && S.skills[id], k = SKILLS[id];
   if (!sk || sk.lv >= 10) return '';
   sk.exp += Math.round(n);
   let up = 0;
   while (sk.lv < 10 && sk.exp >= xpNeed(sk.lv, k.tier)) { sk.exp -= xpNeed(sk.lv, k.tier); sk.lv++; up++; if (k.evil) S.moral = clamp(S.moral - 3, -100, 100); }
   if (sk.lv >= 10) sk.exp = 0;
+  if (up && S.eq.includes(id)) recalc();
   return up ? `〔${k.n} 突破至第${cnNum(sk.lv)}層〕` : '';
 }
+// 只有裝備中的武功會在實戰中長進
 function battleXp(n) {
   const out = [];
-  for (const id of S.eq) { const t = xp(id, n); if (t) out.push(t); }
-  const t = xp(S.nei, n * 0.6); if (t) out.push(t);
+  for (const id of S.eq) { const t = xp(id, SKILLS[id].type === 'nei' ? n * 0.6 : n); if (t) out.push(t); }
   return out.join('');
 }
 
@@ -215,18 +267,24 @@ function rollEvent(ctx) {
   for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) return pool[i].chain ? chainStep(pool[i].chain) : pool[i]; }
   return null;
 }
-function act(days, text, ctx, evChance = 38) {
-  if (text) log(text);
-  advance(days);
-  if (ctx && chance(evChance)) { const e = rollEvent(ctx); if (e) Q.push(e); }
-  pump();
-}
 function pump() {
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
   const h = histDue();
   if (h) { UI.ov = null; save(); showEvent(h); return; }
+  if (S.pts > 0) { UI.ov = { k: 'lvup', add: {} }; save(); render(); return; }
   save(); render();
+}
+/* 每個事件固定三個選項：正派行動、反派行動、無視或拒絕 */
+const SIDE_LABEL = { g: '正派', e: '反派', n: '無視' };
+function sides(list) {
+  const out = [];
+  for (const k of ['g', 'e', 'n']) {
+    const c = list.find(x => x.s === k);
+    if (c) out.push(c);
+    else if (k === 'n') out.push({ s: 'n', t: '不予理會', go: () => '你沒有理會，這件事就此揭過。' });
+  }
+  return out;
 }
 function showEvent(ev) {
   if (ev.due != null && today() - ev.due > 5) return pump();
@@ -234,14 +292,20 @@ function showEvent(ev) {
   if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; (S.flags.evLast = S.flags.evLast || {})[ev.id] = today(); }
   const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
   const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
-  const choices = (typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || []).filter(c => !c.cond || c.cond(S));
-  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who };
+  const raw = typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || [];
+  const choices = sides(raw).map(c => Object.assign({}, c, { dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S))) }));
+  UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who, big: ['歷史', '傳承', '奇遇', '奇緣'].includes(ev.type) };
   log(`【${ev.type}】${ev.title}`);
   render();
 }
 function choose(i) {
-  const c = UI.ov.choices[i];
-  handleResult(c.go ? c.go(S) : '');
+  const o = UI.ov, c = o.choices[i];
+  if (!c || c.dis) return;
+  S.moral = clamp(S.moral + (c.s === 'g' ? 1 : c.s === 'e' ? -2 : 0), -100, 100);
+  const r = c.go ? c.go(S) : '';
+  o.side = c.s;
+  if (r && typeof r === 'object') return handleResult(r);
+  handleResult((r || '') + gainExp((c.s === 'n' ? 4 : 10) * (o.big ? 1.6 : 1)));
 }
 function handleResult(r) {
   if (r && typeof r === 'object' && r.battle) return startBattle(r);
@@ -252,6 +316,15 @@ function handleResult(r) {
   render();
 }
 function closeEvent() { UI.ov = null; pump(); }
+/* 升級配點 */
+function lvAdd(k) { const o = UI.ov, used = Object.values(o.add).reduce((a, b) => a + b, 0); if (used >= S.pts || S.base[k] + (o.add[k] || 0) >= 30) return; o.add[k] = (o.add[k] || 0) + 1; render(); }
+function lvReset() { UI.ov.add = {}; render(); }
+function lvOk() {
+  const o = UI.ov;
+  for (const k in o.add) { S.base[k] += o.add[k]; S.pts -= o.add[k]; }
+  recalc(); S.hp = maxHp(); S.mp = maxMp();
+  UI.ov = null; pump();
+}
 
 /* ---------- 戰鬥 ---------- */
 // 敵人戰力：fix 是敵人本身的底子，mult 是隨主角成長的比例。氣血與攻擊隨戰力加速成長，免得主角後期一路碾壓
@@ -276,8 +349,8 @@ const FOE_PATTERNS = {
   puppet: ['ABGABG', 'BGABGA', 'GABGAB'],
 };
 // 看破：每回合擲 d20，加悟性調整與交手經驗；擲得越高，越能看穿對手的攻擊牌
-function insightRoll(e) {
-  const roll = ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0), total = roll + mod;
+function insightRoll(e, fixed) {
+  const roll = fixed || ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0) + fxSum('eye'), total = roll + mod;
   const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor(total / 5), 0, 5);
   return { roll, mod, total, reveal };
 }
@@ -285,11 +358,27 @@ function newRound(b) {
   let p = pick(FOE_PATTERNS[b.e.style] || FOE_PATTERNS.thug).split('');
   if (b.e.style !== 'puppet') p = p.map(c => c !== 'X' && chance(14) ? pick(['A', 'B', 'G']) : c);
   b.foe = p;
-  b.ins = insightRoll(b.e);
-  b.fresh = true;
-  const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, b.ins.reveal);
-  b.shown = p.map((_, i) => idx.includes(i));
+  b.ins = null; b.shown = p.map(() => false);
   b.plan = []; b.sub = null;
+}
+// 擲骰看破：玩家親手擲；跳過則以 10 計
+function rollInsight(skip) {
+  const b = UI.ov;
+  if (!b || b.ins) return;
+  b.ins = insightRoll(b.e, skip ? 10 : 0);
+  b.ins.skip = !!skip;
+  b.fresh = !skip;
+  const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, b.ins.reveal);
+  b.shown = b.foe.map((_, i) => idx.includes(i));
+  render();
+}
+// 優勢：雙方各需幾手才能打倒對方的估算
+function advPct(b) {
+  const e = b.e, bm = basicMove();
+  const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + (S.weapon && ITEMS[S.weapon].wt === bm.k.type ? ITEMS[S.weapon].atk : 0)) * neiFactor() * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006));
+  const op = Math.max(1, (e.atk * 1.2 * DMG_K * (1 - fxSum('foeWeak')) - pDef() * 0.25) * (1 - Math.min(0.5, fxSum('dmgRed'))));
+  const tE = Math.max(0, e.hp) / my, tP = Math.max(1, S.hp) / op;
+  return clamp(Math.round(tP / (tP + tE) * 1000) / 10, 1, 99);
 }
 function startBattle(r) {
   const prev = UI.ov || {};
@@ -299,25 +388,38 @@ function startBattle(r) {
     log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null,
   };
   newRound(UI.ov);
+  battleOpen(UI.ov);
   render();
 }
+// 開戰效果：暗器先發、獅子吼震暈
+function battleOpen(b) {
+  for (const id of S.eq) {
+    const f = artFx(id), k = SKILLS[id];
+    if (f.opener && k.moves) b.log.push('【先發】' + hitFoe(b, k.moves[0][0], k, S.skills[id].lv, k.moves[0][3], 0.6 * f.opener));
+    if (f.stunOpen) { b.fx.stun = 1; b.log.push(`【${k.n}】你一聲長嘯，${b.e.n}心神大亂，第一手使不出來。`); }
+  }
+  if (b.e.hp <= 0) { b.e.hp = 1; }
+}
+const BARE = { n: '空手', type: 'fist', tier: 1, attr: 'he', moves: [['空手拳腳', 1, 0, 6]] };
+const atkArts = () => S.eq.filter(id => artRole(id) === 'atk' && SKILLS[id].moves);
 function basicMove() {
   let best = null;
-  for (const id of S.eq) {
+  for (const id of atkArts()) {
     const k = SKILLS[id], lv = S.skills[id].lv, m = k.moves[0], pw = m[3] * (1 + 0.15 * (lv - 1));
     if (!best || pw > best.pw) best = { id, k, lv, pow: m[3], pw, n: m[0] };
   }
-  return best;
+  return best || { id: null, k: BARE, lv: 1, pow: 6, pw: 6, n: '空手拳腳' };
 }
 function pMoves() {   // 絕招：備戰外功中第一式以外、已解鎖的招式
   const out = [];
-  for (const id of S.eq) {
+  for (const id of atkArts()) {
     const k = SKILLS[id], lv = S.skills[id].lv;
     k.moves.forEach((m, i) => { if (i > 0 && lv >= m[1]) out.push({ id, n: m[0], mp: m[2], pow: m[3], fx: m[4], k, lv }); });
   }
   return out;
 }
 function attrMul(a) {
+  if (!S.nei) return 1;
   const na = SKILLS[S.nei].attr;
   if (na === 'he') return 1.1;
   if (a === 'he') return 1.05;
@@ -328,13 +430,14 @@ const planMp = b => b.plan.reduce((t, p) => t + (p.t === 'S' ? p.mv.mp : p.t ===
 function planAdd(p) {
   const b = UI.ov;
   if (b.over || b.plan.length >= 6) return;
+  if (!b.ins) return toastRender('先擲骰子看破對手');
   const cost = p.t === 'S' ? p.mv.mp : p.t === 'H' ? 12 : 0;
   if (planMp(b) + cost > S.mp) return toastRender('內力不夠排這一手');
   if (p.t === 'I' && b.plan.filter(x => x.t === 'I' && x.item === p.item).length >= (S.inv[p.item] || 0)) return toastRender('這種丹藥不夠了');
   b.plan.push(p); b.sub = null; render();
 }
 function planUndo() { const b = UI.ov; b.plan.pop(); render(); }
-function planFill() { const b = UI.ov; while (b.plan.length < 6) b.plan.push({ t: b.plan.length && b.plan[b.plan.length - 1].t.match(/[ABG]/) ? b.plan[b.plan.length - 1].t : 'A' }); render(); }
+function planFill() { const b = UI.ov; if (!b.ins) return toastRender('先擲骰子看破對手'); while (b.plan.length < 6) b.plan.push({ t: b.plan.length && b.plan[b.plan.length - 1].t.match(/[ABG]/) ? b.plan[b.plan.length - 1].t : 'A' }); render(); }
 
 // 我方命中：回傳描述
 function hitFoe(b, label, k, lv, pow, mul, fx) {
@@ -342,7 +445,7 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
   if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
   const w = S.weapon && ITEMS[S.weapon].wt === k.type ? ITEMS[S.weapon].atk : 0;
   let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1);
-  const crit = chance(S.stats.luck * 1.3);
+  const crit = chance(S.stats.luck * 1.3 + fxSum('crit'));
   if (crit) dmg *= 1.6;
   dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25)));
   e.hp -= dmg;
@@ -357,8 +460,11 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
 function hitMe(b, label, mult, mul = 1) {
   const e = b.e;
   if (chance(clamp((pDodge() - e.agi) * 1.2 + 4, 0, 30))) return `${e.n}的「${label}」被你閃身避過。`;
-  const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul));
+  const red = (1 - Math.min(0.5, fxSum('dmgRed'))) * (1 - fxSum('foeWeak'));
+  const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul * red));
   S.hp -= dmg;
+  const rf = fxSum('reflect');
+  if (rf) { const r = Math.max(1, Math.round(dmg * rf)); e.hp -= r; return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害；你挪移卸勁，反震 ${r} 點。`; }
   return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害。`;
 }
 function commitRound() {
@@ -384,7 +490,7 @@ function commitRound() {
       res = f === 'X' ? 't' : 'w';
     } else if (p.t === 'I' || p.t === 'H') {
       if (p.t === 'I') { useMed(p.item); s = `你服下${ITEMS[p.item].n}。`; }
-      else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (healer() ? 1.6 : 1)); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
+      else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (1 + fxSum('heal'))); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
       s += fHit(); res = f === 'G' || f === '-' ? 't' : 'l';
     } else if (f === '-') {
       s = `${e.n}還在暈眩。` + (p.t === 'G' ? '你穩住了呼吸。' : hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1));
@@ -395,7 +501,7 @@ function commitRound() {
       s = p.t === 'G' ? '雙方都採守勢，互相試探。' : `${ST[f]}對${ST[f]}，硬碰硬！` + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, (p.t === 'A' ? 0.8 : 1.1) * 0.5) + fHit(0.5);
       res = 't';
     } else if (BEATS[p.t] === f) {
-      if (p.t === 'G') { S.mp = Math.min(maxMp(), S.mp + 4); s = `你架開${e.n}的「${m0[0]}」，順勢反擊！` + hitFoe(b, pN.G, bm.k, bm.lv, bm.pow, 0.55); }
+      if (p.t === 'G') { S.mp = Math.min(maxMp(), S.mp + 4); s = `你架開${e.n}的「${m0[0]}」，順勢反擊！` + hitFoe(b, pN.G, bm.k, bm.lv, bm.pow, 0.55 * (1 + fxSum('guard'))); }
       else s = (p.t === 'A' ? `你搶在對方重手之前出招。` : `你一記重手破開對方守勢。`) + hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1);
       res = 'w';
     } else {
@@ -416,6 +522,8 @@ function commitRound() {
   if (!b.over && b.fx.poison) { b.fx.poison--; e.hp -= b.fx.poisonV; tl(`${e.n}毒發，損失 ${b.fx.poisonV} 點氣血。`); }
   if (!b.over && e.hp <= 0) { e.hp = 0; b.over = 'win'; }
   if (b.fx.weak) b.fx.weak--;
+  const rg = fxSum('regen'), mr = fxSum('mpr');
+  if (!b.over && S.hp > 0 && (rg || mr)) { const hv = Math.round(maxHp() * rg); S.hp = Math.min(maxHp(), S.hp + hv); S.mp = Math.min(maxMp(), S.mp + mr); tl(`你運轉內功，${hv ? `回復 ${hv} 點氣血` : ''}${hv && mr ? '、' : ''}${mr ? `${mr} 點內力` : ''}。`); }
   if (b.over === 'win') tl(`${e.n}倒下了。你贏了。`);
   else if (b.over === 'lose') tl('你眼前一黑，栽倒在地……');
   // 進入揭牌：逐手亮出雙方的牌與勝負
@@ -444,6 +552,13 @@ function pFlee() {
   if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; bLog('你眼前一黑，栽倒在地……'); } else { b.round++; newRound(b); }
   render();
 }
+// 投降：當場認輸，不再挨打
+function pSurrender() {
+  const b = UI.ov; if (b.over) return;
+  b.over = 'lose'; b.surr = true; S.hp = Math.max(1, S.hp);
+  bLog('你收招後退，拱手認輸。');
+  render();
+}
 function defeat() {
   const lost = Math.round(S.silver * 0.2);
   S.silver -= lost; S.hp = Math.round(maxHp() * 0.3);
@@ -456,21 +571,22 @@ function endBattle() {
   let r;
   if (b.over === 'win') {
     S.wins++;
-    const x = battleXp(20 + b.e.P * 6);
+    const x = battleXp(20 + b.e.P * 6) + gainExp(12 + b.e.P * 3);
     r = b.win ? b.win(S) : `你擊敗了${b.e.n}。`;
     if (r && typeof r === 'object') { if (r.battle && !r.title) r.title = b.title; return handleResult(r); }
     r += x;
   } else if (b.over === 'lose') {
-    S.losses++; S.hp = 1;
+    S.losses++; if (!b.surr) S.hp = 1;
     r = b.lose ? b.lose(S) : defeat();
     if (r && typeof r === 'object') return handleResult(r);
+    r = (b.surr ? '你認輸了。' : '') + r + gainExp(6 + b.e.P);
   } else r = '你且戰且退，總算甩開了對手。';
   UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r, who: b.who };
   render();
 }
 
 /* ---------- 物品 ---------- */
-const healer = () => Object.keys(S.skills).some(id => SKILLS[id].heal);
+const healer = () => fxSum('heal') > 0;
 function useMed(id) {
   const it = ITEMS[id];
   addItem(id, -1);
@@ -481,58 +597,29 @@ function useItem(id) {
   const it = ITEMS[id];
   if (it.kind === 'med') { useMed(id); toast(`服下${it.n}`); }
   else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain({ con: 1, bonusHp: 30 })); }
+  else if (it.kind === 'acc') { S.acc = S.acc === id ? null : id; recalc(); }
   else if (it.kind === 'manual') {
     if (knows(it.skill)) return toast('這門功夫你已經會了');
     addItem(id, -1); toast(learn(it.skill));
-  } else if (it.kind === 'weapon') { S.weapon = S.weapon === id ? null : id; }
-  else if (it.kind === 'armor') { S.armor = S.armor === id ? null : id; }
+  } else if (it.kind === 'weapon') { S.weapon = S.weapon === id ? null : id; recalc(); }
+  else if (it.kind === 'armor') { S.armor = S.armor === id ? null : id; recalc(); }
   save(); render();
 }
 let toastMsg = '';
 function toast(s) { toastMsg = s; }
 
-/* ---------- 行動 ---------- */
+/* ---------- 移動 ---------- */
 function travelDays(to) {
-  const a = LOCS[S.loc], b = LOCS[to];
+  const a = LOCS[S.loc] || LOCS.linan, b = LOCS[to];
   const d = Math.hypot(a.x - b.x, a.y - b.y) / 4;
-  return Math.max(2, Math.round(d * (knows('q_shadow') ? 0.7 : 1)));
+  return Math.max(2, Math.round(d * (S.eq.includes('q_shadow') ? 0.7 : 1)));
 }
-function travel(to) {
-  const d = travelDays(to);
-  UI.ov = null;
-  const from = LOCS[S.loc].n;
-  log(`自${from}啟程，行了${cnNum(d)}日，抵達${LOCS[to].n}。`);
-  S.loc = '_road';          // 路上這幾天不算身在任何地方，途中發生的大事只能事後耳聞
-  advance(d);
-  S.loc = to;
-  if (chance(55)) { const e = rollEvent('travel'); if (e) Q.push(e); }
-  pump();
-}
-/* ---------- 下一步建議：告訴玩家現在最該做什麼 ---------- */
-// 在原地修煉等候到某一天（每十日的長進約等於一次修煉）
-function waitUntil(day, why) {
-  UI.ov = null;
-  const days = Math.max(1, day - today());
-  const g = (40 + S.stats.int * 5) * days / 10 * 0.8;
-  const ups = S.eq.map(id => xp(id, g / 2)).join('') + xp(S.nei, g / 2);
-  log(`你在${LOCS[S.loc].n}一邊練功一邊等候，過了${cnNum(days)}日。${why || ''}${ups}`);
-  advance(days);
-  pump();
-}
-const nearest = (ids) => ids.filter(id => id !== S.loc).sort((a, b) => travelDays(a) - travelDays(b))[0];
+function toastRender(s) { toast(s); render(); }
+
+/* ---------- 下一步：唯一的主行動是「歷練」，其餘一切都在事件裡發生 ---------- */
 function nextGoal() {
   const t = today();
-  const noSect = !S.sect && age() < 30;
-  const sectGoal = () => {
-    const open = Object.keys(SECTS).filter(sectOpen);
-    const here = LOCS[S.loc].sect && open.includes(LOCS[S.loc].sect) ? LOCS[S.loc].sect : null;
-    if (here) return { title: `拜入${SECTS[here].n}`, desc: SECTS[here].d, note: `入門條件：${SECTS[here].reqT}`, acts: [['拜師入門', () => joinSect(here)]] };
-    const to = nearest(open.map(id => SECTS[id].loc));
-    return { title: '先找個門派學本事', desc: `沒有師門，武功很難長進。最近的山門是${LOCS[to].n}。`, note: `趕路 ${cnNum(travelDays(to))} 日。`, acts: [[`前往${LOCS[to].n}`, () => travel(to)]] };
-  };
   const known = histRumors(720, false).find(r => { const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc); return t + need < hEnd(h); });
-  // 還沒拜師又離大事很遠：先去學本事
-  if (noSect && (!known || hStart(known.h) - t > 120)) { const sg = sectGoal(); if (known) sg.note += `　下一件大事：${known.when}，${known.where}。`; return sg; }
   const unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]);
   const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t).sort((a, b) => hStart(a) - hStart(b))[0];
   if (!known && !unknown.length && (!nx || age() + (nx.y - ad()) > 66)) {
@@ -541,116 +628,20 @@ function nextGoal() {
       acts: [['繼續歷練', adventureMonth], ['歸隱，傳給下一代', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
   }
   const acts = [['歷練一個月', adventureMonth]];
-  if (!known && LOCS[S.loc].kind === 'city') acts.push(['去酒樓打聽消息', gossip]);
   return known
-    ? { title: '歷練', desc: `風聞：${known.h.rumor}（${known.when}，${known.where}）`, note: `按一次過約一個月，途中會遇到各種事。日子近了，會有劇情帶你趕到現場。`, acts }
-    : { title: '歷練', desc: '江湖上暫時沒有大事的風聲。出門走走，遇人、遇事、遇機緣；在城裡的酒樓和茶樓，更容易聽到消息。', note: '按一次過約一個月，途中會遇到各種事。', acts };
+    ? { title: '歷練', desc: `風聞：${known.h.rumor}（${known.when}，${known.where}）`, note: '按一次過約一個月。拜師、買賣、情緣、奇遇都在路上的事件裡。日子近了，會有劇情帶你趕到現場。', acts }
+    : { title: '歷練', desc: '江湖上暫時沒有大事的風聲。出門走走，遇人、遇事、遇機緣；在城裡的酒樓和茶樓，更容易聽到消息。', note: '按一次過約一個月。每件事都有三條路：正派、反派、或不予理會。', acts };
 }
 
-// 閉關一年：武功與內力大進，但這一年江湖上的事只能事後聽說
-function retreat() {
-  UI.ov = null;
-  const g = 260 + S.stats.int * 25;
-  const ups = S.eq.map(id => xp(id, g)).join('') + xp(S.nei, g * 1.2);
-  log(`你尋了一處清靜所在，閉關苦修一年。${ups}`);
-  advance(360);
-  S.hp = maxHp(); S.mp = maxMp();
-  pump();
-}
-function train(id) {
-  UI.ov = null;
-  const k = SKILLS[id];
-  let g = 40 + S.stats.int * 5;
-  const home = S.sect && k.sect === S.sect && LOCS[S.loc].sect === S.sect;
-  if (home) g *= 1.3;
-  if (k.type !== 'nei') g *= 1 + neiLv() * 0.01;
-  const up = xp(id, g);
-  act(10, `${S.origin === '破廟孤兒' && !S.sect ? '在城外荒地上' : '閉門'}苦練${k.n}十日${home ? '，有同門指點，事半功倍' : ''}。${up}`, LOCS[S.loc].kind, 25);
-}
-function drill(st) {
-  UI.ov = null;
-  const txt = { str: '舉石鎖、劈木樁，打熬筋骨', con: '冷水沖身、負重登山，錘鍊體魄', agi: '走梅花樁、穿林逐鳥，苦練身法', int: '研讀經史與武學典籍' }[st];
-  S.drill[st] = (S.drill[st] || 0) + 50;
-  let up = '';
-  if (S.stats[st] >= 20) up = '〔已臻極限〕';
-  else if (S.drill[st] >= S.stats[st] * 25) { S.drill[st] = 0; up = gain({ [st]: 1 }); }
-  act(10, `${txt}十日。${up}`, LOCS[S.loc].kind, 25);
-}
-function rest(days, cost, text) {
-  if (S.silver < cost) return toastRender('銀兩不足');
-  S.silver -= cost; S.hp = maxHp(); S.mp = maxMp();
-  act(days, text, null);
-}
-function roughSleep() {
-  S.hp = Math.max(S.hp, Math.round(maxHp() * 0.6)); S.mp = Math.max(S.mp, Math.round(maxMp() * 0.6));
-  act(3, S.origin === '破廟孤兒' ? '在城隍廟的屋簷下蜷了三夜。這種日子你從小過慣了，倒也睡得著。' : '囊中羞澀，在城隍廟的屋簷下湊合了三夜，沒怎麼睡好。', 'city', 30);
-}
-function toastRender(s) { toast(s); render(); }
-function work() {
-  const pay = Math.round((30 + S.stats.str * 3) * (S.sect === 'gaibang' ? 1.5 : 1));
-  S.silver += pay;
-  act(10, `在碼頭扛了十日貨${S.sect === 'gaibang' ? '，丐幫兄弟多有照應' : ''}。〔銀兩+${pay}〕`, 'city', 30);
-}
-function gossip() {
-  if (S.silver < 5) return toastRender('銀兩不足');
-  S.silver -= 5;
-  const known = S.flags.heardOf || {};
-  const near = histRumors(720, true).filter(x => !x.now && !known[x.h.id]).sort((a, b) => hStart(a.h) - hStart(b.h));
-  const hot = near.length ? near[0] : null;
-  let r = hot ? `${hot.h.rumor}（${hot.when}，${hot.where}）` : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
-  if (hot) { S.flags.heardOf = S.flags.heardOf || {}; S.flags.heardOf[hot.h.id] = 1; }
-  S.flags.lastRumor = r;
-  act(1, `在酒樓要了一壺酒，聽鄰桌閒談：「${r}」`, 'city', 70);
-}
-function arena() {
-  const e = foe(pick(['擂主「鐵塔」趙橫', '擂主「快劍」柳七', '擂主「雙刀」賀三娘']), 2, 0.6, pick(['thug', 'sword', 'blade']));
-  advance(2);
-  Q.unshift({ type: '戰鬥', title: '擂台比武', art: 'fight', text: `擂台下人頭攢動。${e.n}抱臂立在台上：「還有哪位好漢上來賜教？」你撥開人群，縱身上台。`,
-    choices: [{ t: '抱拳，出手', go: () => ({ battle: e, noFlee: true, win: () => { const s = Math.round(30 + e.P * 6); return '台下采聲雷動，擂主拱手認輸。' + gain({ silver: s, fame: 6 }); }, lose: () => { S.hp = Math.round(maxHp() * 0.25); return '你被打下擂台，灰頭土臉。' + gain({ fame: -2 }); } }) }] });
-  pump();
-}
-function explore() {
-  const L = LOCS[S.loc];
-  advance(5);
-  if (chance(65)) {
-    const beast = chance(35);
-    const e = beast ? foe(pick(L.art === 'desert' ? ['沙狼', '巨蠍'] : ['斑斕猛虎', '黑熊', '野豬王']), 1, 0.5 * L.danger, 'beast')
-      : foe(pick(L.art === 'desert' ? ['馬賊', '沙匪頭目'] : ['剪徑山賊', '綠林嘍囉', '山寨二當家']), 1, 0.55 * L.danger, pick(['thug', 'blade']));
-    Q.unshift({ type: '戰鬥', title: `${L.n}歷練`, art: 'fight', text: beast ? `林深處腥風撲面，一頭${e.n}擋住了去路，低吼著伏下身子。` : `你深入${L.n}，迎面撞上一夥${e.n}。為首的獰笑：「把銀子留下，饒你不死。」`,
-      choices: [
-        { t: '迎戰', go: () => ({ battle: e, win: () => { if (beast) return `你剝下獸皮、取了獸骨，下山可換些銀兩。` + gain({ silver: Math.round(15 + e.P * 5) }) + (chance(40) ? addItem('herb', 2) : ''); return '賊人抱頭鼠竄，留下搶來的財物。' + gain({ silver: Math.round(20 + e.P * 7), fame: 3, moral: 2 }); } }) },
-        { t: '繞路避開', go: () => '你屏住氣息，從側面的獸徑繞了過去，一無所獲。' },
-      ] });
-  } else {
-    const r = R(3);
-    if (r === 0) log(`在${L.n}轉了五日，採得幾株草藥。` + addItem('herb', ri(2, 4)));
-    else if (r === 1) log(`在${L.n}的山洞裡靜坐五日，對內息運行有所體悟。` + xp(S.nei, 60 + S.stats.int * 4));
-    else log(`在${L.n}撿到一個前人遺落的包袱。` + gain({ silver: ri(20, 60) }));
-    if (chance(45)) { const ev = rollEvent('wild'); if (ev) Q.push(ev); }
-  }
-  pump();
-}
-function gather() {
-  const n = ri(3, 5) + (S.sect === 'emei' ? 2 : 0);
-  act(5, `在${LOCS[S.loc].n}採藥五日。` + addItem('herb', n), 'wild', 35);
-}
-function brew() {
-  if ((S.inv.herb || 0) < 3) return toastRender('需要 3 株草藥');
-  addItem('herb', -3); addItem('jinchuang', 1);
-  toastRender('煉成金創藥一份');
-}
-
-/* 門派 */
-function joinSect(id) {
+/* ---------- 門派（由事件觸發） ---------- */
+function joinSectNow(id) {
   const k = SECTS[id];
-  if (!sectOpen(id)) return toastRender(ad() < k.from ? `這時候還沒有${k.n}。` : `${k.n}已經風流雲散了。`);
-  if (!k.req(S)) return toastRender(`${k.master}搖了搖頭：「${k.reqT}，你還不夠格。」`);
   S.sect = id; S.rank = 0; S.contrib = 0; S.contribTotal = 0;
   let t = `你在${k.master}面前三跪九叩，正式拜入${k.n}，成為外門弟子。`;
   if (k.align < 0) t += gain({ moral: -25 }) + '俠義道中人從此看不起你。';
-  t += learn(k.teach[0][0]);
-  act(1, t, null);
+  return t + learn(k.teach[0][0]);
 }
+const leaveSilently = () => { S.sect = null; S.rank = 0; S.contrib = 0; S.contribTotal = 0; };
 function leaveSect() {
   const k = SECTS[S.sect];
   UI.ov = null;
@@ -658,79 +649,15 @@ function leaveSect() {
   S.sect = null; S.rank = 0; S.contrib = 0; S.contribTotal = 0;
   save(); render();
 }
-function sectTask() {
-  const k = SECTS[S.sect];
-  advance(10);
-  const c = ri(24, 38) + S.rank * 4;
-  const tasks = k.tasks;
-  if (chance(30)) {
-    const e = k.align < 0 ? foe('正道遊俠', 1, 0.55, 'sword') : foe(pick(['山賊頭目', '盜經賊', '尋仇的惡客', '元兵小校'].slice(0, ad() < 1235 ? 3 : 4)), 1, 0.55, pick(['blade', 'thug']));
-    Q.unshift({ type: '戰鬥', title: '門派任務', art: 'fight', text: `你奉命${pick(tasks)}，途中遇上${e.n}發難。`,
-      choices: [{ t: '為師門而戰', go: () => ({ battle: e, noFlee: true, win: () => '你漂亮地完成了任務，回山覆命。' + gain({ contrib: c + 20, fame: 4, moral: k.align * 2 }), lose: () => { S.hp = Math.round(maxHp() * 0.3); return '任務失敗，你帶傷回山，受了一頓訓斥。' + gain({ contrib: 5 }); } }) }] });
-  } else log(`奉師門之命${pick(tasks)}，十日後回山覆命。` + gain({ contrib: c, silver: ri(5, 15) }));
-  if (chance(25)) { const ev = rollEvent('sect'); if (ev) Q.push(ev); }
-  pump();
-}
-function spar() {
-  const k = SECTS[S.sect];
-  const e = foe(pick(['同門師兄', '同門師姐', '同輩翹楚']), 1 + S.rank * 3, 0.5 + S.rank * 0.03, k.align < 0 ? 'blade' : 'sword');
-  advance(2);
-  Q.unshift({ type: '戰鬥', title: '同門切磋', art: 'fight', text: `演武場上，${e.n}應了你的邀約：「點到為止，請。」`,
-    choices: [{ t: '請賜教', go: () => ({ battle: e, noFlee: true, win: () => '你勝了半招，對方心悅誠服。這一戰讓你獲益良多。' + gain({ contrib: 10 }) + battleXp(40 + S.stats.int * 3), lose: () => { S.hp = Math.round(maxHp() * 0.4); return '你敗下陣來，卻也看清了自己的破綻。' + battleXp(30); } }) }] });
-  pump();
-}
-function promote() {
-  const k = SECTS[S.sect];
-  const e = foe(['執事師兄', '傳功長老座下首徒', '護法長老'][S.rank], 3 + S.rank * 6, 0.55, k.align < 0 ? 'blade' : 'master');
-  advance(1);
-  Q.unshift({ who: 'elder', type: '傳承', title: '晉升考核', art: 'legacy', text: `${k.master}端坐堂上：「你入門以來的功勞，為師都看在眼裡。接下${e.n}三十招，便許你晉為${RANKS[S.rank + 1]}。」`,
-    choices: [{ t: '弟子領命', go: () => ({ battle: e, noFlee: true, win: () => { S.rank++; return `你通過了考核，晉升為${k.n}${RANKS[S.rank]}！` + gain({ fame: 15 * S.rank }); }, lose: () => { S.hp = Math.round(maxHp() * 0.4); return '你未能撐過考核。師父道：「回去再練，來日方長。」'; } }) }] });
-  pump();
-}
-function learnSect(id, cost) {
-  if (S.contrib < cost) return toastRender('門派貢獻不足');
-  S.contrib -= cost;
-  toast(learn(id));
-  save(); render();
-}
+// 下一門可學的本門武功
+const sectNext = () => S.sect ? SECTS[S.sect].teach.find(t => !knows(t[0]) && S.rank >= t[1] && !(t[3] && ad() < t[3])) : null;
+const canPromote = () => S.sect && S.rank < 3 && S.contribTotal >= RANK_NEED[S.rank + 1];
 
-/* 情緣 */
+/* ---------- 情緣（由事件觸發） ---------- */
 function npc(id) { return S.npcs[id] || (S.npcs[id] = { met: false, fav: 0, stage: 0 }); }
-function visit(id) {
-  const k = NPCS[id], n = npc(id);
-  const th = [20, 50, 80];
-  if (n.stage < 3 && n.fav >= th[n.stage] && !(n.stage === 2 && S.flags.lover && S.flags.lover !== id)) {
-    const st = k.stage[n.stage];
-    advance(1);
-    Q.unshift({ who: id, type: '戀愛', title: `${k.n}・${['初識', '相知', '定情'][n.stage]}`, art: 'love', text: st.t,
-      choices: [st.a, st.b].map((c, i) => ({ t: c[0], go: () => {
-        n.fav = clamp(n.fav + c[1], 0, 100);
-        if (c[1] > 0) { n.stage++; if (n.stage === 3) { S.flags.lover = id; return `${k.n}與你兩心相許，從此江湖路上不再孤身一人。〔好感+${c[1]}　已定情〕`; } return `${k.n}看你的眼神，和從前有些不同了。〔好感+${c[1]}〕`; }
-        return `${k.n}沉默片刻，轉身離去。有些話一旦說出口，就收不回來了。〔好感${c[1]}〕`;
-      } })) });
-    return pump();
-  }
-  const g = ri(2, 4) + Math.floor(S.stats.cha / 4);
-  n.fav = clamp(n.fav + g, 0, 100);
-  act(2, `${pick(k.chat)}〔${k.n} 好感+${g}〕`, null);
-}
-function gift(id, item) {
-  const k = NPCS[id], n = npc(id);
-  addItem(item, -1);
-  const g = item === k.like ? 14 : 6;
-  n.fav = clamp(n.fav + g, 0, 100);
-  UI.ov = null;
-  act(1, `你把${ITEMS[item].n}送給${k.n}。${item === k.like ? k.ta + '眼睛一亮，顯然十分喜歡。' : k.ta + '道了聲謝，收下了。'}〔好感+${g}〕`, null);
-}
-function propose(id) {
-  const k = NPCS[id];
-  if (S.silver < 500) return toastRender('成親需備 500 兩');
-  S.silver -= 500; S.spouse = id; S.flags.wedY = S.date.y;
-  advance(3);
-  Q.unshift({ who: id, type: '戀愛', title: '洞房花燭', art: 'love', text: `紅燭高照，賓客盈門。你與${k.n}拜過天地，江湖上的朋友來了大半，連幾個舊日對頭也送了賀禮。${k.n}握著你的手，輕聲道：「往後的路，一起走。」`,
-    choices: [{ t: '執子之手', go: () => `你與${k.n}結為連理。` + gain({ [k.bonus[0]]: k.bonus[1], fame: 20 }) }] });
-  pump();
-}
+const STAGE_TH = [20, 50, 80];
+const stageReady = id => { const n = npc(id); return n.stage < 3 && n.fav >= STAGE_TH[n.stage] && !(n.stage === 2 && S.flags.lover && S.flags.lover !== id); };
+function favUp(id, v) { const n = npc(id); n.fav = clamp(n.fav + v, 0, 100); return `〔${NPCS[id].n} 好感${v >= 0 ? '+' : ''}${v}〕`; }
 
 /* ---------- 歸隱與傳承 ---------- */
 function retire(reason) {

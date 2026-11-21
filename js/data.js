@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v3.0.0';
+const VERSION = 'v4.0.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -175,6 +175,51 @@ const SKILLS = {
   q_shadow:  { n: '蛇行狸翻', type: 'qing', tier: 3, attr: 'he', dodge: 3.4, d: '《九陰真經》中的身法，形如蛇行、勢如狸翻，趕路也快了三成。' },
 };
 
+/* ---------- 武功即裝備：最多裝備五門 ----------
+   性質：攻擊（提供招式與攻擊力）、內功（氣血內力、內力屬性）、身法（閃避）、輔助（不出招，只給戰鬥效果）
+   每門裝備中的武功依類別加能力值（入門 +1、上乘 +2、絕學 +3），部分武功另有特殊效果 */
+const EQ_MAX = 5;
+const ART_ST = { fist: 'str', blade: 'str', spear: 'str', sword: 'agi', whip: 'agi', staff: 'agi', dart: 'luck', nei: 'con', qing: 'agi' };
+const ROLE_N = { atk: '攻擊', nei: '內功', qing: '身法', sup: '輔助' };
+// eye 看破加值・regen 每回合回血比例・mpr 每回合回內力・guard 守勢反擊加成・dmgRed 減傷・reflect 反震・foeWeak 削弱對手攻擊・crit 暴擊率・opener 開戰先發暗器・stunOpen 開戰震暈・heal 調息加成
+const ART_FX = {
+  jy_soul:   { pure: 1, eye: 3, foeWeak: 0.08, d: '以眼神亂人心神：看破 +3，對手攻擊 -8%' },
+  th_sea:    { pure: 1, foeWeak: 0.18, eye: 1, d: '簫聲擾亂心神：對手攻擊 -18%，看破 +1' },
+  gm_net:    { pure: 1, eye: 2, guard: 0.3, d: '雙掌圍攏如網：看破 +2，守勢反擊 +30%' },
+  mj_qk:     { pure: 1, dmgRed: 0.12, reflect: 0.3, d: '挪移敵勁：受傷 -12%，把三成傷害反震回去' },
+  yy_finger: { regen: 0.04, d: '一陽指能療傷：每回合回復 4% 氣血' },
+  wd_taiji:  { guard: 0.7, dmgRed: 0.05, d: '以柔克剛：守勢反擊 +70%，受傷 -5%' },
+  kong_fist: { dmgRed: 0.1, d: '以空為本：受傷 -10%' },
+  qz_palm:   { guard: 0.35, d: '北斗陣守望相助：守勢反擊 +35%' },
+  hm_toad:   { guard: 0.4, d: '蛤蟆功蓄勁反撲：守勢反擊 +40%' },
+  sl_body:   { dmgRed: 0.2, d: '刀槍難入：受傷 -20%' },
+  jy_god:    { regen: 0.04, mpr: 4, d: '生生不息：每回合回復 4% 氣血、4 點內力' },
+  q_thunder: { regen: 0.03, mpr: 3, d: '至陽至剛：每回合回復 3% 氣血、3 點內力' },
+  sl_ult:    { regen: 0.03, eye: 1, d: '易筋洗髓：每回合回復 3% 氣血，看破 +1' },
+  q_ice:     { eye: 1, mpr: 4, d: '天下武學總綱：看破 +1，每回合回復 4 點內力' },
+  gm_nei:    { eye: 1, crit: 5, d: '心如止水：看破 +1，暴擊率 +5%' },
+  em_nei:    { heal: 0.6, d: '療傷之效尤佳：調息回血 +60%' },
+  xs_roar:   { stunOpen: 1, d: '開戰長嘯：對手第一手使不出來' },
+  th_flick:  { opener: 1, crit: 6, d: '開戰先彈一指，暴擊率 +6%' },
+  mg_bow:    { opener: 1.3, d: '開戰先射一箭，威力加三成' },
+  jy_claw:   { crit: 8, d: '專抓要害：暴擊率 +8%' },
+  yg_sad:    { crit: 10, d: '黯然銷魂：暴擊率 +10%' },
+  q_shadow:  { eye: 1, d: '身法：閃避大增，看破 +1' },
+  mj_bat:    { crit: 4, d: '身法：閃避大增，暴擊率 +4%' },
+};
+function artRole(id) { const k = SKILLS[id]; return k.type === 'nei' ? 'nei' : k.type === 'qing' ? 'qing' : (ART_FX[id] || {}).pure ? 'sup' : 'atk'; }
+function artSt(id) { const k = SKILLS[id], r = artRole(id); return { [r === 'sup' ? 'int' : ART_ST[k.type]]: k.tier }; }
+// 暗器類（非輔助）一律開戰先發
+const artFx = id => { const f = Object.assign({}, ART_FX[id] || {}); if (SKILLS[id].type === 'dart' && !f.pure && !f.stunOpen && !f.opener) f.opener = 1; if (SKILLS[id].heal && !f.heal) f.heal = 0.6; return f; };
+function artFxText(id) {
+  const f = artFx(id), k = SKILLS[id];
+  if (ART_FX[id] && ART_FX[id].d) return ART_FX[id].d + (f.opener && !ART_FX[id].opener ? '；開戰先發暗器' : '');
+  if (f.opener) return '開戰先發：開打前先射出一發暗器';
+  if (k.type === 'nei') return '內功：氣血與內力上限，與招式屬性相合時威力大增';
+  if (k.type === 'qing') return '身法：閃避與脫身';
+  return '';
+}
+
 /* ---------- 門派 ----------
    from/to：門派存在的年份。旁觀者只能做到長老，掌門之位屬於歷史上的人物 */
 const RANKS = ['外門弟子', '內門弟子', '真傳弟子', '長老', '掌門'];
@@ -221,31 +266,38 @@ const ITEMS = {
   jinchuang: { n: '金創藥', kind: 'med', price: 30, hp: 70, d: '回復 70 氣血' },
   huiqi:     { n: '回氣散', kind: 'med', price: 40, mp: 45, d: '回復 45 內力' },
   dahuan:    { n: '大還丹', kind: 'med', price: 320, hp: 9999, mp: 9999, d: '氣血內力全滿' },
-  herb:      { n: '草藥', kind: 'misc', price: 16, d: '可賣錢，三株可在城中藥舖煉成金創藥' },
+  herb:      { n: '草藥', kind: 'misc', price: 16, d: '藥舖收購；三株可請藥舖煉成金創藥' },
   lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, d: '服下後根骨+1、氣血上限+30' },
   wine:      { n: '陳年花雕', kind: 'gift', price: 60, d: '贈禮' },
   rouge:     { n: '蘇州胭脂', kind: 'gift', price: 60, d: '贈禮' },
   hairpin:   { n: '白玉簪', kind: 'gift', price: 150, d: '贈禮' },
   book:      { n: '前朝孤本', kind: 'gift', price: 120, d: '贈禮' },
   qin:       { n: '古琴譜', kind: 'gift', price: 120, d: '贈禮' },
-  w_sword1:  { n: '鐵劍', kind: 'weapon', wt: 'sword', atk: 6, price: 80 },
-  w_sword2:  { n: '青鋼劍', kind: 'weapon', wt: 'sword', atk: 14, price: 420 },
-  w_sword3:  { n: '寒玉劍', kind: 'weapon', wt: 'sword', atk: 26, price: 0 },
-  w_blade1:  { n: '鬼頭刀', kind: 'weapon', wt: 'blade', atk: 7, price: 90 },
-  w_blade2:  { n: '百煉刀', kind: 'weapon', wt: 'blade', atk: 15, price: 440 },
-  w_blade3:  { n: '隕鐵刀', kind: 'weapon', wt: 'blade', atk: 27, price: 0 },
-  w_fist1:   { n: '鐵指套', kind: 'weapon', wt: 'fist', atk: 5, price: 70 },
-  w_fist2:   { n: '精鋼護手', kind: 'weapon', wt: 'fist', atk: 12, price: 400 },
-  w_dart1:   { n: '柳葉鏢', kind: 'weapon', wt: 'dart', atk: 6, price: 80 },
-  w_dart2:   { n: '透骨釘', kind: 'weapon', wt: 'dart', atk: 14, price: 420 },
-  w_staff1:  { n: '竹棒', kind: 'weapon', wt: 'staff', atk: 5, price: 30 },
-  w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 14, price: 400 },
-  w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 7, price: 90 },
-  w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 15, price: 440 },
-  w_whip1:   { n: '長鞭', kind: 'weapon', wt: 'whip', atk: 6, price: 80 },
-  w_whip2:   { n: '金龍鞭', kind: 'weapon', wt: 'whip', atk: 14, price: 420 },
-  a_cloth:   { n: '牛皮護甲', kind: 'armor', def: 4, price: 70 },
-  a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520 },
+  w_sword1:  { n: '鐵劍', kind: 'weapon', wt: 'sword', atk: 6, price: 80, st: { agi: 1 } },
+  w_sword2:  { n: '青鋼劍', kind: 'weapon', wt: 'sword', atk: 14, price: 420, st: { agi: 2 } },
+  w_sword3:  { n: '寒玉劍', kind: 'weapon', wt: 'sword', atk: 26, price: 0, st: { agi: 2, int: 1 } },
+  w_blade1:  { n: '鬼頭刀', kind: 'weapon', wt: 'blade', atk: 7, price: 90, st: { str: 1 } },
+  w_blade2:  { n: '百煉刀', kind: 'weapon', wt: 'blade', atk: 15, price: 440, st: { str: 2 } },
+  w_blade3:  { n: '隕鐵刀', kind: 'weapon', wt: 'blade', atk: 27, price: 0, st: { str: 3 } },
+  w_fist1:   { n: '鐵指套', kind: 'weapon', wt: 'fist', atk: 5, price: 70, st: { str: 1 } },
+  w_fist2:   { n: '精鋼護手', kind: 'weapon', wt: 'fist', atk: 12, price: 400, st: { str: 2, con: 1 } },
+  w_dart1:   { n: '柳葉鏢', kind: 'weapon', wt: 'dart', atk: 6, price: 80, st: { luck: 1 } },
+  w_dart2:   { n: '透骨釘', kind: 'weapon', wt: 'dart', atk: 14, price: 420, st: { luck: 2 } },
+  w_staff1:  { n: '竹棒', kind: 'weapon', wt: 'staff', atk: 5, price: 30, st: { cha: 1 } },
+  w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 14, price: 400, st: { con: 2 } },
+  w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 7, price: 90, st: { str: 1 } },
+  w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 15, price: 440, st: { str: 1, con: 1 } },
+  w_whip1:   { n: '長鞭', kind: 'weapon', wt: 'whip', atk: 6, price: 80, st: { agi: 1 } },
+  w_whip2:   { n: '金龍鞭', kind: 'weapon', wt: 'whip', atk: 14, price: 420, st: { agi: 2 } },
+  a_cloth:   { n: '牛皮護甲', kind: 'armor', def: 4, price: 70, st: { con: 1 } },
+  a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520, st: { con: 2, agi: 1 } },
+  acc_jade:   { n: '羊脂玉佩', kind: 'acc', price: 200, st: { cha: 2 } },
+  acc_amulet: { n: '開光護身符', kind: 'acc', price: 150, st: { luck: 2 } },
+  acc_bead:   { n: '菩提佛珠', kind: 'acc', price: 180, st: { int: 2 } },
+  acc_belt:   { n: '虎皮腰帶', kind: 'acc', price: 180, st: { str: 1, con: 1 } },
+  acc_ring:   { n: '翡翠扳指', kind: 'acc', price: 220, st: { int: 1, cha: 1 } },
+  acc_boots:  { n: '千層底快靴', kind: 'acc', price: 160, st: { agi: 2 } },
+  acc_sachet: { n: '百花香囊', kind: 'acc', price: 120, st: { cha: 1, luck: 1 } },
   bk_blade:  { n: '《斷魂刀譜》', kind: 'manual', skill: 'm_blade', price: 150 },
   bk_dart:   { n: '《袖箭圖解》', kind: 'manual', skill: 'm_dart', price: 150 },
 };
@@ -266,8 +318,8 @@ const COMBOS = [
   { n: '丐幫雙絕', d: '降龍十八掌與打狗棒法，一剛一柔', has: s => s.eq.includes('gb_ult') && s.eq.includes('gb_dog'), mul: 1.25 },
   { n: '太極拳劍', d: '太極拳與太極劍，圓轉如意', has: s => s.eq.includes('wd_taiji') && s.eq.includes('wd_taijian'), mul: 1.25 },
   { n: '桃花島絕藝', d: '桃華落英掌與彈指神通，掌指並施', has: s => s.eq.includes('th_palm') && s.eq.includes('th_flick'), mul: 1.2 },
-  { n: '左右互搏', d: '一心二用，左手一門拳、右手一門掌', has: s => s.flags && s.flags.huibo && s.eq.length === 2 && s.eq.every(x => SKILLS[x].type === 'fist'), mul: 1.25 },
-  { n: '同門相濟', d: '兩門武功出自同一門派，路數相通', has: s => s.eq.length === 2 && SKILLS[s.eq[0]].sect && SKILLS[s.eq[0]].sect === SKILLS[s.eq[1]].sect, mul: 1.1 },
+  { n: '左右互搏', d: '一心二用，左手一門拳、右手一門掌', has: s => s.flags && s.flags.huibo && s.eq.filter(x => SKILLS[x].type === 'fist' && artRole(x) === 'atk').length >= 2, mul: 1.25 },
+  { n: '同門相濟', d: '三門武功出自同一門派，路數相通', has: s => { const c = {}; s.eq.forEach(x => { const k = SKILLS[x].sect; if (k) c[k] = (c[k] || 0) + 1; }); return Object.values(c).some(v => v >= 3); }, mul: 1.1 },
 ];
 const LEGEND_ARMS = [
   { n: '軟蝟甲', d: '桃花島至寶，甲上倒刺，拳腳打上去反傷自己。', hist: 'h_1224a' },
@@ -278,74 +330,102 @@ const LEGEND_ARMS = [
 ];
 const activeCombo = () => S && S.eq ? COMBOS.find(c => c.has(S)) || null : null;
 
+// C：事件選項（s：g 正派、e 反派、n 無視或拒絕）
+const C = (s, t, go, x) => Object.assign({ s, t, go }, x || {});
 const ORIGINS = [
   { n: '牛家村農家子', base: '山中獵戶', from: 1200, to: 1235, loc: 'linan', st: { con: 2, agi: 1 }, herb: 2,
     d: '臨安城外牛家村的佃農之子。', open: s => [
       `你生在臨安城外的牛家村，一個種田打魚的小村子。\n\n你出生那年，村裡出過一件大事：一個雪夜，一隊官兵闖進村子，殺了兩戶人家的男人，兩個懷著身孕的女人下落不明。村裡的老人說，那兩家姓郭、姓楊，男人都是好漢。`,
       '你爹是個老實的佃農，一輩子沒出過臨安府。他常說：「好漢都死得早。」\n\n你十六歲這年春天，村口的酒店來了一個跛腳的老頭，喝醉了就說北邊在打仗、江湖上要出大人物了。你聽了一整夜，第二天收拾了一個小包袱。'],
-    choices: [{ t: '跪別爹娘，進城去', go: () => '娘往你包袱裡塞了兩株曬乾的草藥：「頭疼腦熱的時候煎了喝。」' + gain({ moral: 3 }) }, { t: '天沒亮就悄悄走了', go: () => '你在村口回頭看了一眼。屋頂的炊煙還沒起來。' + gain({ agi: 1 }) }] },
+    choices: [C('g', '跪別爹娘，進城去', () => '娘往你包袱裡塞了兩株曬乾的草藥：「頭疼腦熱的時候煎了喝。」' + addItem('herb', 2) + gain({ moral: 3 })),
+      C('e', '夜裡偷了地主家兩隻雞，換盤纏上路', () => '雞賣了三十文錢。地主家的狗追了你兩里地。' + gain({ silver: 30, moral: -4 })),
+      C('n', '天沒亮就悄悄走了', () => '你在村口回頭看了一眼。屋頂的炊煙還沒起來。' + gain({ agi: 1 }))] },
   { n: '蒙古牧民之子', base: '山中獵戶', from: 1200, to: 1265, loc: 'mobei', st: { agi: 2, con: 1 }, silver: -60,
     d: '漠北草原上逐水草而居的牧民之子。', open: s => [
       yr(s) < 1235
         ? '你生在漠北的草原上，會騎馬比會走路還早。\n\n小時候你常去看一個漢人少年練武。教他的是七個怪人：一個瞎子、一個矮胖子、一個樵夫、一個書生……他們罵他笨，罵得很兇，那少年卻從不還嘴，一練就是一整天。'
         : '你生在漠北的草原上，會騎馬比會走路還早。\n\n你爹跟著大軍南征，回來時帶了一匹好馬、一身傷，和一肚子的故事。他說南邊有一座叫襄陽的城，守城的漢人將軍是大汗當年的金刀駙馬，怎麼也打不下來。',
       '你十六歲那年，部落裡來了漢人商隊。你看著他們從南邊帶來的絲綢和瓷器，忽然很想知道，那片沒有草原的土地是什麼樣子。\n\n你跟著商隊南下了。身上除了一張弓、一把刀，什麼都沒有。'],
-    choices: [{ t: '回頭看最後一眼草原', go: () => '風吹過草海，像有人在送你。' + gain({ con: 1 }) }, { t: '策馬追上商隊，不回頭', go: () => '商隊的頭領拍拍你的肩：「草原的孩子，到了南邊可別被人騙了。」' + gain({ luck: 1 }) }] },
+    choices: [C('g', '把最好的那匹馬留給阿媽', () => '阿媽摸著馬鬃，什麼也沒說，只把一袋奶乾塞進你懷裡。' + gain({ moral: 3, con: 1 })),
+      C('e', '臨走前順走商隊一馱貨', () => '貨裡是兩匹絲綢，你在半路就賣了。商隊的頭領後來一直在打聽你。' + gain({ silver: 50, moral: -4 })),
+      C('n', '策馬追上商隊，不回頭', () => '商隊的頭領拍拍你的肩：「草原的孩子，到了南邊可別被人騙了。」' + gain({ luck: 1 }))] },
   { n: '燕京王府的小廝', base: '破廟孤兒', from: 1200, to: 1235, loc: 'yanjing', st: { luck: 2, agi: 1, int: 1 }, silver: -60,
     d: '金國趙王府裡打雜的小廝。', open: s => [
       '你五歲被賣進燕京的趙王府，在馬廄裡長大。\n\n王府裡最尊貴的是小王爺。他比你大不了幾歲，長得俊，武功也好，教他武功的是一個從終南山來的道士，和一個你看一眼就渾身發冷的瞎眼女人。',
       '王妃待下人很好。她住在王府最偏的一間小屋裡，屋前種著一片江南的花，屋裡擺著一桿生了鏽的鐵槍，誰都不許碰。\n\n你十六歲那年，管家說你手腳不乾淨，把你攆了出來。其實你只是在王妃的屋外多站了一會兒，聽她一個人在哭。'],
-    choices: [{ t: '對著王府磕個頭再走', go: () => '你不知道自己在謝誰。也許是那個哭的王妃。' + gain({ moral: 2 }) }, { t: '揣上順來的半吊錢就走', go: () => '你在馬廄的草堆裡藏了半吊錢，誰也不知道。' + gain({ silver: 40 }) }] },
+    choices: [C('g', '對著王府磕個頭再走', () => '你不知道自己在謝誰。也許是那個哭的王妃。' + gain({ moral: 2, cha: 1 })),
+      C('e', '揣上順來的半吊錢就走', () => '你在馬廄的草堆裡藏了半吊錢，誰也不知道。' + gain({ silver: 40, moral: -3 })),
+      C('n', '什麼也不帶，空手出城', () => '城門口的金兵看你兩手空空，連問都懶得問。' + gain({ agi: 1 }))] },
   { n: '嘉興漁家子', base: '破廟孤兒', from: 1200, to: 1370, loc: 'jiaxing', st: { con: 2, luck: 1 }, silver: -40,
     d: '嘉興南湖上打魚為生的漁家孩子。', open: s => [
       '你生在嘉興南湖的一條漁船上，在水上長大。\n\n南湖邊有座煙雨樓，常有江湖人在樓上喝酒、比劍、吵架。你小時候最愛把船划到樓下，躲在蘆葦叢裡偷看，看到精彩處，連魚咬了鉤都不知道。',
       `你爹說，江湖人都是瘋子，好好的日子不過，偏要拿命去爭一口氣。\n\n可你十六歲這年，${yr(s) < 1300 ? '湖上來了一群道士，說要在煙雨樓等什麼人。' : '湖上來了一群帶刀的人，說要找一個金頭髮的瘋子。'}你看著他們，心裡那口氣，也燒起來了。`],
-    choices: [{ t: '把漁船留給爹，上岸去', go: () => '你爹沒說話，只是往你手裡塞了一串銅錢。' + gain({ silver: 20, moral: 2 }) }, { t: '跟著那群人走', go: () => '你跟了他們半天，被一個道士發現，笑著趕了回來。可你已經上了岸，就不想再回去了。' + gain({ agi: 1 }) }] },
+    choices: [C('g', '把漁船留給爹，上岸去', () => '你爹沒說話，只是往你手裡塞了一串銅錢。' + gain({ silver: 20, moral: 2 })),
+      C('e', '把鄰船晾著的魚簍一起賣了', () => '魚簍換了三十五文。鄰家的老漁夫在岸邊罵了半天，罵的是誰你心裡清楚。' + gain({ silver: 35, moral: -3 })),
+      C('n', '跟著那群人走', () => '你跟了他們半天，被一個人發現，笑著趕了回來。可你已經上了岸，就不想再回去了。' + gain({ agi: 1 }))] },
   { n: '臨安書香門第', base: '書香門第', from: 1200, to: 1370, loc: 'linan', st: { int: 3 }, silver: 80,
     d: '臨安城裡一戶讀書人家的子弟。', open: s => [
       `你生在臨安的一戶讀書人家，祖父中過進士，父親考了三次都沒考上。\n\n家裡的書房有一面牆的書，你最愛看的卻是壓在最底下那幾本：${yr(s) < 1280 ? '前朝的野史、江湖的傳奇，還有一本講華山論劍的手抄本，不知道是誰寫的。' : '宋朝的舊史、江湖的傳奇。祖父說，天下換了主人，讀書人的書，也就沒人要了。'}`,
       `十六歲這年，父親要你繼續考功名。${yr(s) >= 1280 ? '可是元朝的科舉時開時停，漢人南人更是難上加難。' : ''}你看著窗外，想起書裡那些仗劍走天下的人。\n\n你在桌上留了一封信，帶走了半箱盤纏和一本手抄本。`],
-    choices: [{ t: '在信裡寫：「三年後回來。」', go: () => '你不知道自己會不會回來。但這句話讓你心裡好受一些。' + gain({ moral: 2 }) }, { t: '只寫了四個字：「兒去也。」', go: () => '寫完你自己都覺得太瀟灑了。' + gain({ cha: 1 }) }] },
+    choices: [C('g', '在信裡寫：「三年後回來。」', () => '你不知道自己會不會回來。但這句話讓你心裡好受一些。' + gain({ moral: 2, int: 1 })),
+      C('e', '順手帶走祖父的端硯去變賣', () => '端硯在當鋪換了八十兩。你一路上都不敢想父親發現時的臉色。' + gain({ silver: 80, moral: -3 })),
+      C('n', '只寫了四個字：「兒去也。」', () => '寫完你自己都覺得太瀟灑了。' + gain({ cha: 1 }))] },
   { n: '鏢局之後', base: '鏢師之後', from: 1200, to: 1370, loc: 'yanjing', item: 'w_fist1', st: { str: 2, con: 1 },
     d: '燕京一家小鏢局的鏢師之子。', open: s => [
       `你爹是燕京「平安鏢局」的鏢頭，走了二十年鏢，跑遍了大江南北。\n\n你從小在鏢局的院子裡長大，看著鏢師們練拳、喝酒、吹牛。他們說得最多的是${yr(s) < 1240 ? '江南七怪、全真七子，還有一個叫「北丐」的老叫化，一頓飯能吃掉一頭羊。' : yr(s) < 1300 ? '襄陽城的郭大俠，和一個獨臂的神鵰大俠。' : '武當七俠，和一把叫屠龍的刀。'}`,
       '你十六歲這年，你爹押一趟鏢去南方，就再沒有回來。鏢局的人說，鏢被劫了，人也沒了，只找回了一副鐵指套。\n\n鏢局散了。你戴上那副鐵指套，決定自己去南方看看。'],
-    choices: [{ t: '把你爹的鏢旗收進包袱', go: () => '你總覺得，有一天會在某個地方，再見到這面旗。' + gain({ str: 1 }) }, { t: '去鏢局的老師傅那裡辭行', go: () => '老師傅把你爹當年的拳譜塞給你：「你爹的功夫不怎麼樣，可他教人教得好。」' + (battleXp(80) || '') }] },
+    choices: [C('g', '去鏢局的老師傅那裡辭行', () => '老師傅把你爹當年的拳譜塞給你：「你爹的功夫不怎麼樣，可他教人教得好。」' + (battleXp(80) || '') + gain({ moral: 2 })),
+      C('e', '把鏢局剩下的家當拿去當了', () => '刀架、鏢車、兩副鞍子，換了六十兩。老鏢師們看著空蕩蕩的院子，沒人說話。' + gain({ silver: 60, moral: -3 })),
+      C('n', '把你爹的鏢旗收進包袱', () => '你總覺得，有一天會在某個地方，再見到這面旗。' + gain({ str: 1 }))] },
   { n: '襄陽守軍之子', base: '鏢師之後', from: 1240, to: 1273, loc: 'xiangyang', st: { str: 2, con: 1 }, item: 'w_blade1',
     d: '襄陽城頭一個老兵的兒子。', open: s => [
       '你爹是襄陽城裡的一個老兵，守了一輩子城牆。\n\n你從小在城頭上長大，聽慣了號角和戰鼓。每年蒙古兵打過來，城裡的百姓就扛著石頭上城。你七歲那年，第一次往城下扔了一塊磚。',
       '城裡最受敬重的是郭大俠和郭夫人。郭大俠每天都在城頭巡視，見了你這樣的孩子，會停下來摸摸你的頭。\n\n你十六歲這年，你爹說：「出去看看吧。襄陽不是天下，天下也不只有打仗。」他把自己那把鬼頭刀解了下來。'],
-    choices: [{ t: '「我會回來守城的。」', go: () => '你爹笑了，笑得像城頭的老槐樹。' + gain({ moral: 4 }) }, { t: '接過刀，什麼也沒說', go: () => '刀很沉。你這才知道，你爹這些年扛的是什麼。' + gain({ con: 1 }) }] },
+    choices: [C('g', '「我會回來守城的。」', () => '你爹笑了，笑得像城頭的老槐樹。' + gain({ moral: 4 })),
+      C('e', '臨走前摸進軍需庫，拿了一包碎銀', () => '守庫的老兵是你爹的熟人，他看見了，別過頭去沒有作聲。' + gain({ silver: 60, moral: -5 })),
+      C('n', '接過刀，什麼也沒說', () => '刀很沉。你這才知道，你爹這些年扛的是什麼。' + gain({ con: 1 }))] },
   { n: '江南鹽商之子', base: '富商子弟', from: 1200, to: 1370, loc: 'linan', st: { cha: 2, luck: 1 }, silver: 300,
     d: '臨安鹽商的少爺，錦衣玉食。', open: s => [
       `你家是臨安數一數二的鹽商，三進的大宅，十幾個丫鬟。${yr(s) >= 1280 ? '改朝換代的時候，你爹第一個把大元的旗子掛上了門樓。' : ''}\n\n你從小什麼都不缺，只缺一件事：你爹不准你學武。他說，有錢人家的孩子學武，是給自己找麻煩。`,
       '你偏偏學了。你偷偷拜了府裡的護院教頭當師父，練了五年，被你爹發現了。\n\n你們大吵了一架。第二天，你帶著三百兩銀票，從後門走了。'],
-    choices: [{ t: '給娘留一封信', go: () => '你知道娘會哭。但你也知道，她會偷偷給你寄錢。' + gain({ silver: 100 }) }, { t: '把護院教頭也拐走當保鏢', go: () => '教頭跟你走了三天，就被你爹派人追了回去。臨走前他教了你最後一招：「打不過就跑。」' + gain({ agi: 1 }) }] },
+    choices: [C('g', '給娘留一封信', () => '你知道娘會哭。但你也知道，她會偷偷給你寄錢。' + gain({ silver: 100, moral: 2 })),
+      C('e', '撬開爹的錢櫃，再拿三百兩', () => '銀票厚厚一疊。走出後門時，你聽見帳房先生在屋裡喊抓賊。' + gain({ silver: 300, moral: -6 })),
+      C('n', '頭也不回地走了', () => '你走得很快，快到來不及後悔。' + gain({ luck: 1 }))] },
   { n: '丐幫收養的孤兒', base: '破廟孤兒', from: 1200, to: 1370, loc: 'junshan', st: { luck: 2, con: 2 }, silver: -100,
     d: '被丐幫叫化子撿來養大的孤兒。', open: s => [
       '你是在洞庭湖邊被一個老叫化撿到的，那年你才三歲，餓得只剩一口氣。\n\n你在君山的破廟裡長大，跟著叫化子們討飯、聽他們吵架、看他們打架。他們教你的第一件事是：「討飯不丟人，偷搶才丟人。」',
       `你十六歲這年，撿你的老叫化死了。臨死前他說：「你不算丐幫的人，我沒讓你入幫。江湖這麼大，你自己去看看。看夠了，${yr(s) < 1225 ? '再回來。' : '想回來，君山的門永遠開著。'}」\n\n你給他磕了三個頭，拿了他的破碗和竹棒，下了君山。`],
-    choices: [{ t: '把竹棒插在老叫化的墳頭', go: () => '叫化子們說，這是丐幫的規矩。你雖不是丐幫的人，他們還是替你守了一夜。' + gain({ moral: 3, cha: 1 }) }, { t: '帶著竹棒上路', go: () => '那根竹棒很輕，可你走到哪裡，叫化子們看見了都會對你點點頭。' + gain({ luck: 1 }) }] },
+    choices: [C('g', '把竹棒插在老叫化的墳頭', () => '叫化子們說，這是丐幫的規矩。你雖不是丐幫的人，他們還是替你守了一夜。' + gain({ moral: 3, cha: 1 })),
+      C('e', '把破廟裡大家討來的錢揣走', () => '錢不多，三十來文。你下山時，背後一個叫化子都沒有。' + gain({ silver: 30, moral: -5 })),
+      C('n', '帶著竹棒上路', () => '那根竹棒很輕，可你走到哪裡，叫化子們看見了都會對你點點頭。' + gain({ luck: 1 }))] },
   { n: '武當山下的樵戶', base: '山中獵戶', from: 1300, to: 1370, loc: 'wudang', st: { con: 2, str: 1 }, herb: 3,
     d: '武當山腳砍柴為生的樵戶之子。', open: s => [
       '你家住在武當山腳下，祖祖輩輩都是砍柴的。\n\n你小時候常背著柴上山，賣給紫霄宮的道士們。有一回你在山道上摔了，柴撒了一地，一個鬚髮全白的老道士幫你一根根撿起來，還教你怎麼背柴才不累腰。後來你才知道，他就是張真人。',
       '你照著老道士教的法子背了十年柴，腰沒壞，力氣倒大了不少。\n\n十六歲這年，你想上山拜師，道士們說你年紀太大了。你在山門口站了一天，最後決定先下山去看看。'],
-    choices: [{ t: '把最後一擔柴送上山', go: () => '收柴的小道士多給了你十文錢：「張真人說，下回見到你，叫你再試試。」' + gain({ con: 1 }) }, { t: '轉身下山，不回頭', go: () => '山風很大。你想，總有一天你會回來的。' + gain({ agi: 1 }) }] },
+    choices: [C('g', '把最後一擔柴送上山', () => '收柴的小道士多給了你十文錢：「張真人說，下回見到你，叫你再試試。」' + gain({ con: 1, moral: 2 })),
+      C('e', '把濕柴混進乾柴，高價賣給山下客店', () => '客店掌櫃點不著火，罵了你三天。那時你已經走遠了。' + gain({ silver: 30, moral: -2 })),
+      C('n', '轉身下山，不回頭', () => '山風很大。你想，總有一天你會回來的。' + gain({ agi: 1 }))] },
   { n: '明教信徒之子', base: '破廟孤兒', from: 1300, to: 1370, loc: 'xiangyang', st: { con: 1, str: 1, luck: 1 }, silver: -60,
     d: '淮漢一帶明教信徒的孩子。', open: s => [
       '你生在襄陽城外的一個村子，村裡十戶有八戶信明教。\n\n每年冬天最冷的時候，村裡的人會聚在祠堂裡，點起火，一起念：「焚我殘軀，熊熊聖火。生亦何歡，死亦何苦。」你小時候不懂，只覺得那火很暖。',
       '你十五歲那年，官兵來了，說村裡藏著反賊。你爹被抓走了，再也沒有回來。\n\n你在山裡躲了一年。十六歲這年，你決定出去，看看這個要抓你爹的天下，到底是什麼樣子。'],
-    choices: [{ t: '對著火堆念一遍那幾句話', go: () => '念完了，你心裡的火也點起來了。' + gain({ str: 1 }) }, { t: '把信教的事藏在心裡', go: () => '你決定先活下去。活下去，才能看清楚。' + gain({ int: 1 }) }] },
+    choices: [C('g', '對著火堆念一遍那幾句話', () => '念完了，你心裡的火也點起來了。' + gain({ str: 1, moral: 2 })),
+      C('e', '去官府告發藏在山裡的教眾，換賞錢', () => '賞錢八十兩。那天夜裡，山裡的火光燒了很久。' + gain({ silver: 80, moral: -12 })),
+      C('n', '把信教的事藏在心裡', () => '你決定先活下去。活下去，才能看清楚。' + gain({ int: 1 }))] },
   { n: '大都色目商人之子', base: '富商子弟', from: 1280, to: 1368, loc: 'yanjing', st: { cha: 2, int: 1 }, silver: 250,
     d: '大都一個色目商人的混血兒子。', open: s => [
       '你爹是從西域來的色目商人，在大都開了一間香料鋪。你娘是個江南女子，被賣到大都，你爹替她贖了身。\n\n你長得不像漢人，也不像色目人。大都的孩子叫你「雜種」，你學會的第一件事是打架。',
       '你十六歲這年，你爹的鋪子被一個蒙古王爺看上了，連鋪帶貨都被收走。你爹說：「這就是大都。走吧，去南邊，去你娘的老家看看。」\n\n他給了你一袋銀子，和一句你記了一輩子的話：「別信那些說你是什麼人的人。你自己決定你是什麼人。」'],
-    choices: [{ t: '「我是你的兒子。」', go: () => '你爹抱了你很久。' + gain({ moral: 3 }) }, { t: '「我會把鋪子拿回來的。」', go: () => '你爹搖搖頭，卻笑了。' + gain({ str: 1 }) }] },
+    choices: [C('g', '「我是你的兒子。」', () => '你爹抱了你很久。' + gain({ moral: 3, cha: 1 })),
+      C('e', '夜裡潛回鋪子，偷回一箱香料', () => '王府的家丁睡得很死。一箱香料在南下的路上換了八十兩。' + gain({ silver: 80, moral: -3 })),
+      C('n', '「我會把鋪子拿回來的。」', () => '你爹搖搖頭，卻笑了。' + gain({ str: 1 }))] },
   { n: '峨嵋山下的採藥人', base: '山中獵戶', from: 1285, to: 1370, loc: 'emei', st: { agi: 2, int: 1 }, herb: 4,
     d: '峨嵋山腳採藥為生的人家。', open: s => [
       '你家在峨嵋山腳採藥，賣給山上的尼姑庵和山下的藥舖。\n\n你小時候常在山裡迷路，有一回被一個穿青衫的女尼撿到，她背著你走了二十里山路，一路上一句話都沒說，只在把你交給你娘時說了一句：「山裡有蛇。」',
       '你十六歲這年，聽說峨嵋派的女尼們要下山去打魔教。山上的庵堂空了一半。\n\n你想跟去看看，卻被擋在山門外：「峨嵋不收男弟子入室。」你揹起藥簍，自己下了山。'],
-    choices: [{ t: '採一株最好的藥，留在山門口', go: () => '你不知道誰會撿到它。也許是那個青衫的女尼。' + gain({ moral: 3 }) }, { t: '把藥簍裡的藥全帶上', go: () => '這些藥在路上能換不少銀子。' + addItem('herb', 3) }] },
+    choices: [C('g', '採一株最好的藥，留在山門口', () => '你不知道誰會撿到它。也許是那個青衫的女尼。' + gain({ moral: 3, luck: 1 })),
+      C('e', '翻牆偷挖庵堂後院的藥圃', () => '庵堂的藥比山裡的好得多。你背著鼓鼓的藥簍下山，沒敢回頭。' + addItem('herb', 6) + gain({ moral: -3 })),
+      C('n', '把藥簍裡的藥全帶上', () => '這些藥在路上能換不少銀子。' + addItem('herb', 3))] },
 ];
 const originsFor = y => ORIGINS.filter(o => y >= o.from && y <= o.to);
 
