@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v1.7.1';
+const VERSION = 'v1.7.2';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -58,7 +58,7 @@ const SKILLS = {
   // 鐵掌幫
   tz_palm:  { n: '鐵砂掌', type: 'fist', tier: 1, attr: 'yang', sect: 'tiezhang', d: '雙掌插鐵砂練成，出手不留情。', moves: [['開碑', 1, 3, 15], ['碎石', 4, 8, 24, 'bleed'], ['斷金', 7, 14, 35]] },
   tz_nei:   { n: '歸元吐納', type: 'nei', tier: 2, attr: 'yang', sect: 'tiezhang', hp: 12, mp: 12, evil: 1, d: '鐵掌幫的內功，進境快，練得越深，下手越重。' },
-  tz_qing:  { n: '水上漂', type: 'qing', tier: 2, attr: 'he', sect: 'tiezhang', dodge: 2.3, d: '鐵掌幫的輕功絕技，踏水而行，幫主以此聞名天下。' },
+  tz_qing:  { n: '鐵掌水上飄', type: 'qing', tier: 2, attr: 'he', sect: 'tiezhang', dodge: 2.3, d: '鐵掌幫的輕功絕技，踏水而行，幫主以此聞名天下。' },
   tz_iron:  { n: '鐵掌', type: 'fist', tier: 2, attr: 'yang', sect: 'tiezhang', d: '鐵掌幫的鎮幫掌法，外門弟子只學得到前幾路。', moves: [['推窗', 1, 8, 27, 'bleed'], ['掌劈華嶽', 4, 15, 38, 'stun'], ['鐵掌橫江', 7, 26, 60]] },
 
   // 武當派
@@ -165,7 +165,7 @@ const SKILLS = {
 
   // 江湖雜學
   m_blade: { n: '破風刀法', type: 'blade', tier: 1, attr: 'yang', d: '鏢行常見的刀法，大開大闔。', moves: [['力劈', 1, 3, 15], ['橫掃千軍', 4, 8, 24], ['破風', 7, 14, 34, 'pierce']] },
-  m_dart:  { n: '袖箭術', type: 'dart', tier: 1, attr: 'he', d: '袖底藏機，出其不意。', moves: [['袖箭', 1, 2, 12], ['連珠', 4, 8, 22], ['回馬箭', 7, 13, 32, 'pierce']] },
+  m_dart:  { n: '袖箭', type: 'dart', tier: 1, attr: 'he', d: '袖底藏機，出其不意。', moves: [['袖箭', 1, 2, 12], ['連珠', 4, 8, 22], ['回馬箭', 7, 13, 32, 'pierce']] },
 
   // 奇遇・傳承絕學
   q_thunder: { n: '九陽真經', type: 'nei', tier: 3, attr: 'yang', hp: 17, mp: 14, d: '當年覺遠大師臨終背誦的經文，至陽至剛，內力生生不息。' },
