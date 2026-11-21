@@ -308,7 +308,8 @@ function overlay() {
   return `<div class="veil"><div class="sheet battle">
     <p class="tag seal">戰鬥・第${cnNum(o.round)}回合</p>
     <div class="foe">${face(o.who, 'mini-face')}<b>${e.n}</b>${fx}${bar(e.hp, e.mhp, 'hp')}<em>${Math.max(0, e.hp)}/${e.mhp}</em></div>
-    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。<br>已看穿 ${o.shown.filter(Boolean).length}/6 手（交手越多、悟性越高，看穿越多）　基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
+    <p class="rule">攻克破・破克守・守克攻。同招各傷一半，連勝三手追擊，絕招無視克制。基本招式：${bm.n}${activeCombo() ? `<br>武功組合：${activeCombo().n}（威力 +${Math.round(activeCombo().mul * 100 - 100)}%）` : ''}</p>
+    ${o.over ? '' : insightHtml(o)}
     ${o.over ? '' : cells}
     <ol class="blog">${o.log.slice(-16).map(l => `<li>${l}</li>`).join('')}</ol>
     <div class="vitals in-battle">
@@ -333,6 +334,10 @@ ICON.X = ICON.S;
 const CARD_N = { A: '攻', B: '破', G: '守', S: '絕', X: '絕', I: '藥', H: '息', '?': '？', '-': '暈' };
 const card = (t, cls = '', extra = '') => `<i class="cell card c${t === '?' ? 'U' : t === '-' ? 'U' : t} ${cls}">${ICON[t]}<b>${CARD_N[t]}</b>${extra}</i>`;
 
+function insightHtml(o) {
+  const n = o.ins, fresh = o.fresh; o.fresh = false;
+  return `<div class="insight"><span>看破</span><b class="die${fresh ? ' roll' : ''}${n.roll === 20 ? ' crit' : n.roll === 1 ? ' fumble' : ''}">${n.roll}</b><span class="rollline">悟性 ${n.mod >= 0 ? '+' : ''}${n.mod} ＝ ${n.total}　→ <em class="${n.reveal >= 3 ? 'win' : 'lose'}">看穿 ${n.reveal} 手</em>${n.roll === 20 ? '（大成功）' : n.roll === 1 ? '（大失手）' : ''}</span></div>`;
+}
 function revealView(o) {
   const rv = o.rv, e = o.e, n = rv.slots.length, st = rv.step, done = st >= n;
   const cur = st > 0 ? rv.slots[st - 1] : null;

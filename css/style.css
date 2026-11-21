@@ -228,3 +228,13 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .refnav { display: flex; flex-wrap: wrap; gap: 6px; }
 .refnav .btn.on { border-color: var(--jade); color: var(--jade); background: color-mix(in srgb, var(--jade) 10%, var(--card)); }
 .help h4 { margin: 14px 0 2px; color: var(--seal); } .help p { font: 16px/1.7 var(--f-brush); }
+
+/* d20 骰子 */
+.die { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border: 1.5px solid var(--ink); border-radius: 7px; font: 17px var(--f-brush); background: var(--card); font-variant-numeric: tabular-nums; vertical-align: middle; }
+.die.crit { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent); } .die.fumble { border-color: var(--seal); color: var(--seal); }
+.die.roll { animation: tumble .7s ease-out; }
+@keyframes tumble { 0% { transform: rotate(0) scale(.5); opacity: 0; } 55% { transform: rotate(520deg) scale(1.25); opacity: 1; } 100% { transform: rotate(720deg) scale(1); } }
+.rollline { font: 14px var(--f-ui); color: var(--ink2); } .rollline em { font-style: normal; font-weight: 500; } .rollline em.win { color: var(--jade); } .rollline em.lose { color: var(--seal); }
+.insight { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--card); border: 1px dashed var(--line); border-radius: 4px; }
+.insight > span:first-child { font: 15px var(--f-brush); }
+@media (prefers-reduced-motion: reduce) { .die.roll { animation: none; } }

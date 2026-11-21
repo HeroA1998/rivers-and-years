@@ -207,7 +207,7 @@ function rollEvent(ctx) {
   const L = LOCS[S.loc];
   const pool = EVENTS.filter(e =>
     (!e.ctx || e.ctx.includes(ctx)) && (!e.loc || e.loc === S.loc) &&
-    !(e.once && S.done[e.id]) && e.id !== S.flags.lastEv && (!e.cond || e.cond(S, L)));
+    !(e.once && S.done[e.id]) && e.id !== S.flags.lastEv && !(S.flags.evLast && S.flags.evLast[e.id] != null && today() - S.flags.evLast[e.id] < (e.type === '戀愛' ? 360 : 150)) && (!e.cond || e.cond(S, L)));
   pool.push(...chainCandidates(ctx));
   let tot = 0;
   const ws = pool.map(e => { const w = (e.w || 10) * (e.type === '奇遇' || e.type === '傳承' ? 1 + S.stats.luck / 15 : 1); tot += w; return w; });
@@ -231,7 +231,7 @@ function pump() {
 function showEvent(ev) {
   if (ev.due != null && today() - ev.due > 5) return pump();
   if (ev.cond && ev.fixed && !ev.cond(S)) return pump();
-  if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; }
+  if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; (S.flags.evLast = S.flags.evLast || {})[ev.id] = today(); }
   const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
   const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const choices = (typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || []).filter(c => !c.cond || c.cond(S));
@@ -275,17 +275,25 @@ const FOE_PATTERNS = {
   demon:  ['BBAXBA', 'ABXBAG', 'XBABBA', 'BABGXB'],
   puppet: ['ABGABG', 'BGABGA', 'GABGAB'],
 };
-function insight(e) { return clamp(1 + Math.floor(S.stats.int / 6) + Math.min(3, (S.seen || {})[e.n] || 0), 1, 5); }
+// 看破：每回合擲 d20，加悟性調整與交手經驗；擲得越高，越能看穿對手的攻擊牌
+function insightRoll(e) {
+  const roll = ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0), total = roll + mod;
+  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor(total / 5), 0, 5);
+  return { roll, mod, total, reveal };
+}
 function newRound(b) {
   let p = pick(FOE_PATTERNS[b.e.style] || FOE_PATTERNS.thug).split('');
   if (b.e.style !== 'puppet') p = p.map(c => c !== 'X' && chance(14) ? pick(['A', 'B', 'G']) : c);
   b.foe = p;
-  const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, insight(b.e));
+  b.ins = insightRoll(b.e);
+  b.fresh = true;
+  const idx = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, b.ins.reveal);
   b.shown = p.map((_, i) => idx.includes(i));
   b.plan = []; b.sub = null;
 }
 function startBattle(r) {
   const prev = UI.ov || {};
+  S.flags.sinceFight = 0;
   UI.ov = {
     k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
     log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 }, round: 1, over: null, sub: null,
@@ -522,36 +530,21 @@ function nextGoal() {
     const to = nearest(open.map(id => SECTS[id].loc));
     return { title: '先找個門派學本事', desc: `沒有師門，武功很難長進。最近的山門是${LOCS[to].n}。`, note: `趕路 ${cnNum(travelDays(to))} 日。`, acts: [[`前往${LOCS[to].n}`, () => travel(to)]] };
   };
-  // 1. 已知、趕得上的歷史大事
-  for (const r of histRumors(720, false)) {
-    const h = r.h, start = hStart(h), end = hEnd(h);
-    const need = S.loc === h.loc ? 0 : travelDays(h.loc);
-    if (t + need >= end) continue;                       // 趕不上
-    const slack = start - t - need;
-    if (noSect && slack > 120) { const sg = sectGoal(); sg.note = `${sg.note}　時間還早，下一件大事是${r.when}在${r.where}。`; return sg; }
-    const title = `${r.when}・${r.where}`, desc = h.rumor;
-    if (S.loc !== h.loc) return { title, desc, note: `趕路 ${cnNum(need)} 日${slack > 0 ? `，到了還要等 ${cnNum(slack)} 日` : ''}。`, acts: [[`前往${LOCS[h.loc].n}`, () => travel(h.loc)]] };
-    if (t < start) return { title, desc, note: `你已經在${LOCS[h.loc].n}了，還有 ${cnNum(start - t)} 日。等候時會一邊練功。`, acts: [['練功等候到那天', () => waitUntil(start, `終於等到${MONTH_N[h.m]}${h.d ? cnDay(h.d) : ''}。`)]] };
-    return { title, desc, note: '就是現在。', acts: [['去看看', () => pump()]] };
-  }
-  // 2. 還沒拜師：先去學本事
-  if (noSect) return sectGoal();
-  // 3. 兩年內還有沒聽說的大事：去酒樓打聽
+  const known = histRumors(720, false).find(r => { const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc); return t + need < hEnd(h); });
+  // 還沒拜師又離大事很遠：先去學本事
+  if (noSect && (!known || hStart(known.h) - t > 120)) { const sg = sectGoal(); if (known) sg.note += `　下一件大事：${known.when}，${known.where}。`; return sg; }
   const unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]);
-  if (unknown.length) {
-    if (LOCS[S.loc].kind === 'city') return { title: '打聽下一件大事', desc: '江湖上又有風聲了。到酒樓坐坐，就能打聽到是什麼事、在哪裡。', note: '一日・5 兩', acts: [['去酒樓打聽', gossip]] };
-    const city = nearest(Object.keys(LOCS).filter(id => LOCS[id].kind === 'city'));
-    return { title: '回城裡打聽消息', desc: '野外聽不到什麼消息，城裡的酒樓才有。', note: `趕路 ${cnNum(travelDays(city))} 日。`, acts: [[`前往${LOCS[city].n}`, () => travel(city)]] };
-  }
-  // 4. 江湖平靜：練功等候，直到下一件大事有風聲
   const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t).sort((a, b) => hStart(a) - hStart(b))[0];
-  if (nx && age() + (nx.y - ad()) <= 66) {
-    const when = hStart(nx) - 700;
-    return { title: '江湖暫時平靜', desc: `兩年之內沒有什麼大事。下一件，要等到${reign(nx.y)}前後。`, note: '可以趁這段時間練功、做門派任務、陪陪故人；不想等就直接跳過。',
-      acts: [['練功等候，直到有新消息', () => waitUntil(when, '江湖上又有了新的風聲。')]] };
+  if (!known && !unknown.length && (!nx || age() + (nx.y - ad()) > 66)) {
+    return { title: nx ? '下一件大事，你等不到了' : '這個時代的大事都過去了', desc: nx ? `下一件大事要到${reign(nx.y)}，那時你已經太老了。` : '你親眼見過的、聽人說過的，都已成了往事。',
+      note: '可以繼續歷練，過自己的日子；或者歸隱，把武功傳給下一代，讓後人去看下一個時代。',
+      acts: [['繼續歷練', adventureMonth], ['歸隱，傳給下一代', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
   }
-  return { title: nx ? '下一件大事，你等不到了' : '這個時代的大事都過去了', desc: nx ? `下一件大事要到${reign(nx.y)}，那時你已經太老了。` : '你親眼見過的、聽人說過的，都已成了往事。',
-    note: '可以繼續過自己的日子；或者歸隱，把武功傳給下一代，讓後人去看下一個時代。', acts: [['歸隱，傳給下一代', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
+  const acts = [['歷練一個月', adventureMonth]];
+  if (!known && LOCS[S.loc].kind === 'city') acts.push(['去酒樓打聽消息', gossip]);
+  return known
+    ? { title: '歷練', desc: `風聞：${known.h.rumor}（${known.when}，${known.where}）`, note: `按一次過約一個月，途中會遇到各種事。日子近了，會有劇情帶你趕到現場。`, acts }
+    : { title: '歷練', desc: '江湖上暫時沒有大事的風聲。出門走走，遇人、遇事、遇機緣；在城裡的酒樓和茶樓，更容易聽到消息。', note: '按一次過約一個月，途中會遇到各種事。', acts };
 }
 
 // 閉關一年：武功與內力大進，但這一年江湖上的事只能事後聽說
