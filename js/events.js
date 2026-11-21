@@ -4,18 +4,20 @@
 const RUMORS = [
   '過招講究料敵機先：攻克破、破克守、守克攻。同一個對手打得多了，自然看得穿他的套路。',
   '機關銅人只會照著固定的次序出招，看過一輪就能全猜中。',
-  '蒼莽山深處有面石壁，刻著前人留下的內功心法，悟性不夠的人看了也是白看。',
-  '每年九月初九，洛陽英雄會，奪魁者名揚天下。',
-  '天嵐劍宗的蘇師姐愛琴，百花谷那位小醫女偏愛蘇州胭脂。',
-  '血煞教的聖女常在洛陽夜市喝酒，誰送她好酒，她就多看誰一眼。',
-  '臨安有個姓顧的浪子，劍法好，酒品差。書肆的沈先生倒是只愛孤本。',
-  '瀚海大漠凶險得很，可敢去的人回來都發了財。',
+  '天目山深處有面石壁，刻著前人留下的內功心法，悟性不夠的人看了也是白看。',
+  '每年九月初九，臨安城外有重陽擂台，奪魁的人能風光好一陣子。',
+  '終南山上有個女道士愛琴，嘉興回春堂那位小醫女偏愛蘇州胭脂。',
+  '燕京夜市有個紅衣姑娘常獨自喝酒，誰送她好酒，她就多看誰一眼。',
+  '臨安有個姓顧的浪子，劍法好，酒品差。襄陽書肆的沈先生倒是只愛孤本。',
+  '漠北凶險得很，可敢跟商隊去的人，回來都發了財。',
   '入了門派要多做任務，攢夠貢獻才學得到上乘武功。',
   '內功分陰陽，內外屬性相合，出手威力才大；陰陽相沖，反倒打折扣。',
   '聽說有人在山裡救過一隻白狐，後來交了大運。',
   '年過而立、小有名氣的人，自然有人上門拜師。武功總得有人傳下去。',
-  '草藥別急著賣，百花谷的弟子三株就能煉一份金創藥。',
-  '血煞教這幾年動作頻頻，怕是在找什麼東西。',
+  '草藥別急著賣，在城裡的藥舖三株就能煉一份金創藥。',
+  '丐幫弟子遍天下，要打聽消息，請叫化子喝碗酒準沒錯。',
+  '少林寺收俗家弟子，只要根骨好、心術正；全真教收徒看悟性。',
+  '想看大事，得先知道大事在哪裡發生。酒樓裡的閒話，有時候比官府的邸報還準。',
 ];
 
 const win = (e, w, l, x) => Object.assign({ battle: e, win: w, lose: l }, x || {});
@@ -29,13 +31,13 @@ const nearNpc = min => { const id = topNpc(min); return id && (id === S.spouse |
 // 邂逅條件：初入江湖的前三個月不談情緣；每位有緣人只在合乎你身分與處境時才會遇上
 const daysIn = s => (s.date.y - 1) * 360 + (s.date.m - 1) * 30 + s.date.d;
 const MEET = {
-  su:   { cond: s => s.sect === 'tianlan' || s.fame >= 60,
-          text: s => s.sect === 'tianlan' ? NPCS.su.meet.replace('「看夠了？這條路外人不該來。」', '「看夠了？新入門的都愛躲在樹後偷看，你倒是頭一個站著不動的。」') : NPCS.su.meet },
+  su:   { cond: s => s.sect === 'quanzhen' || s.fame >= 60,
+          text: s => s.sect === 'quanzhen' ? NPCS.su.meet.replace('「看夠了？這條路外人不該來。」', '「看夠了？新入門的都愛躲在樹後偷看，你倒是頭一個站著不動的。」') : NPCS.su.meet },
   hua:  { cond: () => true },
   li:   { cond: s => s.fame >= 30 || power() >= 7 },                       // 她只對有點膽色本事的人感興趣
   gu:   { cond: s => s.silver >= 50 },                                     // 他開口就是借錢
-  shen: { cond: s => s.origin === '書香門第' || s.stats.int >= 8 || s.fame >= 80 || s.sect === 'xuanzhen',   // 書肆不是誰都會進去、也不是誰都留得住
-          text: s => s.origin === '破廟孤兒' ? '你在洛陽書肆的屋簷下避雨，隔著窗看架上的書。夥計正要趕人，一個青衣男子攔住了他，把一卷書遞到窗外：「認得字麼？這本講的是劍理，卻沒有一招劍法。雨停之前，進來坐著讀吧。」' : NPCS.shen.meet },
+  shen: { cond: s => s.origin === '書香門第' || s.stats.int >= 8 || s.fame >= 80 || s.sect === 'quanzhen',   // 書肆不是誰都會進去、也不是誰都留得住
+          text: s => s.origin === '破廟孤兒' ? '你在襄陽書肆的屋簷下避雨，隔著窗看架上的書。夥計正要趕人，一個青衣男子攔住了他，把一卷書遞到窗外：「認得字麼？這本講的是劍理，卻沒有一招劍法。雨停之前，進來坐著讀吧。」' : NPCS.shen.meet },
 };
 
 const EVENTS = [
@@ -125,10 +127,10 @@ const EVENTS = [
       { t: '「我自己寫信，要多少給多少。」', go: () => { advance(12); return '家裡的銀子來得很快。綁匪頭子臨走還拍了拍你的臉：「小財神，江湖不是這麼闖的。」' + gain({ fame: -8 }) + '〔耗時十二日〕'; } },
     ] },
   { id: 'o_orphan', who: 'kid', type: '江湖', title: '破廟舊友', ctx: ['city'], w: 16, once: true, art: 'city', cond: s => s.origin === '破廟孤兒',
-    text: '「喂！是你！」一個精瘦的少年從牆頭跳下來，一拳捶在你肩上。是小六子，當年和你在破廟裡分過半個冷饅頭的小六子。他如今腰裡繫著風塵幫的草繩，神氣得很：「我跟了洪七爺啦。你呢，還是一個人？」',
+    text: '「喂！是你！」一個精瘦的少年從牆頭跳下來，一拳捶在你肩上。是小六子，當年和你在破廟裡分過半個冷饅頭的小六子。他如今背上掛著兩個麻袋，神氣得很：「我入了丐幫啦，是二袋弟子！你呢，還是一個人？」',
     choices: [
-      { t: '「帶我去見見你們七爺。」', cond: s => !s.sect, go: () => { S.sect = 'fengchen'; S.rank = 0; S.contrib = 60; S.contribTotal = 60; return '小六子拍著胸脯作保。洪七爺只看了你一眼就笑了：「吃過苦的孩子，錯不了。」你成了風塵幫弟子，小六子還替你墊了一筆見面功勞。' + learn('fc_palm') + '〔門派貢獻+60〕'; } },
-      { t: '請他喝頓酒，打聽消息', go: () => { advance(1); return '小六子喝得舌頭都大了，把洛陽城裡三教九流的門道倒了個乾淨：哪家當鋪收贓、哪個捕頭貪杯、哪條巷子夜裡別走。' + gain({ silver: -10, luck: 1, cha: 1 }); } },
+      { t: '「帶我去見見你們丐幫的人。」', cond: s => !s.sect, go: () => { S.sect = 'gaibang'; S.rank = 0; S.contrib = 60; S.contribTotal = 60; return '小六子拍著胸脯作保。帶他的錢八袋只看了你一眼就笑了：「吃過苦的孩子，錯不了。」你成了丐幫弟子，小六子還替你墊了一筆見面功勞。' + learn('gb_fist') + '〔門派貢獻+60〕'; } },
+      { t: '請他喝頓酒，打聽消息', go: () => { advance(1); return '小六子喝得舌頭都大了，把城裡三教九流的門道倒了個乾淨：哪家當鋪收贓、哪個捕頭貪杯、哪條巷子夜裡別走。' + gain({ silver: -10, luck: 1, cha: 1 }); } },
       { t: '「各走各的路吧。」', go: () => '小六子愣了愣，把手裡的半個燒餅塞給你，轉身走了。' + gain({ hp: 20 }) },
     ] },
 
@@ -143,10 +145,10 @@ const EVENTS = [
   { id: 'b_assassin', type: '戰鬥', title: '夜半刺客', ctx: ['city', 'sect'], w: 7, art: 'night', cond: s => s.fame >= 150,
     text: '夜深人靜，窗紙上映出一道黑影。你翻身滾下床榻的瞬間，三枚喪門釘釘入了枕頭。',
     choices: [{ t: '迎敵', go: () => win(foe('蒙面刺客', 4, 0.72, 'sword'), () => '刺客服毒自盡，身上只搜出一塊血色腰牌。看來你的名聲，已經讓某些人睡不著了。' + gain({ fame: 10, silver: 60 }), null, { noFlee: true }) }] },
-  { id: 'b_sectwar', type: '戰鬥', title: '正邪不兩立', ctx: ['travel'], w: 10, art: 'fight', cond: s => s.sect && SECTS[s.sect].align !== 0,
-    text: s => SECTS[s.sect].align > 0 ? '道旁茶棚裡，幾個血煞教徒正在逼問一個過路的鏢師。其中一人認出了你的門派服色，冷笑著站起身來。' : '你被幾個正道弟子堵在渡口。「血煞教的妖人！」為首的青年拔劍出鞘，「今日替天行道！」',
+  { id: 'b_sectwar', type: '戰鬥', title: '狹路相逢', ctx: ['travel'], w: 10, art: 'fight', cond: s => s.sect && SECTS[s.sect].align !== 0,
+    text: s => SECTS[s.sect].align > 0 ? '道旁茶棚裡，幾個橫行鄉里的惡徒正在逼問一個過路的鏢師。其中一人認出了你的門派服色，冷笑著站起身來：「名門正派的小雜毛，也敢管閒事？」' : '你被幾個名門弟子堵在渡口。「你是那幫惡賊的人！」為首的青年拔劍出鞘，「今日替天行道！」',
     choices: [
-      { t: '動手', go: s => win(foe(SECTS[s.sect].align > 0 ? '血煞教香主' : '正道少俠', 2, 0.65, SECTS[s.sect].align > 0 ? 'blade' : 'sword'), () => '你為師門掙了臉面。消息傳回山門，師父頗為嘉許。' + gain({ contrib: 30, fame: 8, moral: SECTS[s.sect].align * 3 }), null) },
+      { t: '動手', go: s => win(foe(SECTS[s.sect].align > 0 ? '惡徒頭目' : '名門少俠', 2, 0.65, SECTS[s.sect].align > 0 ? 'blade' : 'sword'), () => '你為師門掙了臉面。消息傳回山門，師父頗為嘉許。' + gain({ contrib: 30, fame: 8, moral: SECTS[s.sect].align * 3 }), null) },
       { t: '不願多生事端，避走', go: () => '你壓低斗笠，從人群中悄然離開。' },
     ] },
   { id: 'b_kick', type: '戰鬥', title: '武館踢館', ctx: ['city'], w: 6, art: 'fight', cond: s => power() >= 8,
@@ -260,14 +262,14 @@ const EVENTS = [
       { t: '「晚輩願學刀。」', go: () => '老者大笑，笑得咳出血來：「好！刀才是男兒氣概——女兒家使來，更是了不得！」他口述了十八句刀訣，逼你背了三遍，才把手按在你頭頂，渡盡了最後的內力。' + learn('q_king') + gain({ bonusMp: 30 }) },
       { t: '先替他治傷', cond: () => has('jinchuang'), go: () => { addItem('jinchuang', -1); return '老者推開你的手：「沒用了，五臟都碎了。」他卻笑了，「可你這份心，老夫記下了。」他把刀劍兩樣的總綱一併念給你聽——能悟多少，看你的造化。' + learn(S.eq.some(e => SKILLS[e].type === 'blade') ? 'q_king' : 'q_swan') + gain({ bonusMp: 40, bonusHp: 30, moral: 4 }); } },
     ] },
-  { id: 'l_wall', type: '傳承', title: '石壁遺刻', ctx: ['wild'], loc: 'cangmang', w: 9, once: true, art: 'cave', cond: s => s.stats.int >= 8 || s.stats.luck >= 9,
+  { id: 'l_wall', type: '傳承', title: '石壁遺刻', ctx: ['wild'], loc: 'tianmu', w: 9, once: true, art: 'cave', cond: s => s.stats.int >= 8 || s.stats.luck >= 9,
     text: '藤蔓後露出一面光滑如鏡的石壁，上頭密密麻麻刻滿了字。左半面字跡剛勁，題為「九霄雷音」；右半面字跡陰柔，題為「寒魄冰心」。壁腳一行小字：「陰陽殊途，貪多必噬。後來者擇其一。」',
     choices: [
       { t: '參悟左壁「九霄雷音訣」', go: () => { advance(20); return '你在壁前坐了二十日。某個清晨，丹田裡響起了第一聲悶雷。' + learn('q_thunder'); } },
       { t: '參悟右壁「寒魄冰心訣」', go: () => { advance(20); return '你在壁前坐了二十日。某個深夜，你呵出的氣在盛夏裡凝成了霜。' + learn('q_ice'); } },
     ] },
   { id: 'l_master', who: 'elder', type: '傳承', title: '衣缽相傳', ctx: ['sect'], w: 40, once: true, art: 'legacy',
-    cond: (s, L) => s.sect && L.sect === s.sect && s.rank === 3 && s.contribTotal >= 1000 && s.fame >= 300,
+    cond: (s, L) => s.sect && SECTS[s.sect].ult && L.sect === s.sect && s.rank === 3 && s.contribTotal >= 1000 && s.fame >= 300,
     text: s => `${SECTS[s.sect].master}屏退了左右，把一方印信放在你面前。「為師老了。這副擔子，門中只有你和你大師兄挑得起。」他望著堂外，「按祖師規矩，你們比一場。勝者接掌門戶，並得授本門不傳之秘。」`,
     choices: [
       { t: '「弟子當仁不讓。」', go: s => win(foe('大師兄', 16, 0.6, SECTS[s.sect].align < 0 ? 'demon' : 'master'), () => { s.rank = 4; const u = SECTS[s.sect].ult; return `大師兄單膝跪地，第一個向你行禮：「參見掌門。」從今日起，你就是${SECTS[s.sect].n}之主。` + (u ? learn(u) : gain({ str: 2, con: 2 })) + gain({ fame: 150 }); }, () => { S.hp = Math.round(maxHp() * 0.4); S.done.l_master = 0; return '你敗了。師父嘆道：「火候未到。此事過些時日再議。」'; }, { noFlee: true }) },
@@ -280,7 +282,7 @@ const EVENTS = [
       { t: '半信半疑，自己琢磨', go: () => '你琢磨了幾天，發現老人說得一點沒錯。' + (xp(S.nei, 150) || '〔內功領悟加深〕') },
     ] },
   { id: 'l_disciple', type: '傳承', title: '雪中拜師', ctx: ['city', 'sect', 'travel'], w: 14, once: true, art: 'snow', cond: s => age() >= 28 && s.fame >= 200 && !s.disciple,
-    text: '一個十二三歲的孩子在你門外跪了一夜，膝下的雪都化了又結成冰。「求前輩收我為徒！我爹娘死在馬賊刀下，我要學本事。」孩子的眼睛很亮，亮得讓你想起當年初到洛陽的自己。',
+    text: '一個十二三歲的孩子在你門外跪了一夜，膝下的雪都化了又結成冰。「求前輩收我為徒！我爹娘死在馬賊刀下，我要學本事。」孩子的眼睛很亮，亮得讓你想起當年初到臨安的自己。',
     choices: [
       { t: '扶起孩子：「起來，叫師父。」', go: s => { const n = pick(['阿蘅', '小石頭', '雲生', '阿照', '念慈']); s.disciple = { n, y: s.date.y, done: false }; return `你收下了平生第一個弟子，取名${n}。武功這東西，原來教人比自己練還難。` + gain({ moral: 4, fame: 10 }); } },
       { t: '給些銀兩，指條去處', go: () => '你給了孩子盤纏，寫了封薦書讓他去投鏢局。' + gain({ silver: -20, moral: 1 }) },
@@ -316,19 +318,19 @@ const EVENTS = [
 function tourneyRound(i) {
   const names = ['「鐵臂」張猛', '「千手」唐秋娘', '上屆魁首「小孟嘗」裴照'];
   const e = foe(names[i], [3, 6, 10][i], [0.55, 0.65, 0.75][i], ['thug', 'sword', 'master'][i]);
-  return { battle: e, noFlee: true, title: '洛陽英雄會', intro: `第${cnNum(i + 1)}輪，你的對手是${e.n}。鑼聲一響，全場肅靜。`,
+  return { battle: e, noFlee: true, title: '重陽擂台', intro: `第${cnNum(i + 1)}輪，你的對手是${e.n}。鑼聲一響，全場肅靜。`,
     win: () => {
       if (i < 2) { S.hp = Math.min(maxHp(), S.hp + Math.round(maxHp() * 0.3)); S.mp = Math.min(maxMp(), S.mp + Math.round(maxMp() * 0.4)); battleXp(40); return tourneyRound(i + 1); }
       S.flags.champ = (S.flags.champ || 0) + 1;
-      return `裴照擲劍認輸。萬人齊呼你的名字——${ERA}${cnNum(S.date.y)}年英雄會魁首，${S.name}！` + gain({ fame: 100, silver: 300 }) + addItem('dahuan');
+      return `裴照擲劍認輸。滿場齊呼你的名字——${reign(ad())}重陽擂台魁首，${S.name}！` + gain({ fame: 100, silver: 300 }) + addItem('dahuan');
     },
     lose: () => { S.hp = Math.round(maxHp() * 0.3); return [`你在首輪就敗下陣來。台下噓聲四起，但也有人為你鼓掌。` + gain({ fame: 2 }), '你止步第二輪。能走到這裡，已讓不少人記住了你。' + gain({ fame: 15, silver: 50 }), '你與魁首只差一步。裴照扶起你：「明年，我等你。」' + gain({ fame: 40, silver: 120 })][i]; } };
 }
 const FIXED = {
-  tourney: { type: '戰鬥', title: '洛陽英雄會', art: 'fight', fixed: true,
-    text: s => `九月初九重陽，洛陽英雄會將開擂。天下豪傑雲集，奪魁者名動江湖。${s.loc === 'luoyang' ? '你人就在洛陽，擂台的鼓聲隔著三條街都聽得見。' : `從${LOCS[s.loc].n}趕去，需${cnNum(travelDays('luoyang'))}日路程。`}`,
+  tourney: { type: '戰鬥', title: '重陽擂台', art: 'fight', fixed: true, cond: s => s.loc === 'linan' || travelDays('linan') <= 8,
+    text: s => `九月初九重陽，臨安城外的擂台又要開擂了。各路好手雲集，奪魁的人能風光好一陣子。${s.loc === 'linan' ? '你人就在臨安，擂台的鼓聲隔著三條街都聽得見。' : `從${LOCS[s.loc].n}趕去，需${cnNum(travelDays('linan'))}日路程。`}`,
     choices: [
-      { t: '報名參加', go: s => { if (s.loc !== 'luoyang') { advance(travelDays('luoyang')); s.loc = 'luoyang'; } s.date.m = 9; s.date.d = Math.max(s.date.d, 9); return tourneyRound(0); } },
+      { t: '報名參加', go: s => { if (s.loc !== 'linan') { advance(travelDays('linan')); s.loc = 'linan'; } s.date.m = 9; s.date.d = Math.max(s.date.d, 9); return tourneyRound(0); } },
       { t: '今年不去湊熱鬧', go: () => '你聽說今年的魁首又是裴照。' },
     ] },
   lantern: { who: s => s.flags.fest, type: '戀愛', title: '上元燈會', art: 'love', fixed: true,
@@ -357,35 +359,4 @@ const FIXED = {
     text: () => `這個冬天格外冷。你發現自己握劍的手開始發抖，上樓要歇兩次。一生的恩怨情仇像走馬燈一樣在眼前轉過。是時候了。`,
     choices: [{ t: '封劍歸隱', go: () => ({ end: '壽終' }) }, { t: '「我還能再走幾年。」', go: () => '你裹緊了衣襟，又一次走進了風雪裡。' + gain({ con: -1 }) }] },
 
-  arc1: { type: '江湖', title: '天機圖現世', art: 'night', fixed: true,
-    text: '江湖上忽然流言四起：前朝武聖留下的「天機圖」重現人間，得圖者可得武聖畢生絕學。短短一個月，已有三家鏢局、兩個幫會為它滅門，現場都留著血色掌印。有人說，是血煞教動的手。',
-    choices: [
-      { t: '暗中留意此事', go: s => { s.flags.arc = 1; return '你把這件事記在了心裡。山雨欲來，風已滿樓。'; } },
-      { t: '「與我無關。」', go: () => '你搖搖頭。但你隱隱覺得，這江湖裡沒有誰能真的置身事外。' },
-    ] },
-  arc2: { type: '戰鬥', title: '血洗青石鎮', art: 'fight', fixed: true,
-    text: s => s.sect === 'xuesha'
-      ? '教主密令：天機圖的殘片在青石鎮天嵐劍宗的別院中。你被點為先鋒，率三十教眾連夜奔襲。別院裡燈火通明，一位白髮長老拄劍立在門前，身後是一群面帶稚氣的年輕弟子。'
-      : '你途經青石鎮時，鎮口已火光沖天。血煞教徒正在挨家挨戶地搜，一位重傷的劍宗長老護著一群孩子退到了祠堂前。帶隊的血煞壇主舉起了刀。',
-    choices: s => s.sect === 'xuesha'
-      ? [{ t: '奉命行事，奪圖', go: () => win(foe('天嵐劍宗長老', 9, 0.62, 'sword'), () => '你奪得了殘片。回崖覆命時，教主當眾賞了你一杯酒。那一夜你洗了很久的手。' + gain({ contrib: 120, fame: 30, moral: -20 }), null, { noFlee: true }) },
-         { t: '虛張聲勢，放他們從後門走', go: () => '你讓教眾在前門鼓譟了半夜，等衝進去時，別院已人去樓空。壇主狐疑地看了你一眼。' + gain({ moral: 12, contrib: -40 }) }]
-      : [{ t: '「住手！」', go: () => win(foe('血煞教壇主', 9, 0.62, 'demon'), () => { S.flags.arc = 2; return '壇主伏誅，餘眾潰散。長老把一枚染血的玉片塞進你手裡：「天機圖……殘片……絕不可落入厲無咎之手……」' + gain({ fame: 50, moral: 15 }); }, null, { noFlee: true }) },
-         { t: '寡不敵眾，繞道而行', go: () => '你在山坡上回頭，鎮子燒了一整夜。' + gain({ moral: -8 }) }] },
-  arc3: { who: 'boss', type: '戰鬥', title: '洛陽決戰', art: 'fight', fixed: true,
-    text: s => s.sect === 'xuesha'
-      ? '血煞教傾巢而出，兵臨洛陽。正道群雄在城下列陣，為首的是武林盟主嶽鎮山。教主厲無咎轉過頭，把目光落在你身上：「這一陣，你去。拿下嶽鎮山的人頭，血煞教的下一任教主就是你。」'
-      : '血煞教主厲無咎集齊了天機圖，神功大成，率教眾兵臨洛陽。武林盟主三招落敗，重傷嘔血。群雄的目光在人群中搜尋，最後一道接一道，落在了你的身上。厲無咎負手而立：「還有誰？」',
-    choices: s => {
-      const boss = () => foe('血煞教主・厲無咎', 26, 0.4, 'demon');
-      const saved = () => { S.flags.savedWulin = true; return '厲無咎仰面倒下，血河刀斷為三截。洛陽城頭，先是一片死寂，然後是山呼海嘯般的歡呼。這一天，被後世的說書人講了一百年。' + gain({ fame: 300, moral: 20 }); };
-      if (s.sect === 'xuesha') return [
-        { t: '領命出陣，戰嶽鎮山', go: () => win(foe('武林盟主・嶽鎮山', 24, 0.4, 'master'), () => { S.flags.demonLord = true; return '嶽鎮山轟然倒地，正道群雄四散奔逃。厲無咎大笑著把教主令牌拋給你。從此，江湖只有一個聲音。' + gain({ fame: 300, moral: -40, contrib: 500 }); }, () => { S.hp = Math.round(maxHp() * 0.2); return '你敗了。血煞教退回了血煞崖，厲無咎看你的眼神像看一件廢物。' + gain({ fame: -30, contrib: -100 }); }, { noFlee: true }) },
-        { t: '臨陣倒戈，刀指教主', go: () => win(boss(), () => { S.sect = null; S.rank = 0; return saved() + '你親手終結了自己曾效忠的一切。'; }, () => { S.sect = null; S.rank = 0; S.hp = Math.round(maxHp() * 0.2); return '你敗了，被正道中人拚死救出。血煞教從此懸賞你的人頭。' + gain({ moral: 15, fame: 20 }); }, { noFlee: true }) },
-      ];
-      const c = [{ t: '踏前一步：「我。」', go: () => win(boss(), saved, () => { S.hp = Math.round(maxHp() * 0.2); return '你倒在了厲無咎刀下，被同道搶回。正道元氣大傷，退守各自山門。但你這一戰，為群雄爭得了撤退的時間。' + gain({ fame: 60 }); }, { noFlee: true }) }];
-      if (s.flags.lover === 'li' || s.spouse === 'li') c.push({ t: '請厲紅綃出面勸父', go: () => { S.flags.savedWulin = true; return '紅衣女子走到兩軍陣前，把刀架在了自己頸上：「爹，你要這天下，還是要女兒？」厲無咎的手抖了很久，終於仰天長嘆，撕碎了天機圖。血煞教退兵三百里，立誓二十年不入中原。' + gain({ fame: 200, moral: 15 }); } });
-      c.push({ t: '隱在人群中，不發一言', go: () => '最終是幾位前輩聯手，以命換命，才逼退了厲無咎。你活了下來，卻很久不敢看鏡子裡的自己。' + gain({ fame: -30, moral: -10 }) });
-      return c;
-    } },
 };

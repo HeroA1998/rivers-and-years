@@ -5,7 +5,7 @@ let S = null;                 // 存檔狀態
 let UI = { screen: 'title', tab: 'world', ov: null, create: null };
 let Q = [];                   // 待觸發事件佇列
 let H = [];                   // 當前畫面的按鈕處理器
-const SAVE_KEY = 'jianghu_suiyue_v1';
+const SAVE_KEY = 'jianghu_jinyong_v1';
 
 /* ---------- 小工具 ---------- */
 const R = n => Math.floor(Math.random() * n);
@@ -31,7 +31,7 @@ function cnDay(d) {
   return '三十';
 }
 const MONTH_N = ['', '正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '臘月'];
-const dateStr = (d = S.date) => `${ERA}${d.y === 1 ? '元' : cnNum(d.y)}年 ${MONTH_N[d.m]}${cnDay(d.d)}`;
+const dateStr = (d = S.date) => `${reign((S.y0 || 1222) + d.y - 1)} ${MONTH_N[d.m]}${cnDay(d.d)}`;
 const season = () => '春春春夏夏夏秋秋秋冬冬冬'[S.date.m - 1];
 const age = () => 15 + S.date.y + (S.age0 || 0);
 
@@ -53,13 +53,13 @@ function newGame(c, legacy) {
   for (const k in o.st) st[k] += o.st[k];
   S = {
     name: c.name || '無名', gender: c.gender, origin: o.n, gen: legacy ? legacy.gen + 1 : 1, age0: 0,
-    date: { y: 1, m: 1, d: 1 }, loc: 'luoyang', stats: st, drill: {},
+    y0: c.year || 1222, date: { y: 1, m: 1, d: 1 }, loc: 'linan', stats: st, drill: {},
     hp: 1, mp: 1, bonusHp: 0, bonusMp: 0, silver: 120 + (o.silver || 0), fame: 0, moral: 0,
     sect: null, rank: 0, contrib: 0, contribTotal: 0,
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
     weapon: null, armor: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
-    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, plot: rollPlot(legacy && legacy.kind), chain: {}, wins: 0, losses: 0, legacyFrom: null,
+    done: {}, flags: {}, log: [], journal: [], seen: {}, hist: null, chain: {}, wins: 0, losses: 0, legacyFrom: null,
   };
   if (o.item) { S.inv[o.item] = 1; S.weapon = o.item; }
   if (o.herb) S.inv.herb = o.herb;
@@ -72,9 +72,15 @@ function newGame(c, legacy) {
   }
   S.hp = maxHp(); S.mp = maxMp();
   Q = [];
+  histInit();
+  // 開局先讓玩家知道下一件大事，免得頭幾個月無所適從
+  const nx = histRumors(1000, true)[0];
+  if (nx) S.flags.heardOf = { [nx.h.id]: 1 };
+  const era = [...ERAS].reverse().find(x => x.y <= S.y0);
   log(legacy
-    ? `${S.name}帶著${legacy.from}的遺澤踏入洛陽城。上一代的故事已成傳說，這一代的才剛開始。`
-    : `${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到洛陽城，決心闖出一番名堂。`);
+    ? `${reign(S.y0)}（${S.y0}年）。${S.name}帶著${legacy.from}的遺澤來到臨安。上一代的故事已成傳說，這一代的才剛開始。`
+    : `${reign(S.y0)}（${S.y0}年）。${S.name}，${o.n}，年方十六，${S.silver >= 50 ? `懷揣${S.silver}兩盤纏` : '身上只有幾個銅板，一路討著飯'}來到臨安城。`);
+  if (era) log(era.d);
   UI = { screen: 'game', tab: 'world', ov: null };
   pump();
   window.scrollTo(0, 0);
@@ -180,6 +186,7 @@ function advance(days) {
     if (d.m === 1 && d.d === 15) Q.push(FIXED.lantern);
     if (d.m === 7 && d.d === 7) Q.push(FIXED.qixi);
     if (d.m === 9 && d.d === 1) Q.push(FIXED.tourney);
+    histTick();
   }
   S.hp = Math.min(maxHp(), Math.round(S.hp + days * maxHp() * 0.02));
   S.mp = Math.min(maxMp(), Math.round(S.mp + days * maxMp() * 0.06));
@@ -216,8 +223,8 @@ function act(days, text, ctx, evChance = 38) {
 function pump() {
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
-  const st = storyDue();
-  if (st) { UI.ov = null; save(); showEvent(st); return; }
+  const h = histDue();
+  if (h) { UI.ov = null; save(); showEvent(h); return; }
   save(); render();
 }
 function showEvent(ev) {
@@ -364,7 +371,7 @@ function commitRound() {
       res = f === 'X' ? 't' : 'w';
     } else if (p.t === 'I' || p.t === 'H') {
       if (p.t === 'I') { useMed(p.item); s = `你服下${ITEMS[p.item].n}。`; }
-      else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (knows('bh_nei') ? 1.6 : 1)); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
+      else { S.mp -= 12; const hl = Math.round((maxHp() * 0.14 + neiLv() * 4) * (healer() ? 1.6 : 1)); S.hp = Math.min(maxHp(), S.hp + hl); s = `你運功調息，回復 ${hl} 點氣血。`; }
       s += fHit(); res = f === 'G' || f === '-' ? 't' : 'l';
     } else if (f === '-') {
       s = `${e.n}還在暈眩。` + (p.t === 'G' ? '你穩住了呼吸。' : hitFoe(b, pN[p.t], bm.k, bm.lv, bm.pow, p.t === 'A' ? 0.8 : 1.1));
@@ -450,10 +457,11 @@ function endBattle() {
 }
 
 /* ---------- 物品 ---------- */
+const healer = () => Object.keys(S.skills).some(id => SKILLS[id].heal);
 function useMed(id) {
   const it = ITEMS[id];
   addItem(id, -1);
-  if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (knows('bh_nei') && it.hp < 999 ? 1.5 : 1)));
+  if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (healer() && it.hp < 999 ? 1.5 : 1)));
   if (it.mp) S.mp = Math.min(maxMp(), S.mp + it.mp);
 }
 function useItem(id) {
@@ -480,8 +488,22 @@ function travel(to) {
   const d = travelDays(to);
   UI.ov = null;
   const from = LOCS[S.loc].n;
+  log(`自${from}啟程，行了${cnNum(d)}日，抵達${LOCS[to].n}。`);
+  S.loc = '_road';          // 路上這幾天不算身在任何地方，途中發生的大事只能事後耳聞
+  advance(d);
   S.loc = to;
-  act(d, `自${from}啟程，行了${cnNum(d)}日，抵達${LOCS[to].n}。`, 'travel', 55);
+  if (chance(55)) { const e = rollEvent('travel'); if (e) Q.push(e); }
+  pump();
+}
+// 閉關一年：武功與內力大進，但這一年江湖上的事只能事後聽說
+function retreat() {
+  UI.ov = null;
+  const g = 260 + S.stats.int * 25;
+  const ups = S.eq.map(id => xp(id, g)).join('') + xp(S.nei, g * 1.2);
+  log(`你尋了一處清靜所在，閉關苦修一年。${ups}`);
+  advance(360);
+  S.hp = maxHp(); S.mp = maxMp();
+  pump();
 }
 function train(id) {
   UI.ov = null;
@@ -513,16 +535,17 @@ function roughSleep() {
 }
 function toastRender(s) { toast(s); render(); }
 function work() {
-  const pay = Math.round((30 + S.stats.str * 3) * (S.sect === 'fengchen' ? 1.5 : 1));
+  const pay = Math.round((30 + S.stats.str * 3) * (S.sect === 'gaibang' ? 1.5 : 1));
   S.silver += pay;
-  act(10, `在碼頭扛了十日貨${S.sect === 'fengchen' ? '，幫中兄弟多有照應' : ''}。〔銀兩+${pay}〕`, 'city', 30);
+  act(10, `在碼頭扛了十日貨${S.sect === 'gaibang' ? '，丐幫兄弟多有照應' : ''}。〔銀兩+${pay}〕`, 'city', 30);
 }
 function gossip() {
   if (S.silver < 5) return toastRender('銀兩不足');
   S.silver -= 5;
-  const st = storyNow();
-  if (st && st.ask && S.loc === 'luoyang') { S.flags.asked = S.story; return act(1, '在酒樓要了一壺酒，把店小二叫到跟前，低聲打聽。', null); }
-  let r = st && st.rumor && chance(45) ? st.rumor : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
+  const near = histRumors(720, true).filter(x => !x.now);
+  const hot = near.length && chance(55) ? pick(near) : null;
+  let r = hot ? `${hot.h.rumor}（${hot.when}，${hot.where}）` : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
+  if (hot) { S.flags.heardOf = S.flags.heardOf || {}; S.flags.heardOf[hot.h.id] = 1; }
   S.flags.lastRumor = r;
   act(1, `在酒樓要了一壺酒，聽鄰桌閒談：「${r}」`, 'city', 70);
 }
@@ -555,7 +578,7 @@ function explore() {
   pump();
 }
 function gather() {
-  const n = ri(3, 5) + (S.sect === 'baihua' ? 2 : 0);
+  const n = ri(3, 5) + (S.sect === 'emei' ? 2 : 0);
   act(5, `在${LOCS[S.loc].n}採藥五日。` + addItem('herb', n), 'wild', 35);
 }
 function brew() {
@@ -567,10 +590,11 @@ function brew() {
 /* 門派 */
 function joinSect(id) {
   const k = SECTS[id];
+  if (!sectOpen(id)) return toastRender(ad() < k.from ? `這時候還沒有${k.n}。` : `${k.n}已經風流雲散了。`);
   if (!k.req(S)) return toastRender(`${k.master}搖了搖頭：「${k.reqT}，你還不夠格。」`);
   S.sect = id; S.rank = 0; S.contrib = 0; S.contribTotal = 0;
   let t = `你在${k.master}面前三跪九叩，正式拜入${k.n}，成為外門弟子。`;
-  if (k.align < 0) t += gain({ moral: -25 }) + '正道中人從此視你為敵。';
+  if (k.align < 0) t += gain({ moral: -25 }) + '俠義道中人從此看不起你。';
   t += learn(k.teach[0][0]);
   act(1, t, null);
 }
@@ -587,7 +611,7 @@ function sectTask() {
   const c = ri(24, 38) + S.rank * 4;
   const tasks = k.tasks;
   if (chance(30)) {
-    const e = k.align < 0 ? foe('正道遊俠', 1, 0.55, 'sword') : foe(pick(['血煞教探子', '盜經賊', '尋仇的惡客']), 1, 0.55, pick(['blade', 'thug']));
+    const e = k.align < 0 ? foe('正道遊俠', 1, 0.55, 'sword') : foe(pick(['山賊頭目', '盜經賊', '尋仇的惡客', '元兵小校'].slice(0, ad() < 1235 ? 3 : 4)), 1, 0.55, pick(['blade', 'thug']));
     Q.unshift({ type: '戰鬥', title: '門派任務', art: 'fight', text: `你奉命${pick(tasks)}，途中遇上${e.n}發難。`,
       choices: [{ t: '為師門而戰', go: () => ({ battle: e, noFlee: true, win: () => '你漂亮地完成了任務，回山覆命。' + gain({ contrib: c + 20, fame: 4, moral: k.align * 2 }), lose: () => { S.hp = Math.round(maxHp() * 0.3); return '任務失敗，你帶傷回山，受了一頓訓斥。' + gain({ contrib: 5 }); } }) }] });
   } else log(`奉師門之命${pick(tasks)}，十日後回山覆命。` + gain({ contrib: c, silver: ri(5, 15) }));
@@ -658,11 +682,11 @@ function propose(id) {
 /* ---------- 歸隱與傳承 ---------- */
 function retire(reason) {
   const best = Object.keys(S.skills).sort((a, b) => S.skills[b].lv * SKILLS[b].tier - S.skills[a].lv * SKILLS[a].tier);
-  let score = S.fame + S.wins * 3 + power() * 8 + (S.spouse ? 80 : 0) + (S.rank === 4 ? 200 : 0) + (S.flags.savedWulin ? 300 : 0);
+  const sn = histCount('seen');
+  let score = S.fame + S.wins * 3 + power() * 8 + (S.spouse ? 80 : 0) + sn * 60;
   let end;
-  if (S.flags.savedWulin && S.moral >= 20) end = ['武林盟主', '你力挽狂瀾，平定魔教之亂。此後數十年，江湖上提起你的名字，仍要抱拳說一聲「大俠」。'];
-  else if (S.flags.demonLord) end = ['魔道至尊', '你踏著正道群雄的屍骨登上血煞崖頂。天下無人敢直呼你的名字，也無人敢與你同桌飲酒。'];
-  else if (S.rank === 4) end = ['一派宗師', `你執掌${SECTS[S.sect].n}多年，門下弟子遍天下。山門前的石碑上，刻著你定下的門規。`];
+  if (sn >= 8) end = ['江湖見證者', `你這一生親眼看過${cnNum(sn)}件後來被寫進傳說的事。晚年你常坐在茶樓角落，聽說書人講那些故事，偶爾小聲糾正一兩句：「不對，那天下著雪。」`];
+  else if (sn >= 4 && S.fame >= 300) end = ['亂世遊俠', `你在那個英雄輩出的年代裡走過一遭，親眼見過${cnNum(sn)}次風雲際會，自己也闖出了一點名堂。`];
   else if (S.fame >= 800) end = [S.moral <= -40 ? '一代梟雄' : '一代大俠', '你的事蹟被說書人編成了段子，在酒樓茶肆裡一講就是幾十年。'];
   else if (S.spouse && S.fame < 300) end = ['神仙眷侶', `你與${NPCS[S.spouse].n}歸隱山林，種花釀酒。江湖上沒有你們的傳說，你們也不在乎。`];
   else if (S.fame >= 300) end = ['江湖名宿', '你算不上天下第一，但走到哪裡，總有人願意敬你一杯酒。'];
@@ -674,10 +698,10 @@ function inherit() {
   const e = UI.end;
   const heir = S.child ? `${S.name}之子女` : S.disciple ? `${S.name}的弟子${S.disciple.n}` : null;
   const legacy = {
-    gen: S.gen, from: S.name, blood: !!S.child, kind: S.plot && S.plot.kind,
+    gen: S.gen, from: S.name, blood: !!S.child, year: ad() + 1,
     skill: { id: e.pick, lv: Math.max(1, Math.ceil(S.skills[e.pick].lv * (heir ? 0.5 : 0.3))) },
     silver: Math.round(S.silver * (heir ? 0.3 : 0.1)), weapon: heir ? S.weapon : null,
   };
-  UI = { screen: 'create', ov: null, create: { name: '', gender: '男', origin: 0, stats: rollStats(), legacy } };
+  UI = { screen: 'create', ov: null, create: { name: '', gender: '男', origin: 0, stats: rollStats(), legacy, year: legacy.year } };
   render();
 }

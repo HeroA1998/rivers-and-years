@@ -4,7 +4,7 @@
 const fightThen = (e, w, l, x) => Object.assign({ battle: e, win: w, lose: l, noFlee: true }, x || {});
 const CHAINS = {
   /* ---- 託孤 ---- */
-  letter: { title: '託孤', roll: () => ({ city: pick(['linan', 'luoyang']), fate: pick(['debt', 'maid', 'thief']) }),
+  letter: { title: '託孤', roll: () => ({ city: pick(['linan', 'yanjing', 'xiangyang']), fate: pick(['debt', 'maid', 'thief']) }),
     steps: [
       { ctx: ['travel', 'wild'], log: '答應替垂死的劍客駱寒送信給女兒。', scene: (s, v) => ({ title: '道旁的劍客', art: 'road',
         pages: ['官道旁的老槐樹下靠著一個人，胸口一片暗紅，手裡還握著劍。他聽見腳步聲，費力地睜開眼。', `「在下駱寒。」他從懷裡摸出一封信，連劍一起推向你，「${LOCS[v.city].n}……我女兒，阿蘅……十年沒見了。信和劍，替我交給她。」\n\n「我沒有銀子謝你。只有一句話：這輩子別學我，為了爭一口氣，把家丟了。」`],

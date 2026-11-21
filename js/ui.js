@@ -10,7 +10,7 @@ const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
-const TYPE_CLS = { '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
+const TYPE_CLS = { '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
 
 function render() {
   H = [];
@@ -32,10 +32,10 @@ const SCREENS = {
     return `<div class="title-screen">
       ${art('title', 'title', 'hero')}
       <h1>江湖歲月錄</h1>
-      <p class="lead">十六歲入洛陽，一人一劍。拜師、修煉、結緣、傳承，寫你自己的武林春秋。</p>
+      <p class="lead">你不是郭靖，也不是張無忌。你只是那個年代裡的一個江湖人——親眼看著傳說發生，也過著自己的一生。</p>
       <div class="col">
-        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${ERA}${sv.date.y === 1 ? '元' : cnNum(sv.date.y)}年</small>`, () => { S = sv; UI = { screen: 'game', tab: 'world', ov: null }; render(); }, 'primary big') : ''}
-        ${B('初入江湖', () => { UI.screen = 'create'; UI.create = { name: '', gender: '男', origin: 0, stats: rollStats() }; render(); }, sv ? 'big' : 'primary big')}
+        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${reign((sv.y0 || 1222) + sv.date.y - 1)}</small>`, () => { S = sv; UI = { screen: 'game', tab: 'world', ov: null }; render(); }, 'primary big') : ''}
+        ${B('初入江湖', () => { UI.screen = 'create'; UI.create = { name: '', gender: '男', origin: 0, stats: rollStats(), year: ERAS[0].y }; render(); }, sv ? 'big' : 'primary big')}
       </div>
       <p class="ver">${VERSION}</p></div>`;
   },
@@ -45,13 +45,15 @@ const SCREENS = {
     return `<div class="create">
       <h2>${c.legacy ? `第${cnNum(c.legacy.gen + 1)}代傳人` : '初入江湖'}</h2>
       ${c.legacy ? `<p class="note">承襲自${esc(c.legacy.from)}：${SKILLS[c.legacy.skill.id].n}第${cnNum(c.legacy.skill.lv)}層、銀兩 ${c.legacy.silver}${c.legacy.weapon ? '、' + ITEMS[c.legacy.weapon].n : ''}${c.legacy.blood ? '、血脈天賦（悟性根骨各+1）' : ''}</p>` : ''}
+      <div class="field">年代</div>
+      <div class="col">${eraOptions(c).map(x => `<button type="button" class="opt ${c.year === x.y ? 'on' : ''}"${h(() => { c.year = x.y; render(); })}><b>${x.n}<i>${reign(x.y)}・${x.y}年</i></b><span>${x.d}</span></button>`).join('')}</div>
       <label class="field" for="nm">姓名<input id="nm" maxlength="6" placeholder="例：沈孤雁" value="${esc(c.name)}" autocomplete="off"></label>
       <div class="field">性別<div class="row">${['男', '女'].map(g => B(g, () => { c.gender = g; render(); }, c.gender === g ? 'on' : '')).join('')}</div></div>
       <div class="field">出身</div>
       <div class="col">${ORIGINS.map((x, i) => `<button type="button" class="opt ${c.origin === i ? 'on' : ''}"${h(() => { c.origin = i; render(); })}><b>${x.n}</b><span>${x.d}</span></button>`).join('')}</div>
       <div class="field">天資 ${B('重擲', () => { c.stats = rollStats(); render(); }, 'mini')}</div>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${st[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div>
-      ${B('踏入洛陽城', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); newGame(c, c.legacy); }, 'primary big')}
+      ${B('踏入江湖', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); newGame(c, c.legacy); }, 'primary big')}
     </div>`;
   },
   game() {
@@ -90,25 +92,32 @@ const SCREENS = {
 };
 
 /* ---------- 分頁 ---------- */
+function eraOptions(c) {
+  const out = [];
+  if (c.legacy) out.push({ y: c.legacy.year, n: '承接上一代', d: `緊接著${c.legacy.from}歸隱的第二年。江湖上的人和事，都還記得${c.legacy.from}。` });
+  for (const e of ERAS) if (!c.legacy || e.y > c.legacy.year + 5) out.push(c.legacy ? Object.assign({}, e, { n: `${e.n}（數十年後的後人）` }) : e);
+  return out;
+}
 const TABS = {
   world() {
     const L = LOCS[S.loc], k = L.kind;
     const logs = S.log.slice(-5).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
     let g = [];
-    const common = A('修煉', '武功或體魄・十日', () => openMenu('train')) + A('趕路', '前往他處', () => openMenu('travel'));
+    const common = A('修煉', '武功或體魄・十日', () => openMenu('train')) + A('趕路', '前往他處', () => openMenu('travel')) + A('閉關一年', '武功大進・錯過這一年的事', () => confirmBox('閉關一年？', '這一年裡武功與內力會大有長進，但江湖上發生的事，你都只能出關後聽說。', retreat));
     if (k === 'city') {
-      g.push(['城中', A('客棧歇息', '三日・10 兩・全復', () => rest(3, 10, '在客棧好好歇了三日，氣血內力盡復。')) + A('露宿街頭', '三日・免費・復六成', roughSleep) + A('市集', '買賣物品', () => openMenu('shop')) + A('碼頭做工', '十日・賺銀兩', work) + A('酒樓打聽', '一日・5 兩・易遇事', gossip) + A('擂台比武', '二日・名利雙收', arena)]);
+      g.push(['城中', A('客棧歇息', '三日・10 兩・全復', () => rest(3, 10, '在客棧好好歇了三日，氣血內力盡復。')) + A('露宿街頭', '三日・免費・復六成', roughSleep) + A('市集', '買賣物品', () => openMenu('shop')) + A('碼頭做工', '十日・賺銀兩', work) + A('酒樓打聽', '一日・5 兩・易遇事', gossip) + A('擂台比武', '二日・名利雙收', arena) + A('藥舖煉藥', '草藥×3 → 金創藥', brew, (S.inv.herb || 0) < 3)]);
     } else if (k === 'wild') {
       g.push(['野外', A('歷練', '五日・多遇強敵', explore) + A('採藥', '五日', gather) + A('露宿休整', '五日・全復', () => rest(5, 0, '尋了處避風的山坳，休整五日。'))]);
     } else {
       const sc = SECTS[L.sect];
-      if (S.sect === L.sect) {
+      if (!sectOpen(L.sect)) {
+        g.push([L.n, `<p class="desc">${ad() < sc.from ? `這時候山上還沒有${sc.n}。` : `${sc.n}已經風流雲散，山上只剩斷壁殘垣。`}</p>` + A('露宿休整', '五日・全復', () => rest(5, 0, '尋了處避風的地方，休整五日。')) + A('歷練', '五日・多遇強敵', explore)]);
+      } else if (S.sect === L.sect) {
         const canUp = S.rank < 3 && S.contribTotal >= RANK_NEED[S.rank + 1];
         g.push([`${sc.n}・${RANKS[S.rank]}`, A('門派任務', '十日・得貢獻', sectTask) + A('學藝', `貢獻 ${S.contrib}`, () => openMenu('learn')) + A('同門切磋', '二日・長進武功', spar) + A('晉升考核', S.rank >= 3 ? '已至長老' : `累計貢獻 ${S.contribTotal}/${RANK_NEED[S.rank + 1]}`, promote, !canUp) + A('回房歇息', '三日・全復', () => rest(3, 0, '在弟子房中歇息三日。'))]);
       } else {
         g.push([sc.n, `<p class="desc">${sc.d}<br>武學：${sc.style}　掌事：${sc.master}　入門條件：${sc.reqT}</p>` + (S.sect ? '' : A('拜師入門', `成為${sc.n}弟子`, () => joinSect(L.sect))) + A('借宿', '三日・10 兩・全復', () => rest(3, 10, `在${sc.n}的客舍借宿三日。`))]);
       }
-      if (S.sect === 'baihua' || knows('bh_nei')) g[0][1] += A('煉藥', '草藥×3 → 金創藥', brew, (S.inv.herb || 0) < 3);
     }
     const here = Object.keys(NPCS).filter(id => NPCS[id].loc === S.loc && S.npcs[id] && S.npcs[id].met);
     if (here.length) g.push(['故人', here.map(id => {
@@ -118,10 +127,9 @@ const TABS = {
       return s;
     }).join('')]);
     g.push(['行止', common]);
-    const st = storyNow();
-    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線・${STORY_NAME[S.plot.kind || 'guard']}</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress}</small>` : ''}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`
-      : `<section class="quest done"><span class="tag jade">主線完結</span><p>江湖路遠，隨心而行；倦了便到「人物」頁歸隱，把武功傳給下一代。</p>${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
-    if (st && st.action && S.loc === 'luoyang') g.unshift(['主線', A('赴洛陽決戰', '最終一戰・無法脫身', () => confirmBox('赴洛陽決戰？', '這是與血煞教主的最終一戰，無法脫身。確定已備妥丹藥、練好武功？', () => { S.flags.goFinal = true; pump(); }))]);
+    const rum = histRumors(720);
+    const heard = S.flags.heardOf || {};
+    const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : `<p>眼下江湖上沒有什麼大消息。到酒樓坐坐，${Object.keys(heard).length ? '' : '或許能'}聽到一年後的事。</p>`}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
     return quest + `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
   },
   me() {
@@ -130,13 +138,14 @@ const TABS = {
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>
+      <section class="group"><h3>見聞</h3><p class="desc">親眼目睹 ${histCount('seen')} 件・事後耳聞 ${histCount('heard')} 件</p></section>
       <section class="group"><h3>江湖記事</h3>${(S.journal || []).length ? `<ul class="log journal">${S.journal.map(j => `<li><time>${j.t}・${j.ch}</time>${j.s}</li>`).join('')}</ul>` : '<p class="empty">故事才剛開始。</p>'}</section>
       <section class="group"><h3>去留</h3><div class="acts">
         ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
         ${S.sect ? A('叛出師門', '聲望-40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
         ${A('重新開始', '刪除存檔', () => confirmBox('刪除存檔？', '目前的進度將無法復原。', () => { wipeSave(); S = null; UI = { screen: 'title', ov: null }; render(); }))}
       </div></section>
-      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p>
+      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p>
       <ul class="credits">${Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('')}</ul></section>`;
   },
   skill() {

@@ -194,3 +194,8 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .sheet.battle .foe b { font-size: 20px; }
 .cell.card { height: 56px; } .stances .mv { padding: 6px 8px; } .stances .mv b { font-size: 21px; } .stances .mv svg { width: 26px; height: 26px; }
 .callout { min-height: 96px; } .blog.recap { height: 170px; }
+
+/* 江湖風聞 */
+.quest small.rum { grid-column: 1 / -1; display: block; padding: 6px 0 2px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--ink); line-height: 1.6; }
+.quest small.rum b { font-weight: normal; font-family: var(--f-brush); color: var(--seal); font-size: 14px; }
+.quest small.rum.now b { color: var(--jade); }
