@@ -52,7 +52,7 @@ const SCREENS = {
       <div class="field">性別<div class="row">${['男', '女'].map(g => B(g, () => { c.gender = g; render(); }, c.gender === g ? 'on' : '')).join('')}</div></div>
       <p class="note">出身由天：投胎到什麼人家、生在哪裡，要等踏入江湖才知道。不同出身另有天資加成。</p>
       <div class="field">天資 ${B('重擲', () => { c.stats = rollStats(); render(); }, 'mini')}</div>
-      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${st[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div>
+      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${ico(k)}${STAT_N[k]}</span><b>${st[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div>
       ${B('踏入江湖', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); newGame(c, c.legacy); }, 'primary big')}
     </div>`;
   },
@@ -71,10 +71,10 @@ const SCREENS = {
         <div class="icorow"><span>內力</span><span class="ico">${orbs(S.qi, qiMax())}</span></div>
         <div><span>Lv ${S.lv}</span>${bar(S.exp, expNeed(S.lv), 'xp')}<em>${S.exp}/${expNeed(S.lv)}</em></div>
         ${statRow()}
-        <div class="chips"><span>銀兩 <b>${S.silver}</b></span><span>聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
+        <div class="chips"><span>${ico('coin')}銀兩 <b>${S.silver}</b></span><span>${ico('star')}聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
       </div>
       <main>${TABS[UI.tab]()}</main>
-      <nav class="tabs">${[['world', '江湖'], ['me', '人物'], ['bag', '行囊']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${t[1]}</button>`).join('')}</nav>`;
+      <nav class="tabs">${[['world', '江湖', 'compass'], ['me', '人物', 'person'], ['bag', '行囊', 'bag']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${ico(t[2])}<span>${t[1]}</span></button>`).join('')}</nav>`;
   },
   end() {
     const e = UI.end;
@@ -96,12 +96,47 @@ const SCREENS = {
   },
 };
 
+/* ---------- 圖示庫：全部用 SVG 線稿，跟著文字顏色走 ---------- */
+const IC = {
+  str: '<path d="M7 12V8.500a1.500 1.500 0 013 0V7a1.500 1.500 0 013 0v1a1.500 1.500 0 013 0v5.500a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/>',
+  con: '<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/><path d="M12 8v7M8.500 11.500h7"/>',
+  int: '<path d="M4 5.500h6.500a2 2 0 012 2V20a2 2 0 00-2-2H4z"/><path d="M20 5.500h-6.500a1 1 0 00-1 1M20 5.500V18h-6"/>',
+  agi: '<path d="M3 9h10a3 3 0 10-3-3M3 15h14a3 3 0 11-3 3M3 12h7"/>',
+  luck: '<circle cx="8.500" cy="8.500" r="3.200"/><circle cx="15.500" cy="8.500" r="3.200"/><circle cx="8.500" cy="15.500" r="3.200"/><circle cx="15.500" cy="15.500" r="3.200"/><path d="M12 12l6 8"/>',
+  cha: '<path d="M12 20c-5-2-8-6-8-10 3 0 6 1 8 4 2-3 5-4 8-4 0 4-3 8-8 10z"/><path d="M12 14c-1.500-3-1.500-6 0-9 1.500 3 1.500 6 0 9z"/>',
+  sword: '<path d="M20.500 3.500l-11 11M20.500 3.500L15.500 4.500 7 13l4 4 8.500-8.500z"/><path d="M5 12l7 7M8.500 15.500L3.500 20.500"/>',
+  blade: '<path d="M5 19c7-1 12-7 14-15-1 6-3 10-7 13l-3 3z"/><path d="M5 19l-2 2"/>',
+  fist: '<path d="M7 12V8.500a1.500 1.500 0 013 0V7a1.500 1.500 0 013 0v1a1.500 1.500 0 013 0v5.500a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/>',
+  staff: '<path d="M4 20L20 4"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.600"/>',
+  spear: '<path d="M5 19L17 7"/><path d="M17 7l-.8-4 4 .8z"/><path d="M5 19l-2 2"/>',
+  whip: '<path d="M4 19c4-9 6 3 10-5s4-7 6-9"/><path d="M4 19l-1 2"/>',
+  dart: '<path d="M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"/>',
+  qing: '<path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/>',
+  nei: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18 4.500 4.500 0 010-9 4.500 4.500 0 000-9z"/>',
+  sup: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
+  star: '<path d="M12 3l2.700 5.800 6.300.7-4.700 4.300 1.300 6.200L12 16.800 6.400 20l1.300-6.200L3 9.500l6.300-.7z"/>',
+  ring: '<circle cx="12" cy="15" r="6"/><path d="M9 6l3-3 3 3-3 3z"/>',
+  bottle: '<path d="M10 3h4M10.500 3v4l-3 4.500A6 6 0 0012 21a6 6 0 004.500-9.500L13.500 7V3"/><path d="M8 14h8"/>',
+  scroll: '<path d="M6 4h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  box: '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M3 9h18M12 9v11M12 9c-3-5-6-2-4 0M12 9c3-5 6-2 4 0"/>',
+  leaf: '<path d="M5 19C5 10 10 5 20 4c0 9-5 14-13 14z"/><path d="M5 19c3-5 6-8 11-11"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="M16 8l-2.500 5.500L8 16l2.500-5.500z"/>',
+  person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.500 3.500-7 8-7s8 2.500 8 7"/>',
+  bag: '<path d="M6 9h12l1 12H5z"/><path d="M9 9V7a3 3 0 016 0v2"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/>',
+};
+const ico = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
+const artIcon = id => artRole(id) === 'sup' ? 'sup' : SKILLS[id].type;
+const itemIcon = it => ({ med: 'bottle', tonic: 'bottle', gift: 'box', misc: 'leaf', manual: 'scroll', armor: 'shield', acc: 'ring' }[it.kind] || it.wt || 'box');
+const stars = n => '★'.repeat(n);
+
 /* ---------- 分頁 ---------- */
 const heartSvg = on => `<svg class="heart ${on ? 'on' : 'off'}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.6-4.7-9.6-9.3C1 8.3 3.2 4.8 6.6 4.8c2 0 3.7 1.1 5.4 3 1.7-1.9 3.4-3 5.4-3 3.4 0 5.6 3.5 4.2 6.9C19.6 16.300 12 21 12 21z"/></svg>`;
 const orbSvg = on => `<svg class="orb ${on ? 'on' : 'off'}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18 4.500 4.500 0 010-9 4.500 4.500 0 000-9z"/></svg>`;
 const hearts = (n = S.life, m = lifeMax()) => Array.from({ length: m }, (_, i) => heartSvg(i < n)).join('');
 const orbs = (n, m) => Array.from({ length: m }, (_, i) => orbSvg(i < n)).join('');
-const statRow = () => `<div class="statrow">${Object.keys(STAT_N).map(k => `<span><i>${STAT_N[k]}</i><b>${S.stats[k]}</b>${S.bonus && S.bonus[k] ? `<small>+${S.bonus[k]}</small>` : ''}</span>`).join('')}</div>`;
+const statRow = () => `<div class="statrow">${Object.keys(STAT_N).map(k => `<span>${ico(k)}<i>${STAT_N[k]}</i><b>${S.stats[k]}</b>${S.bonus && S.bonus[k] ? `<small>+${S.bonus[k]}</small>` : ''}</span>`).join('')}</div>`;
 function eraOptions(c) {
   const out = [];
   if (c.legacy) out.push(c.legacy.reset
@@ -132,13 +167,13 @@ const TABS = {
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}・貢獻 ${S.contrib}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負<br>
       戰力 ${Math.round(power())}　閃避 ${Math.round(pDodge())}　防禦 ${Math.round(pDef())}</p>
       <div class="icorow big"><span>氣血</span><span class="ico">${hearts()}</span></div><div class="icorow big"><span>內力</span><span class="ico">${orbs(S.qi, qiMax())}</span></div>
-      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>本身 ${S.base[k]}${S.bonus[k] ? `　裝備 +${S.bonus[k]}` : ''}<br>${STAT_D[k]}</small></div>`).join('')}</div>
+      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${ico(k)}${STAT_N[k]}</span><b>${S.stats[k]}</b><small>本身 ${S.base[k]}${S.bonus[k] ? `　裝備 +${S.bonus[k]}` : ''}<br>${STAT_D[k]}</small></div>`).join('')}</div>
       <p class="desc">能力值只會因為升級配點、故事中的遭遇，以及裝備的兵刃、護甲、飾品與武功而改變。</p></section>`;
   },
   skill() {
     const ids = Object.keys(S.skills).sort((a, b) => (S.eq.includes(b) - S.eq.includes(a)) || ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(a)) - ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(b)) || SKILLS[b].tier - SKILLS[a].tier);
     const cb = activeCombo();
-    const slots = `<section class="group"><h3>武學裝備 ${S.eq.length}/${EQ_MAX}</h3><div class="slots">${[0, 1, 2, 3, 4].map(i => { const id = S.eq[i]; return id ? `<div class="slot r-${artRole(id)}"><i>${ROLE_N[artRole(id)]}</i><b>${SKILLS[id].n}</b><small>${artRole(id) === 'atk' ? `攻擊 ${artAtk(id)}` : `第${cnNum(S.skills[id].lv)}層`}</small></div>` : '<div class="slot empty"><i>空</i><b>—</b><small>未裝備</small></div>'; }).join('')}</div>
+    const slots = `<section class="group"><h3>武學裝備 ${S.eq.length}/${EQ_MAX}</h3><div class="slots">${[0, 1, 2, 3, 4].map(i => { const id = S.eq[i]; return id ? `<div class="slot r-${artRole(id)} tier-${SKILLS[id].tier}">${ico(artIcon(id), 'slotic')}<i>${ROLE_N[artRole(id)]}</i><b>${SKILLS[id].n}</b><em class="stars">${stars(SKILLS[id].tier)}</em><small>${artRole(id) === 'atk' ? `攻擊 ${artAtk(id)}` : `第${cnNum(S.skills[id].lv)}層`}</small></div>` : '<div class="slot empty">' + ico('nei', 'slotic') + '<i>空</i><b>—</b><small>未裝備</small></div>'; }).join('')}</div>
       <p class="desc">${S.nei ? `主修內功：${SKILLS[S.nei].n}（${ATTR_N[SKILLS[S.nei].attr]}）——與招式屬性相合則威力大增。` : '沒有裝備內功：氣血內力較少，出招也沒有內力加成。'}${cb ? `<br>武功組合：<b>${cb.n}</b>，威力 +${Math.round(cb.mul * 100 - 100)}%。` : ''}<br>每門裝備中的武功依類別加能力值（入門 +1、上乘 +2、絕學 +3）；只有裝備中的武功會在實戰中長進。</p></section>`;
     return slots + ids.map(id => {
       const k = SKILLS[id], sk = S.skills[id], r = artRole(id), on = S.eq.includes(id), st = artSt(id), fx = artFxText(id);
@@ -148,7 +183,7 @@ const TABS = {
         : k.type === 'qing' ? `每層 閃避+${k.dodge}`
         : r === 'sup' ? '不出招，只提供戰鬥效果'
         : k.moves.map(m => `<span class="${sk.lv >= m[1] ? '' : 'locked'}">${m[0]}${m[4] ? `〔${FX_N[m[4]]}〕` : ''}${sk.lv >= m[1] ? '' : `（${m[1]}層）`}</span>`).join('、');
-      return `<article class="card${on ? ' equipped' : ''}"><div class="card-h"><b>${k.n}</b><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
+      return `<article class="card tier-${k.tier}${on ? ' equipped' : ''}"><div class="card-h"><span class="artic">${ico(artIcon(id), 'big')}</span><b>${k.n}</b><em class="stars">${stars(k.tier)}</em><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
         <div class="lvrow">第${cnNum(sk.lv)}層 ${sk.lv >= 10 ? '<em>圓滿</em>' : bar(sk.exp, xpNeed(sk.lv, k.tier), 'xp') + `<em>${sk.exp}/${xpNeed(sk.lv, k.tier)}</em>`}</div>
         <p class="props">${r === 'atk' ? `<span>攻擊力 <b>${artAtk(id)}</b></span>` : ''}<span>裝備加成 <b>${stat}</b></span>${fx ? `<span>效果 <b>${fx}</b></span>` : ''}</p>
         <p>${k.d}</p><p class="moves">${detail}</p></article>`;
@@ -158,13 +193,13 @@ const TABS = {
     const ids = Object.keys(S.inv);
     const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
     const desc = it => it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `可習得${SKILLS[it.skill].n}` : '');
-    const slot = (n, id) => `<div><span>${n}</span><b>${id ? ITEMS[id].n : '—'}</b><small>${id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備'}</small></div>`;
-    return `<section class="group"><h3>裝備</h3><div class="stats gear">${slot('兵刃', S.weapon)}${slot('護甲', S.armor)}${slot('飾品', S.acc)}</div><p class="desc">兵刃、護甲、飾品在路上的市集、鐵匠舖、貨郎那裡買得到，也可能在奇遇裡得到。</p></section>` +
+    const slot = (n, id, ic) => `<div>${ico(ic, 'gearic')}<span>${n}</span><b>${id ? ITEMS[id].n : '—'}</b><small>${id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備'}</small></div>`;
+    return `<section class="group"><h3>裝備</h3><div class="stats gear">${slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword')}${slot('護甲', S.armor, 'shield')}${slot('飾品', S.acc, 'ring')}</div><p class="desc">兵刃、護甲、飾品在路上的市集、鐵匠舖、貨郎那裡買得到，也可能在奇遇裡得到。</p></section>` +
       (ids.length ? ids.map(id => {
         const it = ITEMS[id];
         const eqd = S.weapon === id || S.armor === id || S.acc === id;
         const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
-        return `<article class="card row-card"><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${[desc(it), stx(it)].filter(Boolean).join('・')}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
+        return `<article class="card row-card"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${[desc(it), stx(it)].filter(Boolean).join('・')}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
       }).join('') : '<p class="empty">行囊空空如也。</p>');
   },
   people() {
@@ -262,7 +297,7 @@ function overlay() {
     return `<div class="veil"><div class="sheet lvup">
       <h2>等級提升！</h2><p class="lv">Lv ${S.lv}</p>
       <p class="desc">屬性點數 <b class="pts">${left}</b>　分配到想要的能力上（下列為本身數值，不含裝備加成）。</p>
-      <div class="lvrows">${Object.keys(STAT_N).map(k => `<div class="lvr"><span>${STAT_N[k]}<small>${STAT_D[k]}</small></span><b>${S.base[k] + (o.add[k] || 0)}${o.add[k] ? `<em>+${o.add[k]}</em>` : ''}</b>${B('＋', () => lvAdd(k), 'plus', left <= 0 || S.base[k] + (o.add[k] || 0) >= 30)}</div>`).join('')}</div>
+      <div class="lvrows">${Object.keys(STAT_N).map(k => `<div class="lvr"><span>${ico(k, 'lvic')}${STAT_N[k]}<small>${STAT_D[k]}</small></span><b>${S.base[k] + (o.add[k] || 0)}${o.add[k] ? `<em>+${o.add[k]}</em>` : ''}</b>${B('＋', () => lvAdd(k), 'plus', left <= 0 || S.base[k] + (o.add[k] || 0) >= 30)}</div>`).join('')}</div>
       <div class="row">${B('重置', lvReset, 'big', !used)}${B('確認', lvOk, 'primary big', left > 0)}</div>
     </div></div>`;
   }
@@ -294,7 +329,7 @@ const foeFig = style => style === 'beast'
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
   const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
-  const chips = ids => ids.map(id => `<i class="ac r-${artRole(id)}" title="${SKILLS[id].n}">${TYPE_N[SKILLS[id].type][0]}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
+  const chips = ids => ids.map(id => `<i class="ac r-${artRole(id)} tier-${SKILLS[id].tier}" title="${SKILLS[id].n}">${ico(artIcon(id))}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const pop = o.pop || { toE: 0, toP: 0 }, fight = o.phase === 'fight';
   const pcls = `fgt p${fight && pop.toE ? ' atk' : ''}${fight && pop.toP ? ' hit' : ''}${o.god ? ' god' : ''}`;
   const ecls = `fgt e${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
@@ -319,7 +354,7 @@ function battleView(o) {
       <p class="cap">${last || ''}</p>
       ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▶▶ x${o.speed === 1 ? 1 : 2}</button>`}
     </div>
-    <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${m[0][0]}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
+    <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     <div class="ctrl">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
       <div class="${dieCls}">${ICON.D}<b>${dieNum}</b></div>

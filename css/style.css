@@ -516,3 +516,53 @@ body { font-size: 16px; }
 .btn.gear { min-height: 44px; padding: 8px 14px; }
 .btn.plus { min-height: 46px; }
 .tabs button { min-height: 52px; }
+
+/* ================= v6.2 圖示、品級框、立繪 ================= */
+.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
+.ic.big { width: 26px; height: 26px; vertical-align: middle; }
+.ic.slotic { width: 28px; height: 28px; margin: 0 auto; }
+.ic.gearic { width: 30px; height: 30px; color: var(--indigo); }
+.ic.lvic { width: 22px; height: 22px; margin-right: 8px; vertical-align: -.35em; color: var(--indigo); }
+.chips .ic { color: var(--gold); margin-right: 2px; }
+
+/* 能力格：圖示在上、顏色對應各屬性 */
+.statrow span { gap: 0; } .statrow .ic { width: 16px; height: 16px; margin: 0 0 1px; }
+.statrow span:nth-child(1) .ic { color: #C0392B; } .statrow span:nth-child(2) .ic { color: #8A5A1E; }
+.statrow span:nth-child(3) .ic { color: #3D5BA9; } .statrow span:nth-child(4) .ic { color: #1E8C78; }
+.statrow span:nth-child(5) .ic { color: #B3821A; } .statrow span:nth-child(6) .ic { color: #A23B68; }
+.stats > div span .ic { color: var(--indigo); margin-right: 4px; vertical-align: -.25em; }
+
+/* 分頁：圖示加文字 */
+.tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 7px 0 6px; font-size: 15px; line-height: 1.2; }
+.tabs button .ic { width: 24px; height: 24px; }
+.tabs button.on .ic { filter: drop-shadow(0 0 4px rgba(245,215,124,.7)); }
+
+/* 品級：入門（素）、上乘（青玉）、絕學（金，帶光） */
+.stars { font-style: normal; font-size: 12px; letter-spacing: 1px; margin-left: 2px; }
+.tier-1 .stars, .stars.t1 { color: #8C7A58; } .tier-2 .stars { color: #1E8C78; } .tier-3 .stars { color: #D9A81E; text-shadow: 0 0 4px rgba(231,195,90,.7); }
+.card.tier-1 { border-left: 5px solid #A8946B; }
+.card.tier-2 { border-left: 5px solid #1E8C78; background-image: linear-gradient(90deg, rgba(30,140,120,.10), transparent 40%); }
+.card.tier-3 { border: 1.5px solid #D9A81E; border-left: 5px solid #D9A81E; background-image: linear-gradient(90deg, rgba(231,195,90,.28), transparent 55%); box-shadow: 0 0 0 1px rgba(231,195,90,.55) inset, 0 0 12px rgba(231,195,90,.4); position: relative; overflow: hidden; }
+.card.tier-3::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 40%, rgba(255,247,200,.45) 50%, transparent 60%); transform: translateX(-120%); animation: shine 3.600s ease-in-out infinite; pointer-events: none; }
+@keyframes shine { 0%, 60% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.slot.tier-1 { border-top-color: #A8946B; } .slot.tier-2 { border-top-color: #1E8C78; background-image: linear-gradient(180deg, rgba(30,140,120,.14), transparent); }
+.slot.tier-3 { border: 1.5px solid #D9A81E; box-shadow: 0 0 8px rgba(231,195,90,.55); background-image: linear-gradient(180deg, rgba(231,195,90,.32), transparent); }
+.slot .slotic { color: var(--indigo); } .slot.tier-3 .slotic { color: #A87800; }
+.slot .stars { display: block; line-height: 1; margin-top: 1px; }
+.ac.tier-3 { box-shadow: 0 0 6px rgba(231,195,90,.8); } .ac.tier-2 { background-image: linear-gradient(180deg, rgba(30,140,120,.18), transparent); }
+.ac .ic { width: 16px; height: 16px; margin-bottom: 1px; }
+
+/* 武功卡與道具卡的圖示底座 */
+.card-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.artic, .itemic { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF6DC, #E7D2A0); border: 1.5px solid #B8A07A; color: var(--indigo); box-shadow: 0 2px 0 rgba(43,28,16,.15); flex: none; }
+.card.tier-3 .artic { background: radial-gradient(circle at 35% 30%, #FFF3B8, #E6BC4A); border-color: #A87800; color: #6E4A00; }
+.card.tier-2 .artic { background: radial-gradient(circle at 35% 30%, #E4F6EF, #8FD0BD); border-color: #1E8C78; color: #0E5A4C; }
+.card.row-card { align-items: center; }
+.card.row-card .itemic { margin-right: 10px; }
+.stats.gear > div { align-items: flex-start; }
+
+/* 立繪放大：人脈頁與事件浮層 */
+.card.has-face { grid-template-columns: 104px 1fr; }
+.card.has-face .face { width: 104px; border-radius: 6px; border: 2px solid var(--gold); box-shadow: 0 3px 8px rgba(43,28,16,.3); }
+.face.on-art { height: 112%; right: 4px; bottom: -4px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
+.sheet .scene:has(.face.on-art) { overflow: hidden; }
