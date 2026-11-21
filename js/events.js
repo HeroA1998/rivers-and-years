@@ -595,7 +595,7 @@ const FIXED = {
   tourney: { type: '戰鬥', title: '重陽擂台', art: 'fight', fixed: true, cond: s => s.loc === 'linan' || travelDays('linan') <= 8,
     text: s => `九月初九重陽，臨安城外的擂台又要開擂了。各路好手雲集，奪魁的人能風光好一陣子。${s.loc === 'linan' ? '你人就在臨安，擂台的鼓聲隔著三條街都聽得見。' : `從${LOCS[s.loc].n}趕去，需${cnNum(travelDays('linan'))}日路程。`}`,
     choices: [
-      { t: '報名參加', go: s => { if (s.loc !== 'linan') { advance(travelDays('linan')); s.loc = 'linan'; } s.date.m = 9; s.date.d = Math.max(s.date.d, 9); return tourneyRound(0); } },
+      { t: '報名參加', go: s => { if (s.loc !== 'linan') { advance(travelDays('linan')); s.loc = 'linan'; } return tourneyRound(0); } },
       { t: '今年不去湊熱鬧', go: () => '你聽說今年的魁首又是裴照。' },
     ] },
   lantern: { who: s => s.flags.fest, type: '戀愛', title: '上元燈會', art: 'love', fixed: true,

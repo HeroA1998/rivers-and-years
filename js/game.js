@@ -183,9 +183,10 @@ function advance(days) {
     const d = S.date;
     d.d++;
     if (d.d > 30) { d.d = 1; d.m++; if (d.m > 12) { d.m = 1; d.y++; onYear(); } onMonth(); }
-    if (d.m === 1 && d.d === 15) Q.push(FIXED.lantern);
-    if (d.m === 7 && d.d === 7) Q.push(FIXED.qixi);
-    if (d.m === 9 && d.d === 1) Q.push(FIXED.tourney);
+    // 節慶記下當天的日子；若主角當時在路上或閉關，事後不再補演
+    if (d.m === 1 && d.d === 15) Q.push(Object.assign({ due: today() }, FIXED.lantern));
+    if (d.m === 7 && d.d === 7) Q.push(Object.assign({ due: today() }, FIXED.qixi));
+    if (d.m === 9 && d.d === 1) Q.push(Object.assign({ due: today() }, FIXED.tourney));
     histTick();
   }
   S.hp = Math.min(maxHp(), Math.round(S.hp + days * maxHp() * 0.02));
@@ -228,6 +229,7 @@ function pump() {
   save(); render();
 }
 function showEvent(ev) {
+  if (ev.due != null && today() - ev.due > 5) return pump();
   if (ev.cond && ev.fixed && !ev.cond(S)) return pump();
   if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; }
   const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
@@ -498,6 +500,60 @@ function travel(to) {
   if (chance(55)) { const e = rollEvent('travel'); if (e) Q.push(e); }
   pump();
 }
+/* ---------- 下一步建議：告訴玩家現在最該做什麼 ---------- */
+// 在原地修煉等候到某一天（每十日的長進約等於一次修煉）
+function waitUntil(day, why) {
+  UI.ov = null;
+  const days = Math.max(1, day - today());
+  const g = (40 + S.stats.int * 5) * days / 10 * 0.8;
+  const ups = S.eq.map(id => xp(id, g / 2)).join('') + xp(S.nei, g / 2);
+  log(`你在${LOCS[S.loc].n}一邊練功一邊等候，過了${cnNum(days)}日。${why || ''}${ups}`);
+  advance(days);
+  pump();
+}
+const nearest = (ids) => ids.filter(id => id !== S.loc).sort((a, b) => travelDays(a) - travelDays(b))[0];
+function nextGoal() {
+  const t = today();
+  const noSect = !S.sect && age() < 30;
+  const sectGoal = () => {
+    const open = Object.keys(SECTS).filter(sectOpen);
+    const here = LOCS[S.loc].sect && open.includes(LOCS[S.loc].sect) ? LOCS[S.loc].sect : null;
+    if (here) return { title: `拜入${SECTS[here].n}`, desc: SECTS[here].d, note: `入門條件：${SECTS[here].reqT}`, acts: [['拜師入門', () => joinSect(here)]] };
+    const to = nearest(open.map(id => SECTS[id].loc));
+    return { title: '先找個門派學本事', desc: `沒有師門，武功很難長進。最近的山門是${LOCS[to].n}。`, note: `趕路 ${cnNum(travelDays(to))} 日。`, acts: [[`前往${LOCS[to].n}`, () => travel(to)]] };
+  };
+  // 1. 已知、趕得上的歷史大事
+  for (const r of histRumors(720, false)) {
+    const h = r.h, start = hStart(h), end = hEnd(h);
+    const need = S.loc === h.loc ? 0 : travelDays(h.loc);
+    if (t + need >= end) continue;                       // 趕不上
+    const slack = start - t - need;
+    if (noSect && slack > 120) { const sg = sectGoal(); sg.note = `${sg.note}　時間還早，下一件大事是${r.when}在${r.where}。`; return sg; }
+    const title = `${r.when}・${r.where}`, desc = h.rumor;
+    if (S.loc !== h.loc) return { title, desc, note: `趕路 ${cnNum(need)} 日${slack > 0 ? `，到了還要等 ${cnNum(slack)} 日` : ''}。`, acts: [[`前往${LOCS[h.loc].n}`, () => travel(h.loc)]] };
+    if (t < start) return { title, desc, note: `你已經在${LOCS[h.loc].n}了，還有 ${cnNum(start - t)} 日。等候時會一邊練功。`, acts: [['練功等候到那天', () => waitUntil(start, `終於等到${MONTH_N[h.m]}${h.d ? cnDay(h.d) : ''}。`)]] };
+    return { title, desc, note: '就是現在。', acts: [['去看看', () => pump()]] };
+  }
+  // 2. 還沒拜師：先去學本事
+  if (noSect) return sectGoal();
+  // 3. 兩年內還有沒聽說的大事：去酒樓打聽
+  const unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]);
+  if (unknown.length) {
+    if (LOCS[S.loc].kind === 'city') return { title: '打聽下一件大事', desc: '江湖上又有風聲了。到酒樓坐坐，就能打聽到是什麼事、在哪裡。', note: '一日・5 兩', acts: [['去酒樓打聽', gossip]] };
+    const city = nearest(Object.keys(LOCS).filter(id => LOCS[id].kind === 'city'));
+    return { title: '回城裡打聽消息', desc: '野外聽不到什麼消息，城裡的酒樓才有。', note: `趕路 ${cnNum(travelDays(city))} 日。`, acts: [[`前往${LOCS[city].n}`, () => travel(city)]] };
+  }
+  // 4. 江湖平靜：練功等候，直到下一件大事有風聲
+  const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t).sort((a, b) => hStart(a) - hStart(b))[0];
+  if (nx && age() + (nx.y - ad()) <= 66) {
+    const when = hStart(nx) - 700;
+    return { title: '江湖暫時平靜', desc: `兩年之內沒有什麼大事。下一件，要等到${reign(nx.y)}前後。`, note: '可以趁這段時間練功、做門派任務、陪陪故人；不想等就直接跳過。',
+      acts: [['練功等候，直到有新消息', () => waitUntil(when, '江湖上又有了新的風聲。')]] };
+  }
+  return { title: nx ? '下一件大事，你等不到了' : '這個時代的大事都過去了', desc: nx ? `下一件大事要到${reign(nx.y)}，那時你已經太老了。` : '你親眼見過的、聽人說過的，都已成了往事。',
+    note: '可以繼續過自己的日子；或者歸隱，把武功傳給下一代，讓後人去看下一個時代。', acts: [['歸隱，傳給下一代', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
+}
+
 // 閉關一年：武功與內力大進，但這一年江湖上的事只能事後聽說
 function retreat() {
   UI.ov = null;
@@ -545,8 +601,9 @@ function work() {
 function gossip() {
   if (S.silver < 5) return toastRender('銀兩不足');
   S.silver -= 5;
-  const near = histRumors(720, true).filter(x => !x.now);
-  const hot = near.length && chance(55) ? pick(near) : null;
+  const known = S.flags.heardOf || {};
+  const near = histRumors(720, true).filter(x => !x.now && !known[x.h.id]).sort((a, b) => hStart(a.h) - hStart(b.h));
+  const hot = near.length ? near[0] : null;
   let r = hot ? `${hot.h.rumor}（${hot.when}，${hot.where}）` : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
   if (hot) { S.flags.heardOf = S.flags.heardOf || {}; S.flags.heardOf[hot.h.id] = 1; }
   S.flags.lastRumor = r;

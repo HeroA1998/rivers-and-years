@@ -128,7 +128,10 @@ const TABS = {
     const rum = histRumors(720);
     const heard = S.flags.heardOf || {};
     const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : `<p>眼下江湖上沒有什麼大消息。到酒樓坐坐，${Object.keys(heard).length ? '' : '或許能'}聽到一年後的事。</p>`}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
-    return quest + `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
+    const ng = nextGoal();
+    const guide = `<section class="guide"><span class="tag jade">下一步</span><h3>${ng.title}</h3><p>${ng.desc}</p>${ng.note ? `<small>${ng.note}</small>` : ''}<div class="col">${ng.acts.map(a => B(a[0], a[1], 'primary big')).join('')}</div></section>`;
+    const more = UI.more ? g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('') : '';
+    return guide + `<ul class="log">${logs}</ul>` + `<div class="col">${B(UI.more ? '收起其他行動' : '其他行動（修煉、買賣、拜師、情緣…）', () => { UI.more = !UI.more; render(); }, 'big')}</div>` + (UI.more ? `<p class="desc">${L.d}</p>` + quest + more : '');
   },
   me() {
     return `<section class="group"><h3>${esc(S.name)}</h3>

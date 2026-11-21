@@ -204,3 +204,8 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .codex { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .codex div { display: flex; flex-direction: column; align-items: center; padding: 6px 0; background: var(--card); border: 1px solid var(--line); border-radius: 4px; }
 .codex b { font: 15px var(--f-brush); font-weight: normal; } .codex span { font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+
+/* 下一步建議 */
+.guide { display: grid; gap: 6px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--jade); border-radius: 4px; }
+.guide h3 { color: var(--ink); letter-spacing: .06em; font-size: 18px; } .guide p { font: 16px/1.6 var(--f-brush); } .guide small { color: var(--ink2); font-size: 12px; }
+.guide .tag { justify-self: start; }
