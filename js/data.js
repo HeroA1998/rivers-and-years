@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v5.0.1';
+const VERSION = 'v6.0.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -187,36 +187,36 @@ const SKILLS = {
 const EQ_MAX = 5;
 const ART_ST = { fist: 'str', blade: 'str', spear: 'str', sword: 'agi', whip: 'agi', staff: 'agi', dart: 'luck', nei: 'con', qing: 'agi' };
 const ROLE_N = { atk: '攻擊', nei: '內功', qing: '身法', sup: '輔助' };
-// eye 看破加值・regen 每回合回血比例・mpr 每回合回內力・guard 守勢反擊加成・dmgRed 減傷・reflect 反震・foeWeak 削弱對手攻擊・crit 暴擊率・opener 開戰先發暗器・stunOpen 開戰震暈・heal 調息加成
+// eye 每點戰力 +3%・regen 每兩步回血比例・mpr 每兩步回內力・guard 每點減傷 15%・dmgRed 減傷・reflect 反震・foeWeak 削弱對手攻擊・crit 暴擊率・opener 開戰先發暗器・stunOpen 開戰震暈
 const ART_FX = {
-  jy_soul:   { pure: 1, eye: 3, foeWeak: 0.08, d: '以眼神亂人心神：看破 +3，對手攻擊 -8%' },
-  th_sea:    { pure: 1, foeWeak: 0.18, eye: 1, d: '簫聲擾亂心神：對手攻擊 -18%，看破 +1' },
-  gm_net:    { pure: 1, eye: 2, guard: 0.3, d: '雙掌圍攏如網：看破 +2，守勢反擊 +30%' },
+  jy_soul:   { pure: 1, eye: 3, foeWeak: 0.08, d: '以眼神亂人心神：戰力 +9%，對手攻擊 -8%' },
+  th_sea:    { pure: 1, foeWeak: 0.18, eye: 1, d: '簫聲擾亂心神：對手攻擊 -18%，戰力 +3%' },
+  gm_net:    { pure: 1, eye: 2, guard: 0.3, d: '雙掌圍攏如網：戰力 +6%，受傷 -4%' },
   mj_qk:     { pure: 1, dmgRed: 0.12, reflect: 0.3, d: '挪移敵勁：受傷 -12%，把三成傷害反震回去' },
   yy_finger: { regen: 0.04, d: '一陽指能療傷：每回合回復 4% 氣血' },
-  wd_taiji:  { guard: 0.7, dmgRed: 0.05, d: '以柔克剛：守勢反擊 +70%，受傷 -5%' },
+  wd_taiji:  { guard: 0.7, dmgRed: 0.05, d: '以柔克剛：受傷 -10%，受傷 -5%' },
   kong_fist: { dmgRed: 0.1, d: '以空為本：受傷 -10%' },
-  qz_palm:   { guard: 0.35, d: '北斗陣守望相助：守勢反擊 +35%' },
-  hm_toad:   { guard: 0.4, d: '蛤蟆功蓄勁反撲：守勢反擊 +40%' },
+  qz_palm:   { guard: 0.35, d: '北斗陣守望相助：受傷 -5%' },
+  hm_toad:   { guard: 0.4, d: '蛤蟆功蓄勁反撲：受傷 -6%' },
   sl_body:   { dmgRed: 0.2, d: '刀槍難入：受傷 -20%' },
   jy_god:    { regen: 0.04, mpr: 4, d: '生生不息：每回合回復 4% 氣血、4 點內力' },
   q_thunder: { regen: 0.03, mpr: 3, d: '至陽至剛：每回合回復 3% 氣血、3 點內力' },
-  sl_ult:    { regen: 0.03, eye: 1, d: '易筋洗髓：每回合回復 3% 氣血，看破 +1' },
-  q_ice:     { eye: 1, mpr: 4, d: '天下武學總綱：看破 +1，每回合回復 4 點內力' },
-  gm_nei:    { eye: 1, crit: 5, d: '心如止水：看破 +1，暴擊率 +5%' },
-  em_nei:    { heal: 0.6, d: '療傷之效尤佳：調息回血 +60%' },
-  xs_roar:   { stunOpen: 1, d: '開戰長嘯：對手第一手使不出來' },
+  sl_ult:    { regen: 0.03, eye: 1, d: '易筋洗髓：每回合回復 3% 氣血，戰力 +3%' },
+  q_ice:     { eye: 1, mpr: 4, d: '天下武學總綱：戰力 +3%，每回合回復 4 點內力' },
+  gm_nei:    { eye: 1, crit: 5, d: '心如止水：戰力 +3%，暴擊率 +5%' },
+  em_nei:    { regen: 0.03, d: '療傷之效尤佳：戰鬥中每兩步回復 3% 氣血' },
+  xs_roar:   { stunOpen: 1, d: '開戰長嘯：對手第一步使不出來' },
   th_flick:  { opener: 1, crit: 6, d: '開戰先彈一指，暴擊率 +6%' },
   mg_bow:    { opener: 1.3, d: '開戰先射一箭，威力加三成' },
   jy_claw:   { crit: 8, d: '專抓要害：暴擊率 +8%' },
   yg_sad:    { crit: 10, d: '黯然銷魂：暴擊率 +10%' },
-  q_shadow:  { eye: 1, d: '身法：閃避大增，看破 +1' },
+  q_shadow:  { eye: 1, d: '身法：閃避大增，戰力 +3%' },
   mj_bat:    { crit: 4, d: '身法：閃避大增，暴擊率 +4%' },
 };
 function artRole(id) { const k = SKILLS[id]; return k.type === 'nei' ? 'nei' : k.type === 'qing' ? 'qing' : (ART_FX[id] || {}).pure ? 'sup' : 'atk'; }
 function artSt(id) { const k = SKILLS[id], r = artRole(id); return { [r === 'sup' ? 'int' : ART_ST[k.type]]: k.tier }; }
 // 暗器類（非輔助）一律開戰先發
-const artFx = id => { const f = Object.assign({}, ART_FX[id] || {}); if (SKILLS[id].type === 'dart' && !f.pure && !f.stunOpen && !f.opener) f.opener = 1; if (SKILLS[id].heal && !f.heal) f.heal = 0.6; return f; };
+const artFx = id => { const f = Object.assign({}, ART_FX[id] || {}); if (SKILLS[id].type === 'dart' && !f.pure && !f.stunOpen && !f.opener) f.opener = 1; return f; };
 function artFxText(id) {
   const f = artFx(id), k = SKILLS[id];
   if (ART_FX[id] && ART_FX[id].d) return ART_FX[id].d + (f.opener && !ART_FX[id].opener ? '；開戰先發暗器' : '');
