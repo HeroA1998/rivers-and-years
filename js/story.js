@@ -36,12 +36,18 @@ const P_TRAITOR = {
   xiaoer: { who: 'kid', n: '酒樓的店小二', fix: 10 },
   biao:   { who: 'gu', n: '威遠鏢局的少鏢頭', fix: 11 },
 };
-function rollPlot() {
+function rollPlot(avoid) {
+  // 先抽一條主線（避開上一局玩過的那條），再抽該線內部的變數
+  let last = avoid; try { last = last || localStorage.getItem('jianghu_last_kind'); } catch (e) { /* 忽略 */ }
+  const kind = pick(['guard', 'revenge', 'framed', 'kin'].filter(k => k !== last));
+  try { localStorage.setItem('jianghu_last_kind', kind); } catch (e) { /* 忽略 */ }
   const c1 = pick(Object.keys(P_C1));
-  return { item: pick(Object.keys(P_ITEM)), truth: pick(Object.keys(P_TRUTH)), villain: pick(Object.keys(P_VILL)), traitor: pick(Object.keys(P_TRAITOR)),
+  return { kind, killer: pick(['ghost', 'iron', 'monk']), buyer: pick(['uncle', 'patron', 'hero']), why: pick(['greed', 'guilt']),
+    witness: pick(['watchman', 'singer', 'beggar']), culprit: pick(['prefect', 'merchant', 'constable']), sold: pick(['xuesha', 'troupe', 'valley']), fate: pick(['hostile', 'trapped', 'gone']),
+    item: pick(Object.keys(P_ITEM)), truth: pick(Object.keys(P_TRUTH)), villain: pick(Object.keys(P_VILL)), traitor: pick(Object.keys(P_TRAITOR)),
     c1, g2: pick(Object.keys(P_G2).filter(x => x !== c1)), g3: pick(Object.keys(P_G3)) };
 }
-const DEFAULT_PLOT = { item: 'jade', truth: 'lock', villain: 'li', traitor: 'pei', c1: 'fengchen', g2: 'cangmang', g3: 'hanhai' };
+const DEFAULT_PLOT = { kind: 'guard', item: 'jade', truth: 'lock', villain: 'li', traitor: 'pei', c1: 'fengchen', g2: 'cangmang', g3: 'hanhai' };
 const PL = s => { const p = s.plot || DEFAULT_PLOT; return { p, I: P_ITEM[p.item], T: P_TRUTH[p.truth], V: P_VILL[p.villain], R: P_TRAITOR[p.traitor], C: P_C1[p.c1], G2: P_G2[p.g2], G3: P_G3[p.g3] }; };
 const keys = s => 1 + (s.flags.key2 ? 1 : 0) + (s.flags.key3 ? 1 : 0) - (s.flags.keyLost ? 1 : 0);
 
@@ -60,8 +66,8 @@ const STORY = [
         `走了一個多月，洛陽城的城樓終於出現在官道盡頭。城門口人來人往，挑擔的、騎馬的、佩刀的，沒有人多看你一眼。\n\n你今年十六歲，${s.silver >= 50 ? `身上有${s.silver}兩銀子` : '身上只有幾個銅板'}，和一個不能讓人看見的秘密。\n\n得先找個消息靈通的地方問問。`],
       choices: [{ t: '走進洛陽城', go: () => '城裡最熱鬧的是酒樓。南來北往的人都在那裡歇腳，要打聽消息，沒有比那更好的去處。〔主線目標已更新，可在「江湖」頁上方查看〕' }] }; } },
 
-  { ch: '第一章　故人', goal: s => `在洛陽城的酒樓打聽${PL(s).C.job}`, rumor: () => '要找人？問店小二，他什麼都知道。',
-    ready: s => s.flags.askChen, log: s => `打聽到陳伯在${PL(s).C.where}，還有另一夥人也在找他。`,
+  { ch: '第一章　故人', goal: s => `在洛陽城的酒樓打聽${PL(s).C.job}`, ask: true, rumor: () => '要找人？問店小二，他什麼都知道。',
+    ready: s => s.flags.asked === 1 || s.flags.askChen, log: s => `打聽到陳伯在${PL(s).C.where}，還有另一夥人也在找他。`,
     scene: s => { const { C, V } = PL(s); return { type: '主線', title: '酒樓問路', art: 'city', who: 'kid',
       pages: [`店小二擦著桌子，頭也不抬：${C.ask}`, `他忽然停下手，壓低聲音：「客官，您是這個月第三撥來問他的了。前兩撥問完話連茶錢都沒給。」\n\n他瞄了一眼你的臉色：「小的多嘴。那幾位，看著可不像是去敘舊的。」`],
       choices: [
@@ -121,7 +127,7 @@ const STORY = [
     ready: s => s.loc === 'luoyang' && s.fame >= 250, log: s => `揭穿了三十年前的內奸：${PL(s).R.n}。`,
     scene: s => traitorScene(s) },
 
-  { ch: '終章　決戰', goal: '大敵將至。備妥丹藥、練好武功後，在洛陽城中選「赴洛陽決戰」', progress: s => `你手中的${PL(s).I.each}：${keys(s)} ${PL(s).I.mw}`, rumor: () => '城裡的鏢局都在往外撤。要出大事了。',
+  { ch: '終章　決戰', goal: '大敵將至。備妥丹藥、練好武功後，在洛陽城中選「赴洛陽決戰」', progress: s => `你手中的${PL(s).I.each}：${keys(s)} ${PL(s).I.mw}`, action: true, rumor: () => '城裡的鏢局都在往外撤。要出大事了。',
     ready: s => s.flags.goFinal && s.loc === 'luoyang', log: s => `洛陽城中，與${PL(s).V.short}決一死戰。`,
     scene: s => finalScene(s) },
 
@@ -194,18 +200,20 @@ function epilogue(s) {
     choices };
 }
 
+const storyList = () => STORIES[(S.plot && S.plot.kind) || 'guard'];
 function storyDue() {
   if (S.story == null) { S.story = S.flags.savedWulin || S.flags.demonLord ? STORY.length : 0; S.journal = S.journal || []; }
   if (!S.plot) S.plot = Object.assign({}, DEFAULT_PLOT);
-  const st = STORY[S.story];
+  const st = storyList()[S.story];
   if (!st || !st.ready(S)) return null;
   S.story++;
   S.journal.push({ t: dateStr(), ch: st.ch, s: st.log(S) });
   return st.scene(S);
 }
 function storyNow() {
-  const st = S.story == null ? STORY[0] : STORY[S.story];
+  if (!S.plot) S.plot = Object.assign({}, DEFAULT_PLOT);
+  const st = storyList()[S.story == null ? 0 : S.story];
   if (!st) return null;
   const f = v => typeof v === 'function' ? v(S) : v;
-  return { ch: st.ch, goal: f(st.goal), progress: st.progress ? st.progress(S) : '', rumor: st.rumor ? st.rumor(S) : '' };
+  return { ch: st.ch, goal: f(st.goal), progress: st.progress ? st.progress(S) : '', rumor: st.rumor ? st.rumor(S) : '', ask: st.ask, action: st.action };
 }

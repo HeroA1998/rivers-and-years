@@ -119,9 +119,9 @@ const TABS = {
     }).join('')]);
     g.push(['行止', common]);
     const st = storyNow();
-    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress}</small>` : ''}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`
+    const quest = st && st.goal ? `<section class="quest"><span class="tag seal">主線・${STORY_NAME[S.plot.kind || 'guard']}</span><h3>${st.ch}</h3><p>${st.goal}</p>${st.progress ? `<small>${st.progress}</small>` : ''}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`
       : `<section class="quest done"><span class="tag jade">主線完結</span><p>江湖路遠，隨心而行；倦了便到「人物」頁歸隱，把武功傳給下一代。</p>${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
-    if (S.story === 8 && S.loc === 'luoyang') g.unshift(['主線', A('赴洛陽決戰', '最終一戰・無法脫身', () => confirmBox('赴洛陽決戰？', '這是與血煞教主的最終一戰，無法脫身。確定已備妥丹藥、練好武功？', () => { S.flags.goFinal = true; pump(); }))]);
+    if (st && st.action && S.loc === 'luoyang') g.unshift(['主線', A('赴洛陽決戰', '最終一戰・無法脫身', () => confirmBox('赴洛陽決戰？', '這是與血煞教主的最終一戰，無法脫身。確定已備妥丹藥、練好武功？', () => { S.flags.goFinal = true; pump(); }))]);
     return quest + `<p class="desc">${L.d}</p><ul class="log">${logs}</ul>` + g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('');
   },
   me() {

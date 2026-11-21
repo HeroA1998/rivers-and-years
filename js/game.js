@@ -59,7 +59,7 @@ function newGame(c, legacy) {
     skills: { basic_fist: { lv: 1, exp: 0 }, tuna: { lv: 1, exp: 0 } }, nei: 'tuna', eq: ['basic_fist'],
     weapon: null, armor: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
-    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, plot: rollPlot(), chain: {}, wins: 0, losses: 0, legacyFrom: null,
+    done: {}, flags: {}, log: [], story: 0, journal: [], seen: {}, plot: rollPlot(legacy && legacy.kind), chain: {}, wins: 0, losses: 0, legacyFrom: null,
   };
   if (o.item) { S.inv[o.item] = 1; S.weapon = o.item; }
   if (o.herb) S.inv.herb = o.herb;
@@ -521,7 +521,7 @@ function gossip() {
   if (S.silver < 5) return toastRender('銀兩不足');
   S.silver -= 5;
   const st = storyNow();
-  if (S.story === 1 && S.loc === 'luoyang') { S.flags.askChen = true; return act(1, '在酒樓要了一壺酒，向店小二打聽一個叫陳伯的擺渡人。', null); }
+  if (st && st.ask && S.loc === 'luoyang') { S.flags.asked = S.story; return act(1, '在酒樓要了一壺酒，把店小二叫到跟前，低聲打聽。', null); }
   let r = st && st.rumor && chance(45) ? st.rumor : pick(RUMORS.filter(x => x !== S.flags.lastRumor));
   S.flags.lastRumor = r;
   act(1, `在酒樓要了一壺酒，聽鄰桌閒談：「${r}」`, 'city', 70);
@@ -674,7 +674,7 @@ function inherit() {
   const e = UI.end;
   const heir = S.child ? `${S.name}之子女` : S.disciple ? `${S.name}的弟子${S.disciple.n}` : null;
   const legacy = {
-    gen: S.gen, from: S.name, blood: !!S.child,
+    gen: S.gen, from: S.name, blood: !!S.child, kind: S.plot && S.plot.kind,
     skill: { id: e.pick, lv: Math.max(1, Math.ceil(S.skills[e.pick].lv * (heir ? 0.5 : 0.3))) },
     silver: Math.round(S.silver * (heir ? 0.3 : 0.1)), weapon: heir ? S.weapon : null,
   };
