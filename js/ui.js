@@ -215,7 +215,7 @@ const MENUS = {
     const sc = SECTS[S.sect];
     return [`${sc.n}學藝　貢獻 ${S.contrib}`, sc.teach.map(t => { const k = SKILLS[t[0]]; const got = knows(t[0]); const ok = S.rank >= t[1];
       return `<article class="card row-card"><div><b>${k.n}</b> <span class="tag grey">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span><p>${k.d}<br>需${RANKS[t[1]]}・貢獻 ${t[2]}</p></div>${got ? '<span class="tag jade">已學</span>' : B('學', () => learnSect(t[0], t[2]), 'mini', !ok || S.contrib < t[2])}</article>`; }).join('') +
-      (sc.ult ? `<p class="empty">鎮派絕學「${SKILLS[sc.ult].n}」只傳掌門。升至長老、累計貢獻一千、聲望三百後，留在山門靜候機緣。</p>` : '')];
+      (sectUlt(S.sect) ? `<p class="empty">鎮派絕學「${SKILLS[sectUlt(S.sect)].n}」${knows(sectUlt(S.sect)) ? '你已得傳。' : `由${sc.head}親傳。升至長老、累計貢獻一千、聲望三百後，留在山門等候傳功。`}</p>` : '')];
   },
   gift: () => { const id = UI.ov.arg; return [`贈禮給${NPCS[id].n}`, Object.keys(S.inv).filter(i => ITEMS[i].kind === 'gift').map(i => `<button type="button" class="opt"${h(() => gift(id, i))}><b>${ITEMS[i].n}<i>×${S.inv[i]}</i></b></button>`).join('')]; },
   confirm: () => { const o = UI.ov; return [o.title, `<p class="desc">${o.text}</p><div class="col">${B('確定', () => { UI.ov = null; o.yes(); }, 'primary big')}</div>`]; },
