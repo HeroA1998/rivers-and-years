@@ -316,10 +316,41 @@ const ICON = {
   H: svg('<path d="M4 13a8 8 0 1113.5 5.8M12 13a3.2 3.2 0 10-3.2-3.2M8 20.5h8"/>'),                                                                                          // 調息
   '?': svg('<path d="M12 3l9 9-9 9-9-9z"/><path d="M12 8l4 4-4 4-4-4z" fill="currentColor" fill-opacity=".25"/>'),
   '-': svg('<path d="M5 8c2-3 5 3 7 0s5 3 7 0M5 15c2-3 5 3 7 0s5 3 7 0"/>'),
-  // 大骰子：朱漆 d20，漸層上色、切面線與金框，顏色由 .bigdie 的 CSS 變數控制
-  D: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><radialGradient id="dBody" cx="34%" cy="26%" r="82%"><stop offset="0" style="stop-color:var(--dA)"/><stop offset=".55" style="stop-color:var(--dB)"/><stop offset="1" style="stop-color:var(--dC)"/></radialGradient><linearGradient id="dShine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="url(#dBody)" stroke="var(--dC)" stroke-width=".7" stroke-linejoin="round"/><polygon points="12,2 21,7 12,12 3,7" fill="url(#dShine)" opacity=".55"/><path d="M12 12V2M12 12L21 7M12 12L21 17M12 12V22M12 12L3 17M12 12L3 7" fill="none" style="stroke:var(--dL)" stroke-width=".65" stroke-linejoin="round" opacity=".7"/><polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="none" style="stroke:var(--dL)" stroke-width=".9" stroke-linejoin="round" opacity=".55"/></svg>',
 };
 ICON.X = ICON.S;
+
+/* 大骰子：依光源方向為每個切面算明暗（左上受光），加上斜角、內陰影、磨砂顆粒與高光。
+   tone：red 朱漆、gold 金漆（大成功）、iron 灰鐵（大失敗）。 */
+function d20Svg(tone = 'red') {
+  const [hue, sat] = { red: [9, 66], gold: [42, 80], iron: [28, 4] }[tone];
+  const cx = 12, cy = 12, R = 10, Rw = R * 0.66;
+  const ang = i => (-90 + 60 * i) * Math.PI / 180;
+  const V = [0, 1, 2, 3, 4, 5].map(i => [cx + R * Math.cos(ang(i)), cy + R * Math.sin(ang(i))]);
+  const W = [0, 1, 2, 3, 4, 5].map(i => [cx + Rw * Math.cos(ang(i)), cy + Rw * Math.sin(ang(i))]);
+  const L = [-0.5, -0.87];                       // 光從左上來
+  const lit = i => { const m = ang(i) + Math.PI / 6; return (Math.cos(m) * L[0] + Math.sin(m) * L[1] + 1) / 2; }; // 0 背光 ~ 1 迎光
+  const pt = p => p.map(v => v.toFixed(2)).join(',');
+  const bevel = V.map((p, i) => {
+    const q = V[(i + 1) % 6], wp = W[i], wq = W[(i + 1) % 6];
+    const l = 18 + 42 * lit(i);
+    return `<polygon points="${pt(p)} ${pt(q)} ${pt(wq)} ${pt(wp)}" fill="hsl(${hue} ${sat}% ${l.toFixed(1)}%)"/>`;
+  }).join('');
+  const face = `<polygon points="${W.map(pt).join(' ')}" fill="hsl(${hue} ${sat}% 40%)"/>`;
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><defs>
+    <radialGradient id="dFace" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>
+    <radialGradient id="dSpec" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="dGrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 .75" result="a"/><feComposite in="a" in2="SourceAlpha" operator="in"/></filter>
+    <filter id="dInner" x="-5%" y="-5%" width="110%" height="110%"><feOffset in="SourceAlpha" dx=".4" dy=".6" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="rim"/><feGaussianBlur in="rim" stdDeviation=".35" result="rb"/><feFlood flood-color="#1a0401" flood-opacity=".75"/><feComposite in2="rb" operator="in" result="sh"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge></filter>
+  </defs>
+  <g filter="url(#dInner)">${bevel}${face}
+    <polygon points="${W.map(pt).join(' ')}" fill="url(#dFace)"/>
+    <polygon points="${V.map(pt).join(' ')}" fill="none" stroke="hsl(${hue} ${sat}% 12%)" stroke-width=".55" stroke-linejoin="round"/>
+    <polygon points="${W.map(pt).join(' ')}" fill="none" stroke="hsl(${hue} ${sat}% 78%)" stroke-width=".3" stroke-linejoin="round" opacity=".55"/>
+  </g>
+  <polygon points="${V.map(pt).join(' ')}" fill="#000" filter="url(#dGrain)" opacity=".5"/>
+  <ellipse cx="8.6" cy="7.6" rx="3.2" ry="1.9" fill="url(#dSpec)" transform="rotate(-32 8.6 7.6)"/>
+  </svg>`;
+}
 
 /* ---------- 全自動戰鬥畫面 ---------- */
 const hero = () => `<svg viewBox="0 0 64 80" aria-hidden="true"><ellipse cx="32" cy="76" rx="17" ry="3.5" fill="#000" opacity=".22"/><path d="M19 71L23 36Q32 24 41 36L45 71Z" fill="#4f8a6e"/><path d="M23 36Q32 24 41 36L39 44Q32 40 25 44Z" fill="#3d6f57"/><circle cx="32" cy="27" r="9.5" fill="#4f8a6e"/><circle cx="33" cy="29" r="5.2" fill="#ecd9bb"/><path d="M44 54L60 28" stroke="#e8edf0" stroke-width="3.4" stroke-linecap="round"/><path d="M43 56L47 51" stroke="#7a4f27" stroke-width="4.5" stroke-linecap="round"/></svg>`;
@@ -362,7 +393,7 @@ function battleView(o) {
     <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
     <div class="ctrl">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
-      <div class="${dieCls}">${ICON.D}<b>${dieNum}</b></div>
+      <div class="${dieCls}">${d20Svg(o.roll === 20 ? 'gold' : o.roll === 1 ? 'iron' : 'red')}<b>${dieNum}</b></div>
       <div class="side">${side}</div>
     </div>
     <div class="vitals in-battle one"><div class="icorow"><span>內力</span><span class="ico">${orbs(Math.ceil(S.mp / (o.K || 1) - 1e-6), qiMax())}</span><em>${S.mp}</em></div></div>
