@@ -148,7 +148,10 @@ const TABS = {
   },
   skill() {
     const ids = Object.keys(S.skills).sort((a, b) => Object.keys(TYPE_N).indexOf(SKILLS[a].type) - Object.keys(TYPE_N).indexOf(SKILLS[b].type) || SKILLS[b].tier - SKILLS[a].tier);
-    return `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
+    const all = Object.keys(SKILLS), mine = Object.keys(S.skills).length;
+    const book = `<section class="group"><h3>武學圖鑑</h3><p class="desc">已習得 ${mine} 門，江湖上共有 ${all.length} 門武功。各派的武功要拜師才學得到，書中名家的武功要靠奇遇，鎮派絕學由掌門親傳。</p>
+      <div class="codex">${Object.keys(TYPE_N).map(t => { const ks = all.filter(id => SKILLS[id].type === t); return `<div><b>${TYPE_N[t]}</b><span>${ks.filter(id => S.skills[id]).length}/${ks.length}</span></div>`; }).join('')}</div></section>`;
+    return book + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
       const k = SKILLS[id], sk = S.skills[id];
       const on = k.type === 'nei' ? S.nei === id : S.eq.includes(id);
       let ctl = '';

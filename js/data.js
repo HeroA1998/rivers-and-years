@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v1.3.0';
+const VERSION = 'v1.4.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -28,7 +28,7 @@ const LOCS = {
    type: nei 內功 / sword 劍法 / blade 刀法 / fist 拳掌 / dart 暗器 / qing 輕功
    attr: yang 陽剛 / yin 陰柔 / he 中和
    moves: [名稱, 解鎖層數, 耗內力, 威力, 特效]  特效: bleed 流血 poison 中毒 stun 震暈 weak 破勢 drain 吸血 pierce 破防 */
-const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', staff: '棒法', dart: '暗器', qing: '輕功' };
+const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', staff: '棒法', spear: '槍法', dart: '暗器', qing: '輕功' };
 const ATTR_N = { yang: '陽剛', yin: '陰柔', he: '中和' };
 const TIER_N = ['', '入門', '上乘', '絕學'];
 const FX_N = { bleed: '流血', poison: '中毒', stun: '震暈', weak: '破勢', drain: '吸血', pierce: '破防' };
@@ -89,6 +89,16 @@ const SKILLS = {
   mj_qk:      { n: '乾坤大挪移', type: 'fist', tier: 3, attr: 'he', sect: 'mingjiao', d: '明教鎮教神功，挪移敵人的勁力為己用。練到第七層，世間少有人能及。', moves: [['挪移乾坤', 1, 14, 40, 'weak'], ['借力打力', 4, 22, 58, 'drain'], ['第七層', 8, 42, 98, 'pierce']] },
   wd_taijian: { n: '太極劍', type: 'sword', tier: 3, attr: 'he', sect: 'wudang', d: '張三丰與太極拳同時創出的劍法，劍招連綿成圈，不求形似但求意到。', moves: [['三環套月', 1, 13, 38, 'weak'], ['大魁星', 4, 21, 56], ['劍意無形', 8, 38, 92, 'pierce']] },
   mj_ult:     { n: '聖火令武功', type: 'fist', tier: 3, attr: 'he', sect: 'mingjiao', d: '刻在聖火令上、從波斯傳來的古怪武功，招式匪夷所思。', moves: [['聖火', 1, 14, 42, 'stun'], ['無影', 4, 22, 58, 'weak'], ['焚我殘軀', 8, 40, 96, 'drain']] },
+
+  // 書中武功：各地奇遇才學得到
+  y_spear:    { n: '楊家槍法', type: 'spear', tier: 2, attr: 'yang', d: '北宋楊家將傳下的槍法，一桿槍使得如蛟龍出海。', moves: [['回馬槍', 1, 8, 26], ['鳳點頭', 4, 14, 37, 'pierce'], ['七十二路', 7, 24, 56]] },
+  th_palm:    { n: '落英神劍掌', type: 'fist', tier: 3, attr: 'yin', d: '桃花島主所創，掌影如落英繽紛，虛實難辨。', moves: [['落英繽紛', 1, 13, 40, 'weak'], ['桃花紛飛', 4, 21, 56], ['落英神劍', 8, 38, 92, 'pierce']] },
+  mg_bow:     { n: '射鵰箭法', type: 'dart', tier: 2, attr: 'yang', d: '草原神箭手的箭術，一箭能射落天上的大鵰。', moves: [['連珠箭', 1, 7, 24], ['穿楊', 4, 14, 36, 'pierce'], ['射鵰', 7, 24, 56, 'stun']] },
+  mg_wrestle: { n: '蒙古摔跤', type: 'fist', tier: 1, attr: 'yang', d: '草原上的漢子人人會的摔跤術，近身纏抱，力大者勝。', moves: [['抱摔', 1, 2, 13, 'stun'], ['絆腿', 4, 8, 22, 'weak'], ['過背摔', 7, 13, 32, 'stun']] },
+  jy_claw:    { n: '九陰白骨爪', type: 'fist', tier: 3, attr: 'yin', evil: 1, d: '從《九陰真經》殘篇中練出的邪門爪功，五指插入敵人頭頂。練得越深，心腸越冷。', moves: [['白骨爪', 1, 13, 42, 'bleed'], ['摧心', 4, 21, 58, 'bleed'], ['九陰白骨', 8, 40, 96, 'pierce']] },
+  sl_finger:  { n: '拈花指', type: 'fist', tier: 3, attr: 'he', d: '少林七十二絕技之一，出指時面帶微笑，如佛祖拈花。', moves: [['拈花', 1, 13, 38, 'weak'], ['微笑', 4, 21, 56, 'stun'], ['拈花一笑', 8, 38, 90, 'pierce']] },
+  sl_dragon:  { n: '龍爪手', type: 'fist', tier: 3, attr: 'yang', d: '少林七十二絕技之一，共三十六式，專拿敵人要害。', moves: [['捕風式', 1, 13, 40], ['捉影式', 4, 21, 56, 'weak'], ['龍爪三十六', 8, 38, 92, 'pierce']] },
+  ty_claw:    { n: '鷹爪擒拿手', type: 'fist', tier: 2, attr: 'yang', d: '天鷹教的看家功夫，抓、拿、扣、鎖，招招不離關節。', moves: [['鷹爪', 1, 7, 24, 'bleed'], ['擒拿', 4, 14, 36, 'stun'], ['蒼鷹搏兔', 7, 24, 56]] },
 
   // 江湖雜學
   m_blade: { n: '破風刀法', type: 'blade', tier: 1, attr: 'yang', d: '鏢行常見的刀法，大開大闔。', moves: [['力劈', 1, 3, 15], ['橫掃千軍', 4, 8, 24], ['破風', 7, 14, 34, 'pierce']] },
@@ -165,16 +175,20 @@ const ITEMS = {
   w_fist2:   { n: '精鋼護手', kind: 'weapon', wt: 'fist', atk: 12, price: 400 },
   w_dart1:   { n: '柳葉鏢', kind: 'weapon', wt: 'dart', atk: 6, price: 80 },
   w_dart2:   { n: '透骨釘', kind: 'weapon', wt: 'dart', atk: 14, price: 420 },
+  w_staff1:  { n: '竹棒', kind: 'weapon', wt: 'staff', atk: 5, price: 30 },
+  w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 14, price: 400 },
+  w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 7, price: 90 },
+  w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 15, price: 440 },
   a_cloth:   { n: '牛皮護甲', kind: 'armor', def: 4, price: 70 },
   a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520 },
   bk_blade:  { n: '《破風刀譜》', kind: 'manual', skill: 'm_blade', price: 150 },
   bk_dart:   { n: '《袖箭圖解》', kind: 'manual', skill: 'm_dart', price: 150 },
 };
 const SHOPS = {
-  yanjing: ['jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
-  linan:   ['jinchuang', 'huiqi', 'dahuan', 'w_dart1', 'w_dart2', 'w_sword1', 'a_cloth', 'a_gold', 'rouge', 'hairpin', 'qin', 'wine', 'bk_dart'],
-  jiaxing: ['jinchuang', 'huiqi', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
-  xiangyang: ['jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'a_cloth', 'a_gold', 'wine', 'book', 'bk_blade'],
+  yanjing: ['w_spear1', 'w_spear2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
+  linan:   ['w_staff1', 'jinchuang', 'huiqi', 'dahuan', 'w_dart1', 'w_dart2', 'w_sword1', 'a_cloth', 'a_gold', 'rouge', 'hairpin', 'qin', 'wine', 'bk_dart'],
+  jiaxing: ['w_staff1', 'w_spear1', 'jinchuang', 'huiqi', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
+  xiangyang: ['w_spear1', 'w_spear2', 'w_staff2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'a_cloth', 'a_gold', 'wine', 'book', 'bk_blade'],
 };
 
 /* ---------- 出身：開局隨機投胎，依年代不同 ----------
