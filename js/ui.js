@@ -362,6 +362,25 @@ const foeFig = style => style === 'beast'
   : style === 'puppet'
   ? `<svg viewBox="0 0 64 80" aria-hidden="true"><ellipse cx="32" cy="76" rx="17" ry="3.5" fill="#000" opacity=".22"/><rect x="20" y="34" width="24" height="34" rx="3" fill="#7d7468"/><rect x="24" y="14" width="16" height="18" rx="3" fill="#8f8678"/><circle cx="29" cy="22" r="2.2" fill="#e5533d"/><circle cx="36" cy="22" r="2.2" fill="#e5533d"/><rect x="8" y="36" width="12" height="7" rx="2" fill="#6a6258"/><rect x="44" y="36" width="12" height="7" rx="2" fill="#6a6258"/><rect x="22" y="68" width="8" height="8" fill="#6a6258"/><rect x="34" y="68" width="8" height="8" fill="#6a6258"/></svg>`
   : `<svg viewBox="0 0 64 80" aria-hidden="true"><ellipse cx="32" cy="76" rx="17" ry="3.5" fill="#000" opacity=".22"/><path d="M19 71L23 36Q32 24 41 36L45 71Z" fill="#a34a3f"/><path d="M23 36Q32 24 41 36L39 44Q32 40 25 44Z" fill="#7f352d"/><circle cx="32" cy="27" r="9.5" fill="#a34a3f"/><circle cx="31" cy="29" r="5.2" fill="#e3c6a4"/><path d="M6 24L44 62" stroke="#caa86a" stroke-width="3" stroke-linecap="round"/><path d="M2 20L9 27L5 29Z" fill="#dfe5e8"/></svg>`;
+/* ---------- 戰鬥畫面：頂部角色列與底部導覽（像素風，依參考圖） ---------- */
+const SOLID = new Set(['shield', 'star', 'bag', 'box', 'person', 'coin']);
+const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name));
+const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
+function battleHud() {
+  const orbRow = (n, m, kind) => Array.from({ length: m }, (_, i) => `<img class="pxo" src="${PIX.orb(kind, i < n)}" alt="">`).join('');
+  const stat = k => `<span class="hs"><img class="pxi" src="${pxIcon(k, STAT_COL[k], 14)}" alt=""><b>${S.stats[k]}</b></span>`;
+  return `<div class="bhud">
+    <div class="hport"><img class="pxi" src="${pxIcon('person', '#E8D6B0', 30)}" alt=""></div>
+    <div class="hmid"><div class="hname">${esc(fameTitle())} ${esc(S.name)}</div>
+      <div class="orbs">${orbRow(S.life, lifeMax(), 'red')}</div><div class="orbs">${orbRow(S.qi, qiMax(), 'green')}</div></div>
+    <div class="hstats">${Object.keys(STAT_N).map(stat).join('')}</div>
+    <img class="hgear pxi" src="${PIX.gear()}" alt="">
+    <div class="hxp"><i style="width:${clamp(S.exp / expNeed(S.lv) * 100, 0, 100)}%"></i></div>
+  </div>`;
+}
+const NAV = [['scroll', '#3F6577'], ['box', '#8A6A3A'], ['star', '#C9A24A'], ['shield', '#5E7A58'], ['person', '#B9A98C'], ['bag', '#9A6B3C']];
+const battleNav = () => `<div class="bnav">${NAV.map(([n, c]) => `<img class="pxi" src="${pxIcon(n, c, 20)}" alt="">`).join('')}</div>`;
+
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
   const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
@@ -375,30 +394,47 @@ function battleView(o) {
   const dieCls = `bigdie${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
   // 3D 骰子由 DIE3 掛載（render 之後執行）；沒有 three.js 時退回平面骰
   const dieInner = DIE3 ? '' : `${d20Svg(tone)}<b>${o.roll == null || o.phase === 'rolling' ? '' : o.roll}</b>`;
+  const PB = (label, fn, cls = '') => `<button type="button" class="pxbtn ${cls}"${h(fn)}>${label}</button>`;
   let side;
-  if (o.over) side = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
-  else if (o.phase === 'roll') side = `<div class="col">${B('擲骰子（1~20）', () => rollBattle(false), 'primary big')}${B('跳過投擲（10）', () => rollBattle(true), 'big')}</div>`;
+  if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
+  else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
   else side = '';
-  return `<div class="veil bveil"><div class="sheet battle auto"><div class="bpanel">
-    <div class="vs2">
-      <div class="side-p"><b>${esc(S.name)}</b><span class="pw">⚔ ${pw.toFixed(1)}</span></div>
-      <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">${adv.toFixed(1)}%</span>`}</div>
-      <div class="side-e"><b>${e.n}</b><span class="pw">${e.P.toFixed(1)} ⚔</span></div>
-    </div>
-    <div class="hpbars"><div class="hpbar p"><i style="width:${clamp(S.hp / maxHp() * 100, 0, 100)}%"></i><b>${Math.max(0, S.hp)}/${maxHp()}</b></div><div class="hpbar e"><i style="width:${clamp(e.hp / e.mhp * 100, 0, 100)}%"></i><b>${Math.max(0, e.hp)}/${e.mhp}</b></div></div>
-    <div class="arena">${art(o.art || 'fight', e.n, 'bg')}
-      <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
-      <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
-      ${o.god ? '<div class="godtag">無敵</div>' : ''}
-      ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▶▶ x${o.speed === 1 ? 1 : 2}</button>`}
-    </div>
-    <div class="skillrow"><div class="ico small">${hearts()}</div><div class="acs">${chips(S.eq)}</div><div class="acs r">${fx}${e.moves.map(m => `<i class="ac r-foe">${ico(e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword')}<small>${m[0].slice(0, 2)}</small></i>`).join('')}</div></div>
+  const PXI = (name, color, n) => `<img class="pxi" src="${pxIcon(name, color, n)}" alt="">`;
+  const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
+  const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
+  const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
+  const mine = S.eq.map(id => slot(artIcon(id), ROLE_COL[artRole(id)], S.skills[id].lv)).join('');
+  const theirs = e.moves.map(() => slot(foeIco, '#B0463F', '')).join('');
+  const shield = `<img class="pxi shd" src="${pxIcon('shield', '#EDE7D3', 12)}" alt="">`;
+  const pct = (v, m) => clamp(m ? v / m * 100 : 0, 0, 100);
+  return `<div class="veil bveil"><div class="sheet battle auto">
+    ${battleHud()}
+    <div class="bpanel">
+      <div class="bhead">
+        <div class="side-p"><b>${esc(S.name)}</b><span class="pw">${PXI('sword', '#6B6556', 12)}${pw.toFixed(1)}</span></div>
+        <img class="orn" src="${PIX.diamond()}" alt="">
+        <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">${adv.toFixed(1)}%</span>`}</div>
+        <img class="orn" src="${PIX.diamond()}" alt="">
+        <div class="side-e"><b>${e.n}</b><span class="pw">${e.P.toFixed(1)}${PXI('sword', '#6B6556', 12)}</span></div>
+      </div>
+      <div class="hprow">
+        <div class="pxbar p">${shield}<i style="width:${pct(S.hp, maxHp())}%"></i><span>${Math.max(0, S.hp)}/${maxHp()}</span></div>
+        <div class="pxbar e"><i style="width:${pct(e.hp, e.mhp)}%"></i><span>${Math.max(0, e.hp)}/${e.mhp}</span>${shield.replace('shd"', 'shd r"')}</div>
+      </div>
+      <div class="arena">${art(o.art || 'fight', e.n, 'bg')}
+        <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
+        <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
+        ${o.god ? '<div class="godtag">無敵</div>' : ''}
+      </div>
+      <div class="srow"><div class="sl">${mine}</div><div class="sr">${fx}${theirs}</div>
+        ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
     </div>
     <div class="bdock">
-      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : B('投降', pSurrender, 'mini surr')}</div>
-    <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
+      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}><img class="pxi" src="${PIX.flag()}" alt=""><span>投降</span></button>`}</div>
+      <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
       <div class="side">${side}</div>
     </div>
+    ${battleNav()}
   </div></div>`;
 }
 

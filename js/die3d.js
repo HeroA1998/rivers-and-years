@@ -12,7 +12,7 @@ const DIE3 = (function () {
   let PX = 60;                        // 螢幕 px 每世界單位
 
   let R = null, cam = null, scene = null, mesh = null, atlases = {};
-  const BG = { red: '#BC2B20', gold: '#E0A92A', iron: '#8A8478' };
+  const BG = { red: '#8E3432', gold: '#D9A634', iron: '#857F73' };
   let emits = {}, faceNum = [], faceOf = [], faceN = [], faceUp = [];
   let tone = 'red', shownTone = null, sizeW = 0;
   let anim = null, raf = 0, seq = -1, lastT = 0, away = false, wantHome = false;
@@ -49,7 +49,7 @@ const DIE3 = (function () {
   function atlas(name, emit) {
     const CELL = 64, c = document.createElement('canvas'); c.width = CELL * 5; c.height = CELL * 4;
     const g = c.getContext('2d');
-    const pal = { red: ['#BC2B20', '#F5CF55', '#3A0B07'], gold: ['#E0A92A', '#FFFDF2', '#5A3A05'], iron: ['#8A8478', '#FFFDF4', '#2A2722'] }[name];
+    const pal = { red: ['#8E3432', '#E3B466', '#2E0F0E'], gold: ['#E0A92A', '#FFFDF2', '#5A3A05'], iron: ['#8A8478', '#FFFDF4', '#2A2722'] }[name];
     for (let n = 1; n <= 20; n++) {
       const x0 = ((n - 1) % 5) * CELL, y0 = Math.floor((n - 1) / 5) * CELL;
       g.fillStyle = emit ? '#000' : pal[0]; g.fillRect(x0, y0, CELL, CELL);
