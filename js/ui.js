@@ -316,7 +316,8 @@ const ICON = {
   H: svg('<path d="M4 13a8 8 0 1113.5 5.8M12 13a3.2 3.2 0 10-3.2-3.2M8 20.5h8"/>'),                                                                                          // 調息
   '?': svg('<path d="M12 3l9 9-9 9-9-9z"/><path d="M12 8l4 4-4 4-4-4z" fill="currentColor" fill-opacity=".25"/>'),
   '-': svg('<path d="M5 8c2-3 5 3 7 0s5 3 7 0M5 15c2-3 5 3 7 0s5 3 7 0"/>'),
-  D: svg('<path d="M12 2.5l8.5 5v9L12 21.5l-8.5-5v-9z" fill="currentColor" fill-opacity=".18"/><path d="M12 2.5v9.5m0 0l8.5-4.5M12 12l-8.5-4.5M12 12v9.5"/>'),
+  // 大骰子：朱漆 d20，漸層上色、切面線與金框，顏色由 .bigdie 的 CSS 變數控制
+  D: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><radialGradient id="dBody" cx="34%" cy="26%" r="82%"><stop offset="0" style="stop-color:var(--dA)"/><stop offset=".55" style="stop-color:var(--dB)"/><stop offset="1" style="stop-color:var(--dC)"/></radialGradient><linearGradient id="dShine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="url(#dBody)" stroke="var(--dC)" stroke-width=".7" stroke-linejoin="round"/><polygon points="12,2 21,7 12,12 3,7" fill="url(#dShine)" opacity=".55"/><path d="M12 12V2M12 12L21 7M12 12L21 17M12 12V22M12 12L3 17M12 12L3 7" fill="none" style="stroke:var(--dL)" stroke-width=".65" stroke-linejoin="round" opacity=".7"/><polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="none" style="stroke:var(--dL)" stroke-width=".9" stroke-linejoin="round" opacity=".55"/></svg>',
 };
 ICON.X = ICON.S;
 
@@ -335,8 +336,11 @@ function battleView(o) {
   const pcls = `fgt p${fight && pop.toE ? ' atk' : ''}${fight && pop.toP ? ' hit' : ''}${o.god ? ' god' : ''}`;
   const ecls = `fgt e${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
   const last = o.log[o.log.length - 1];
-  const dieNum = o.roll == null ? '' : o.roll;
-  const dieCls = `bigdie${o.phase === 'rolling' ? ' spin' : ''}${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
+  // 點數在骰子落定時才揭曉；落定動畫只播一次（之後的重繪不重播）
+  const dieNum = o.roll == null || o.phase === 'rolling' ? '' : o.roll;
+  const settle = o.phase === 'fight' && o.roll != null && !o.settled;
+  if (settle) o.settled = true;
+  const dieCls = `bigdie${o.phase === 'rolling' ? ' spin' : ''}${settle ? ' settle' : ''}${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
   let side;
   if (o.over) side = `<div class="col">${B(o.over === 'win' ? '收招' : '繼續', endBattle, 'primary big')}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${B('擲骰子（1~20）', () => rollBattle(false), 'primary big')}${B('跳過投擲（10）', () => rollBattle(true), 'big')}</div>`;

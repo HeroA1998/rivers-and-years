@@ -640,3 +640,43 @@ body { font-size: 16px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .act:not(:disabled) { background: linear-gradient(180deg, #1F2A5C, #171F40); border-color: #3B4577; } }
 :root[data-theme="dark"] .act:not(:disabled) { background: linear-gradient(180deg, #1F2A5C, #171F40); border-color: #3B4577; }
 @media (prefers-reduced-motion: reduce) { .btn, .act, .tabs button { transition: none; } }
+
+/* ================= v6.3.1 戰鬥大骰子：朱漆質感、翻滾、落定彈跳 ================= */
+.bigdie { --dA: #F0826C; --dB: #B5301F; --dC: #5A1009; --dL: #F7D98A;
+  position: relative; width: 100px; height: 100px; margin: 0 auto; perspective: 360px; isolation: isolate; color: inherit; }
+.bigdie svg { width: 100%; height: 100%; fill: none; stroke: none; transform-style: preserve-3d;
+  filter: drop-shadow(0 8px 6px rgba(43,28,16,.38)) drop-shadow(0 0 1px rgba(43,28,16,.5)); }
+.bigdie b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font: 700 34px var(--f-brush); color: #FFF6E4; text-shadow: 0 2px 0 #5A1009, 0 0 8px rgba(255,220,140,.35); pointer-events: none; }
+
+/* 翻滾：立體三軸旋轉，身體上下彈 */
+.bigdie.spin { animation: dbob .42s ease-in-out infinite alternate; }
+.bigdie.spin svg { animation: dtumble .95s linear infinite; }
+@keyframes dtumble { from { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); } to { transform: rotateX(360deg) rotateY(720deg) rotateZ(120deg); } }
+@keyframes dbob { from { transform: translateY(-5px); } to { transform: translateY(5px); } }
+
+/* 落定：從空中翻下、回彈，點數隨後跳出 */
+.bigdie.settle svg { animation: dsettle .75s cubic-bezier(.2,.9,.25,1.2) both; }
+.bigdie.settle b { animation: dnum .5s .42s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes dsettle {
+  0% { transform: rotateX(-540deg) rotateY(360deg) translateY(-70px) scale(.5); }
+  60% { transform: rotateX(16deg) rotateY(-10deg) translateY(6px) scale(1.07); }
+  80% { transform: rotateX(-4deg) rotateY(3deg) translateY(-2px) scale(.98); }
+  100% { transform: none; } }
+@keyframes dnum { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+
+/* 大成功（20）：金色漆、金光脈動 */
+.bigdie.crit { --dA: #FFF6C2; --dB: #E8B923; --dC: #8A5A0A; --dL: #FFFBE0; }
+.bigdie.crit::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(255,226,122,.65), rgba(255,226,122,0) 66%); animation: glowpulse 1.1s ease-in-out infinite alternate; }
+.bigdie.crit b { color: #FFFBE0; text-shadow: 0 2px 0 #8A5A0A, 0 0 10px rgba(255,236,150,.9); }
+@keyframes glowpulse { from { opacity: .45; transform: scale(.92); } to { opacity: 1; transform: scale(1.08); } }
+
+/* 大失敗（1）：灰鐵色、落定後抖一下 */
+.bigdie.fumble { --dA: #C9C2B3; --dB: #7E786C; --dC: #3E3A33; --dL: #E6DFCE; }
+.bigdie.fumble b { color: #EDE6D4; text-shadow: 0 2px 0 #3E3A33; }
+.bigdie.fumble.settle svg { animation: dsettle .75s cubic-bezier(.2,.9,.25,1.2) both, dshake .45s .75s ease-in-out; }
+@keyframes dshake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px) rotate(-4deg); } 75% { transform: translateX(6px) rotate(4deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bigdie, .bigdie svg, .bigdie b, .bigdie.crit::before { animation: none !important; } }
