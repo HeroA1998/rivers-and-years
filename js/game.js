@@ -351,7 +351,9 @@ const FOE_PATTERNS = {
 // 看破：每回合擲 d20，加悟性調整與交手經驗；擲得越高，越能看穿對手的攻擊牌
 function insightRoll(e, fixed) {
   const roll = fixed || ri(1, 20), mod = Math.floor((S.stats.int - 5) / 2) + Math.min(3, (S.seen || {})[e.n] || 0) + fxSum('eye'), total = roll + mod;
-  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor(total / 5), 0, 5);   // 擲 1 什麼都看不穿，擲 20 全部看穿
+  // 擲 1 什麼都看不穿，擲 20 全部看穿；2～19 約每 3 點升一張，擲 10 看一半（3 張）
+  // 擲 1 什麼都看不穿，擲 20 全部看穿；2～19 約每 3 點升一張，擲 10 看一半（3 張）
+  const reveal = roll === 1 ? 0 : roll === 20 ? 6 : clamp(Math.floor((total - 1) / 3), 0, 5);
   return { roll, mod, total, reveal };
 }
 function newRound(b) {

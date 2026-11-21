@@ -208,7 +208,7 @@ const REF = {
       <h4>三條路</h4><p>每件事都有三個選項：正派行動、反派行動、無視或拒絕。正派讓人敬重，反派往往有立即的好處，但會讓俠義一路往下掉，名門正派也會看不起你。有些選項要擲 d20 檢定能力值。</p>
       <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
       <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
-      <h4>戰鬥</h4><p>一局定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手打完先倒下者敗，都沒倒下就比誰剩的氣血比例高。打不過可以投降。</p>
+      <h4>戰鬥</h4><p>一局定勝負。先擲骰子看破對手：點數越高越能看穿對手的攻擊牌，擲出 20 全部看穿，擲出 10 看一半，擲出 1 什麼也看不穿（跳過以 10 計）。之後雙方各排六手：攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。六手打完先倒下者敗，都沒倒下就比誰剩的氣血比例高。打不過可以投降。</p>
       <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。</p>
       <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
       <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代。存檔存在這支手機的瀏覽器裡。</p>
@@ -275,7 +275,7 @@ function overlay() {
       ${mv.length ? `<div class="moves-grid">${mv.map(m => `<button type="button" class="mv"${full || left < m.mp ? ' disabled' : h(() => planAdd({ t: 'S', mv: m }))}><b>${m.n}</b><small>絕招・內力 ${m.mp}${m.fx ? '・' + FX_N[m.fx] : ''}</small></button>`).join('')}</div>` : ''}
       <div class="row4">${B('調息', () => planAdd({ t: 'H' }), 'mini', full || left < 12)}${B('用藥', () => { o.sub = 'med'; render(); }, 'mini', full)}${B('撤回', planUndo, 'mini', !o.plan.length)}</div>
       <div class="col">${full ? B('出手', commitRound, 'primary big') : B(`補滿（還差 ${6 - o.plan.length} 手）`, planFill, 'big')}</div>`;
-  if (!o.over && !o.ins) ctl = `<div class="dice-step"><p class="desc">先擲骰子看破對手：點數越高，越能看穿對手的攻擊牌——擲出 20 全部看穿，擲出 1 什麼也看不穿。悟性${fxSum('eye') ? '、輔助武功' : ''}與交手次數有加成。</p>
+  if (!o.over && !o.ins) ctl = `<div class="dice-step"><p class="desc">先擲骰子看破對手：點數越高，越能看穿對手的攻擊牌——擲出 20 全部看穿，擲出 10 看一半，擲出 1 什麼也看不穿。悟性${fxSum('eye') ? '、輔助武功' : ''}與交手次數有加成。</p>
       <div class="col">${B(`${ICON.D}擲骰子（1~20）`, () => rollInsight(false), 'primary big dice')}${B('跳過投擲（10）', () => rollInsight(true), 'big')}</div></div>`;
   const chips = (ids) => ids.map(id => `<i class="ac r-${artRole(id)}" title="${SKILLS[id].n}">${TYPE_N[SKILLS[id].type][0]}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const adv = o.over ? null : advPct(o);
