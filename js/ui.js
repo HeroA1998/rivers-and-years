@@ -56,9 +56,12 @@ const SCREENS = {
   },
   game() {
     const L = LOCS[S.loc];
+    if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
+    if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
     return `<header class="top">
         <div class="date">${dateStr()}<span class="season">${season()}</span></div>
-        <div class="who">${esc(S.name)}・${cnNum(age())}歲・${fameTitle()}　<span class="ver">${VERSION}</span></div>
+        ${B('⚙ 設定', () => openMenu('settings'), 'mini gear')}
+        <div class="who">${esc(S.name)}・${cnNum(age())}歲・${fameTitle()}</div>
       </header>
       <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
       <div class="vitals">
@@ -67,7 +70,7 @@ const SCREENS = {
         <div class="chips"><span>銀兩 <b>${S.silver}</b></span><span>聲望 <b>${S.fame}</b></span><span>${moralName()}</span></div>
       </div>
       <main>${TABS[UI.tab]()}</main>
-      <nav class="tabs">${[['world', '江湖'], ['me', '人物'], ['skill', '武功'], ['bag', '行囊'], ['people', '人脈']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${t[1]}</button>`).join('')}</nav>`;
+      <nav class="tabs">${[['world', '江湖'], ['me', '人物'], ['bag', '行囊']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${t[1]}</button>`).join('')}</nav>`;
   },
   end() {
     const e = UI.end;
@@ -96,7 +99,12 @@ function eraOptions(c) {
   for (const e of ERAS) if (!c.legacy || e.y > c.legacy.year + 5) out.push(c.legacy ? Object.assign({}, e, { n: `${e.n}（數十年後的後人）` }) : e);
   return out;
 }
+const SUBS = [['status', '狀態'], ['skill', '武功'], ['people', '人脈']];
 const TABS = {
+  me() {
+    const sub = SUBS.some(x => x[0] === UI.sub) ? UI.sub : 'status';
+    return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
+  },
   world() {
     const L = LOCS[S.loc], k = L.kind;
     const logs = S.log.slice(-5).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
@@ -133,31 +141,18 @@ const TABS = {
     const more = UI.more ? g.map(x => `<section class="group"><h3>${x[0]}</h3><div class="acts">${x[1]}</div></section>`).join('') : '';
     return guide + `<ul class="log">${logs}</ul>` + `<div class="col">${B(UI.more ? '收起其他行動' : '其他行動（修煉、買賣、拜師、情緣…）', () => { UI.more = !UI.more; render(); }, 'big')}</div>` + (UI.more ? `<p class="desc">${L.d}</p>` + quest + more : '');
   },
-  me() {
+  status() {
     return `<section class="group"><h3>${esc(S.name)}</h3>
       <p class="desc">${S.gender}・${S.birth || S.origin}・${cnNum(age())}歲${S.gen > 1 ? `・第${cnNum(S.gen)}代（承${esc(S.legacyFrom)}遺澤）` : ''}<br>
       稱號：${fameTitle()}　心性：${moralName()}（${S.moral}）<br>
       門派：${S.sect ? `${SECTS[S.sect].n}・${RANKS[S.rank]}` : '無門無派'}　戰績：${S.wins} 勝 ${S.losses} 負</p>
-      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>
-      <section class="group"><h3>見聞</h3><p class="desc">親眼目睹 ${histCount('seen')} 件・事後耳聞 ${histCount('heard')} 件</p></section>
-      <section class="group"><h3>神兵譜</h3><p class="desc">傳說中的神兵利器，旁觀者拿不到，親眼見過就記在這裡。</p><div class="col">${LEGEND_ARMS.map(a => { const seen = (S.hist || {})[a.hist] === 'seen'; return `<article class="card"><div class="card-h"><b>${seen ? a.n : '？？？'}</b><span class="tag ${seen ? 'gold' : 'grey'}">${seen ? '親眼見過' : '未曾得見'}</span></div><p>${seen ? a.d : '要在它出現的那一天，人在現場。'}</p></article>`; }).join('')}</div></section>
-      <section class="group"><h3>江湖記事</h3>${(S.journal || []).length ? `<ul class="log journal">${S.journal.map(j => `<li><time>${j.t}・${j.ch}</time>${j.s}</li>`).join('')}</ul>` : '<p class="empty">故事才剛開始。</p>'}</section>
-      <section class="group"><h3>去留</h3><div class="acts">
-        ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
-        ${S.sect ? A('叛出師門', '聲望-40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
-        ${A('重新開始', '刪除存檔', () => confirmBox('刪除存檔？', '目前的進度將無法復原。', () => { wipeSave(); S = null; UI = { screen: 'title', ov: null }; render(); }))}
-      </div></section>
-      <section class="group"><h3>美術出處</h3><p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p>
-      <ul class="credits">${Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('')}</ul></section>`;
+      <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${STAT_N[k]}</span><b>${S.stats[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div></section>`;
   },
   skill() {
     const ids = Object.keys(S.skills).sort((a, b) => Object.keys(TYPE_N).indexOf(SKILLS[a].type) - Object.keys(TYPE_N).indexOf(SKILLS[b].type) || SKILLS[b].tier - SKILLS[a].tier);
-    const all = Object.keys(SKILLS), mine = Object.keys(S.skills).length;
-    const book = `<section class="group"><h3>武學圖鑑</h3><p class="desc">已習得 ${mine} 門，江湖上共有 ${all.length} 門武功。各派的武功要拜師才學得到，書中名家的武功要靠奇遇，鎮派絕學由掌門親傳。</p>
-      <div class="codex">${Object.keys(TYPE_N).map(t => { const ks = all.filter(id => SKILLS[id].type === t); return `<div><b>${TYPE_N[t]}</b><span>${ks.filter(id => S.skills[id]).length}/${ks.length}</span></div>`; }).join('')}</div></section>`;
     const cb = activeCombo();
     const combo = `<section class="group"><h3>武功組合</h3><p class="desc">${cb ? `目前生效：<b>${cb.n}</b>——${cb.d}，威力 +${Math.round(cb.mul * 100 - 100)}%。` : '目前備戰的兩門武功沒有組合加成。'}<br>已知的組合：${COMBOS.map(c => c.n).join('、')}。</p></section>`;
-    return book + combo + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
+    return combo + `<p class="desc">主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖則打折。備戰外功最多兩門。</p>` + ids.map(id => {
       const k = SKILLS[id], sk = S.skills[id];
       const on = k.type === 'nei' ? S.nei === id : S.eq.includes(id);
       let ctl = '';
@@ -205,6 +200,10 @@ function openMenu(m, arg) { UI.ov = { k: 'menu', m, arg }; render(); }
 function confirmBox(title, text, yes) { UI.ov = { k: 'menu', m: 'confirm', title, text, yes }; render(); }
 const closeMenu = () => { UI.ov = null; save(); render(); };
 
+const CRED_HTML = () => {
+  const list = Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('');
+  return `<p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p><ul class="credits">${list}</ul>`;
+};
 const MENUS = {
   travel: () => ['前往何處', Object.keys(LOCS).filter(id => id !== S.loc).sort((a, b) => travelDays(a) - travelDays(b)).map(id =>
     `<button type="button" class="opt"${h(() => travel(id))}><b>${LOCS[id].n}<i>${cnNum(travelDays(id))}日</i></b><span>${LOCS[id].d}</span></button>`).join('')],
@@ -229,6 +228,45 @@ const MENUS = {
   gift: () => { const id = UI.ov.arg; return [`贈禮給${NPCS[id].n}`, Object.keys(S.inv).filter(i => ITEMS[i].kind === 'gift').map(i => `<button type="button" class="opt"${h(() => gift(id, i))}><b>${ITEMS[i].n}<i>×${S.inv[i]}</i></b></button>`).join('')]; },
   confirm: () => { const o = UI.ov; return [o.title, `<p class="desc">${o.text}</p><div class="col">${B('確定', () => { UI.ov = null; o.yes(); }, 'primary big')}</div>`]; },
 };
+
+
+const REF_TABS = [['codex', '武學圖鑑'], ['arms', '神兵譜'], ['journal', '江湖記事'], ['timeline', '大事年表'], ['help', '玩法說明'], ['credits', '美術出處']];
+const REF = {
+  codex: () => {
+    const all = Object.keys(SKILLS), mine = Object.keys(S.skills);
+    return `<p class="desc">已習得 ${mine.length} 門，江湖上共有 ${all.length} 門武功。各派的武功要拜師才學得到，書中名家的武功要靠奇遇，鎮派絕學由掌門親傳。</p>
+      <div class="codex">${Object.keys(TYPE_N).map(t => { const ks = all.filter(id => SKILLS[id].type === t); return `<div><b>${TYPE_N[t]}</b><span>${ks.filter(id => S.skills[id]).length}/${ks.length}</span></div>`; }).join('')}</div>
+      <h4>已習得</h4><p class="desc">${mine.map(id => SKILLS[id].n).join('、') || '尚無'}</p>`;
+  },
+  arms: () => `<p class="desc">傳說中的神兵利器，旁觀者拿不到，親眼見過就記在這裡。</p><div class="col">${LEGEND_ARMS.map(a => { const seen = (S.hist || {})[a.hist] === 'seen'; return `<article class="card"><div class="card-h"><b>${seen ? a.n : '？？？'}</b><span class="tag ${seen ? 'gold' : 'grey'}">${seen ? '親眼見過' : '未曾得見'}</span></div><p>${seen ? a.d : '要在它出現的那一天，人在現場。'}</p></article>`; }).join('')}</div>`,
+  journal: () => `<p class="desc">親眼目睹 ${histCount('seen')} 件・事後耳聞 ${histCount('heard')} 件</p>${(S.journal || []).length ? `<ul class="log journal">${S.journal.slice().reverse().map(j => `<li><time>${j.t}・${j.ch}</time>${j.s}</li>`).join('')}</ul>` : '<p class="empty">故事才剛開始。</p>'}`,
+  timeline: () => {
+    const rows = HIST.filter(h => (S.hist || {})[h.id] === 'seen' || (S.hist || {})[h.id] === 'heard').sort((a, b) => hStart(a) - hStart(b));
+    return `<p class="desc">只列出你親眼見過或聽說過的事。還沒發生、沒打聽到的，不會顯示。</p>` + (rows.length ? `<ul class="log journal">${rows.map(h => `<li><time>${reign(h.y)}${MONTH_N[h.m]}${h.d ? cnDay(h.d) : ''}・${S.hist[h.id] === 'seen' ? '親見' : '耳聞'}</time>${h.news}</li>`).join('')}</ul>` : '<p class="empty">還沒有。</p>');
+  },
+  help: () => `<div class="help">
+      <h4>怎麼玩</h4><p>「江湖」頁最上方的「下一步」會告訴你現在最該做什麼，只按它就能一路看完一生遇得上的大事。其他行動收在「其他行動」裡。</p>
+      <h4>時間與大事</h4><p>每個行動都耗天數。歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。在酒樓打聽能知道一年後的事。</p>
+      <h4>戰鬥</h4><p>每回合雙方各排六手。攻克破、破克守、守克攻；同招各傷一半；連勝三手追擊；絕招耗內力、無視克制。對手的牌會露出幾張，交手越多、悟性越高，看穿越多。</p>
+      <h4>武功與門派</h4><p>主修內功決定內力屬性：與招式屬性相合則威力大增，陰陽相沖打折。備戰外功最多兩門，特定組合有加成。升到長老後，可由掌門親傳鎮派絕學。</p>
+      <h4>陣營</h4><p>師父在事件中示範武功時，陣營與師父相同的人可以一同學，其他人只能旁觀。正道：全真、少林、丐幫、武當、峨嵋；中立：明教與無門無派；邪道：鐵掌幫。</p>
+      <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代，接著上一代，或跳到後面的年代。存檔存在這支手機的瀏覽器裡。</p>
+    </div>`,
+  credits: () => `<div class="credits-wrap">${CRED_HTML()}</div>`,
+};
+const MENU_EXTRA = {
+  settings: () => ['設定', `<div class="col setlist">
+      ${A('參考', '武學圖鑑、神兵譜、江湖記事、大事年表、玩法說明、美術出處', () => openMenu('ref', 'codex'))}
+      ${A('歸隱江湖', '結算一生並傳承', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱')))}
+      ${S.sect ? A('叛出師門', '聲望 -40', () => confirmBox('叛出師門？', `你將離開${SECTS[S.sect].n}，失去身分與貢獻，已學會的武功仍在。`, leaveSect)) : ''}
+      ${A('重新開始', '刪除存檔，回到標題', () => confirmBox('刪除存檔？', '目前的進度將無法復原。', () => { wipeSave(); S = null; UI = { screen: 'title', ov: null }; render(); }))}
+    </div><p class="ver">${VERSION}</p>`],
+  ref: () => {
+    const cur = REF_TABS.some(x => x[0] === UI.ov.arg) ? UI.ov.arg : 'codex';
+    return [`參考・${REF_TABS.find(x => x[0] === cur)[1]}`, `<div class="refnav">${B('← 設定', () => openMenu('settings'), 'mini')}${REF_TABS.map(x => B(x[1], () => openMenu('ref', x[0]), 'mini' + (x[0] === cur ? ' on' : ''))).join('')}</div>` + REF[cur]()];
+  },
+};
+Object.assign(MENUS, MENU_EXTRA);
 
 function overlay() {
   const o = UI.ov;

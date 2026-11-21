@@ -209,3 +209,22 @@ img.face { display: block; aspect-ratio: 3 / 4; object-fit: cover; object-positi
 .guide { display: grid; gap: 6px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--jade); border-radius: 4px; }
 .guide h3 { color: var(--ink); letter-spacing: .06em; font-size: 18px; } .guide p { font: 16px/1.6 var(--f-brush); } .guide small { color: var(--ink2); font-size: 12px; }
 .guide .tag { justify-self: start; }
+
+/* ===== 介面大改：標題列、三分頁、人物子頁、設定與參考 ===== */
+.top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; }
+.top .who { grid-column: 1 / -1; }
+.btn.gear { min-height: 34px; padding: 4px 12px; }
+.scene img.art { aspect-ratio: 800 / 300; }
+.vitals { grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+.vitals > div:nth-child(1), .vitals > div:nth-child(2) { display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; align-items: center; }
+.vitals > div:nth-child(1) em, .vitals > div:nth-child(2) em { min-width: 0; font-size: 11px; text-align: right; }
+.vitals .chips { grid-column: 1 / -1; }
+.tabs { grid-template-columns: repeat(3, 1fr); }
+.tabs button { padding: 16px 0; font-size: 19px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { padding: 10px 0; background: var(--card); border: 0; border-right: 1px solid var(--line); font: 17px var(--f-brush); color: var(--ink2); }
+.seg button:last-child { border-right: 0; } .seg button.on { background: var(--jade); color: var(--on-jade); }
+.setlist .act { min-height: 66px; }
+.refnav { display: flex; flex-wrap: wrap; gap: 6px; }
+.refnav .btn.on { border-color: var(--jade); color: var(--jade); background: color-mix(in srgb, var(--jade) 10%, var(--card)); }
+.help h4 { margin: 14px 0 2px; color: var(--seal); } .help p { font: 16px/1.7 var(--f-brush); }
