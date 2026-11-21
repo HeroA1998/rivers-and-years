@@ -531,6 +531,54 @@ const EVENTS = [
     choices: [{ t: '把信疊好，貼身收起', go: s => { const id = s.spouse || s.flags.lover; s.npcs[id].fav = clamp(s.npcs[id].fav + 4, 0, 100); return '這一夜你睡得格外安穩。' + gain({ hp: 999, mp: 999 }); } }] },
 ];
 
+/* ================= 原著傳功場景：同陣營一同學習 =================
+   原著中師父教徒弟的場面，人在現場時：陣營相同（side：1 正道、0 中立、-1 邪道）可以一同學；陣營不同只能旁觀。 */
+const SIDE_N = { 1: '正道', 0: '中立', '-1': '邪道' };
+function teachEvent(d) {
+  const observe = () => '你只能遠遠看著。招式記住了幾分，可門道沒人點破，終究學不到手。' + (xp(S.nei, 60) || '') + gain({ int: 1 });
+  return { id: d.id, type: '傳承', title: d.title, ctx: d.ctx || ['wild', 'travel', 'city'], loc: d.loc, w: d.w || 14, once: true, art: d.art || 'legacy',
+    cond: s => ad() >= d.y[0] && ad() <= d.y[1] && !knows(d.skill),
+    text: s => d.text + '\n\n' + (sameSide(s, d.side) ? d.inText : (d.outText || `${d.teacher}看了你一眼，搖了搖頭：「門戶有別，看看可以，學不行。」〔陣營不同：只有${SIDE_N[d.side]}中人能一同學〕`)),
+    choices: s => sameSide(s, d.side)
+      ? [{ t: '跟著一起學', go: () => { advance(d.days || 7); return `${d.learnText}〔耗時${cnNum(d.days || 7)}日〕` + learn(d.skill); } },
+         { t: '不打擾，在一旁看', go: observe }]
+      : [{ t: '在一旁看', go: observe }, { t: '悄悄離開', go: () => '你轉身走了。有些功夫，不是誰都能學的。' }] };
+}
+EVENTS.push(...[
+  { id: 't_xiaoyao', title: '客店院中', skill: 'gb_fist', side: 1, y: [1223, 1225], ctx: ['city'], teacher: '老叫化',
+    text: '客店後院，一個背著紅葫蘆的老叫化正在教一個少女練拳。少女聰明得很，一招看一遍就會，老叫化一邊教一邊嚷著要吃她做的菜。',
+    inText: '老叫化瞧見你在旁邊，擺擺手：「你也是正道的娃娃？站過來，多一個人學，我也不吃虧。」',
+    learnText: '這套拳法輕飄飄的，像是在逛街，可你照著練了幾天，才發現每一步都藏著閃避的門道。' },
+  { id: 't_kongming', title: '桃花島山洞', skill: 'kong_fist', side: 1, y: [1224, 1225], loc: 'taohua', ctx: ['wild'], teacher: '白鬍子老頭', art: 'cave',
+    text: '桃花島的一個山洞裡，困著一個白鬍子老頭。他在洞口教一個濃眉大眼的年輕人練拳，拳法輕飄飄的，像是一點力氣都沒有。',
+    inText: '老頭看見你，眼睛一亮：「又來一個陪我玩的！你也是正派的人？好，一起學，誰學得快我請誰吃果子。」',
+    learnText: '那拳法以空為本，你練了好幾天，才明白老頭說的「打不到人，但人也打不到你」是什麼意思。' },
+  { id: 't_mayu', title: '懸崖夜課', skill: 'qz_nei', side: 1, y: [1222, 1223], loc: 'mobei', ctx: ['wild', 'travel'], teacher: '中年道人', art: 'mountain',
+    text: '草原的一座懸崖上，每天夜裡都有一個中年道人帶著一個少年爬上去打坐。道人教的是呼吸吐納，一句一句講得極慢。',
+    inText: '道人發現了你，並不驚訝：「你也是正道中人？那就坐下來吧。玄門正宗的功夫，本就不該只傳一人。」',
+    learnText: '你們在懸崖上坐了好多個夜晚。風很大，可你的呼吸越來越穩，丹田裡漸漸有了一團暖氣。' },
+  { id: 't_yunv', title: '古墓石床', skill: 'gm_nei', side: 0, y: [1240, 1244], loc: 'zhongnan', ctx: ['sect', 'wild'], teacher: '白衣少女', art: 'cave',
+    text: '你在終南山後山的林子裡，看見一個白衣少女在教一個少年練功。少年躺在一張冷冰冰的石床上，少女在旁邊講口訣，聲音像山泉一樣冷。',
+    inText: '少女看了你一眼：「你不是全真教的人。」她頓了頓，「那就一起聽吧。只此一次。」',
+    learnText: '那心法要人心如止水。你在古墓外坐了好幾天，心裡越來越靜，連自己的心跳都聽得清清楚楚。' },
+  { id: 't_xiao', title: '簫聲', skill: 'th_xiao', side: 0, y: [1241, 1243], ctx: ['travel', 'wild'], teacher: '青袍人',
+    text: '路邊的涼亭裡，一個青袍人手持玉簫，正在教一個少年使劍。他不用劍，只用簫比劃，簫聲隨著招式忽高忽低。',
+    inText: '青袍人斜眼看你：「你不是名門正派出身？好，我最討厭那些假仁假義的。來，一起學。」',
+    learnText: '他教得很快，從不重複。你和那少年拚命記，記到後來，劍招和簫譜在腦子裡攪成了一團，卻又分明是同一件事。' },
+  { id: 't_dog', title: '華山絕頂', skill: 'gb_dog', side: 1, y: [1242, 1242], loc: 'huashan', ctx: ['wild'], teacher: '老叫化', art: 'snow',
+    text: '華山絕頂的雪地裡，一個病懨懨的老叫化正在教一個少年使棒。他自己已經站不太穩了，教的時候卻一點也不馬虎。',
+    inText: '老叫化喘著氣說：「我時日無多了。你是正道的人，就一起學吧。這棒法要是失傳，我死也不閉眼。」',
+    learnText: '絆、劈、纏、戳、挑、引、封、轉。老叫化每教一個字，就要歇好一會兒。你記住了每一個字。' },
+  { id: 't_taiji', title: '武當大殿', skill: 'wd_taiji', side: 1, y: [1357, 1358], loc: 'wudang', ctx: ['sect', 'wild'], teacher: '白鬚老道', art: 'taoist',
+    text: '武當山大殿上，一個白鬚老道當著強敵的面，把一套新創的拳法慢慢演給一個年輕人看。他打得很慢，一招一式都像在畫圓。\n\n敵人就在殿外等著。',
+    inText: '老道打完一遍，看了看你：「你也是正道的人？好。記住了多少？忘了多少？」',
+    learnText: '老道又打了一遍，問你記住了多少。你說忘了一半。他又打一遍，你說全忘了。他笑了：「好，你可以去了。」' },
+  { id: 't_qiankun', title: '光明頂密道', skill: 'mj_qk', side: 0, y: [1357, 1357], loc: 'kunlun', ctx: ['sect', 'wild', 'travel'], teacher: '年輕人', art: 'cave',
+    text: '光明頂的密道深處，你撞見一個年輕人和一個小丫鬟正借著火光看一張羊皮，那羊皮上的字寫的是一門心法。年輕人看一段、練一段，進境快得嚇人。',
+    inText: '那小丫鬟警惕地看著你。年輕人卻說：「你也不是名門正派的人，那就一起看吧。這東西本就是明教的，不該只歸一人。」',
+    learnText: '你只看懂了前幾層，再往下，就覺得心浮氣躁，不敢再練。可單是這幾層，已經夠你受用一輩子了。' },
+].map(teachEvent));
+
 /* ================= 定期與主線事件 ================= */
 function tourneyRound(i) {
   const names = ['「鐵臂」張猛', '「千手」唐秋娘', '上屆魁首「小孟嘗」裴照'];
