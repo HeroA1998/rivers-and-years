@@ -20,6 +20,7 @@ function render() {
   let html = SCREENS[UI.screen]();
   if (UI.ov) html += overlay();
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
+  root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
   root.innerHTML = html;
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;

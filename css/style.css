@@ -566,3 +566,77 @@ body { font-size: 16px; }
 .card.has-face .face { width: 104px; border-radius: 6px; border: 2px solid var(--gold); box-shadow: 0 3px 8px rgba(43,28,16,.3); }
 .face.on-art { height: 112%; right: 4px; bottom: -4px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
 .sheet .scene:has(.face.on-art) { overflow: hidden; }
+
+/* ================= v6.3 日系手遊風：陣營主色、圓潤卡片、大數字、按壓回饋 ================= */
+/* 陣營主色：依俠義值切換（正派玉綠、反派朱紅、亦正亦邪靛藍） */
+#app { --accent: #1E6E63; --accent-d: #0E3F38; --accent-hi: #3E9C8C; }
+#app[data-align="e"] { --accent: #C0392B; --accent-d: #6E1A12; --accent-hi: #E45F4C; }
+#app[data-align="n"] { --accent: #3D5BA9; --accent-d: #243A72; --accent-hi: #5A7BCB; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #app[data-align="n"] { --accent: #5A7BCB; --accent-d: #2F3C7A; --accent-hi: #7A96DC; } }
+:root[data-theme="dark"] #app[data-align="n"] { --accent: #5A7BCB; --accent-d: #2F3C7A; --accent-hi: #7A96DC; }
+
+/* 圓角與柔光陰影 */
+.card, .act, .opt, .mv, .log, .blog, .guide, .quest, .callout, .lvr, .stats > div, .vitals, .scene, .insight, .codex div {
+  border-radius: 14px !important; }
+.card, .act, .opt, .mv, .stats > div, .lvr, .codex div { box-shadow: 0 3px 10px rgba(43,28,16,.10), inset 0 1px 0 rgba(255,255,255,.55); }
+.scene { border-radius: 16px !important; }
+.scene img.art { border-radius: 14px; }
+.sheet { border-radius: 22px 22px 0 0; box-shadow: 0 -6px 24px rgba(0,0,0,.28); }
+.sheet .scene { border-radius: 14px !important; }
+
+/* 按鈕：圓潤、有光澤、按下會縮 */
+.btn { border-radius: 14px; transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  box-shadow: 0 3px 0 #B8A07A, 0 6px 10px rgba(43,28,16,.12), inset 0 1px 0 rgba(255,255,255,.7); }
+.btn:active { transform: translateY(3px) scale(.98); }
+.btn.primary, .btn.primary.big {
+  background: linear-gradient(180deg, var(--accent-hi) 0%, var(--accent) 52%, var(--accent-d) 100%);
+  border: 1.5px solid var(--accent-d); color: #FFFDF5;
+  box-shadow: 0 4px 0 var(--accent-d), 0 10px 18px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
+  text-shadow: 0 1px 1px rgba(0,0,0,.25); font-weight: 700; }
+.btn.primary:active { box-shadow: 0 1px 0 var(--accent-d), 0 3px 6px color-mix(in srgb, var(--accent) 30%, transparent); }
+.btn.big { font-size: 20px; padding: 15px 18px; border-radius: 16px; }
+.btn.big small { font-size: 12px; opacity: .9; }
+.btn.mini { border-radius: 999px; padding: 6px 16px; }
+.btn.on, .btn.mini.on { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: #FFFDF5; border-color: var(--accent-d); box-shadow: 0 3px 0 var(--accent-d); }
+.act { transition: transform .12s ease, border-color .12s ease; }
+.act:not(:disabled):active, .opt:not(:disabled):active, .mv:not(:disabled):active { transform: scale(.975); }
+.act b { font-size: 19px; }
+.act:not(:disabled) { background: linear-gradient(180deg, #FFFCF2, #F6EBCB); border-color: #C9AE76; }
+
+/* 底部分頁：膠囊高亮 */
+.tabs { border-top: 0; padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px)); }
+.tabs button { border-top: 0; margin: 4px 6px; border-radius: 16px; font-size: 15px; transition: background .15s ease; }
+.tabs button.on { color: var(--gold-hi); background: linear-gradient(180deg, color-mix(in srgb, var(--accent-hi) 55%, transparent), color-mix(in srgb, var(--accent) 35%, transparent)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 0 1px rgba(231,195,90,.55); }
+.tabs button.on .ic { color: var(--gold-hi); }
+
+/* 大數字：能力、資源、戰力一眼可讀 */
+.statrow b { font-size: 21px; font-weight: 700; }
+.statrow small { font-size: 11px; }
+.stats b { font-size: 28px; font-weight: 700; }
+.lvr b { font-size: 28px; font-weight: 700; }
+.chips b, .chips .hot { font-size: 15px; font-weight: 700; }
+.chips span { border-radius: 999px; padding: 3px 11px; }
+.vitals { box-shadow: 0 3px 10px rgba(43,28,16,.10), inset 0 1px 0 rgba(255,255,255,.55); }
+.bar { height: 11px; border-radius: 999px; box-shadow: inset 0 1px 2px rgba(43,28,16,.18); }
+.bar i { border-radius: 999px; box-shadow: inset 0 2px 0 rgba(255,255,255,.4); }
+.hpbar { height: 28px; border-radius: 999px; }
+.hpbar i { border-radius: 999px; box-shadow: inset 0 3px 0 rgba(255,255,255,.35); }
+.hpbar b { font-size: 14px; font-weight: 700; }
+
+/* 群組標題：陣營色膠囊 */
+.group h3 { display: inline-block; align-self: flex-start; background: var(--accent); color: #FFFDF5 !important; border: 0 !important; border-radius: 999px; padding: 3px 14px; font-size: 15px; letter-spacing: .1em; box-shadow: 0 2px 0 var(--accent-d); }
+.sheet .group h3 { background: var(--accent); }
+
+/* 事件浮層的選項：陣營色左條加圓角 */
+.btn.choice { border-radius: 14px; border-left-width: 6px; }
+.btn.choice .side { border-radius: 999px; padding: 4px 10px; }
+
+/* 下一步卡：陣營色 */
+.guide { border-color: var(--accent); box-shadow: 0 0 0 3px #F3E7CC, 0 0 0 4px color-mix(in srgb, var(--accent) 60%, transparent), 0 10px 20px rgba(43,28,16,.14); }
+.guide h3 { color: var(--accent); }
+.guide .tag.jade { background: var(--accent); border-color: var(--accent); }
+.tag { border-radius: 999px; padding: 3px 9px; }
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .act:not(:disabled) { background: linear-gradient(180deg, #1F2A5C, #171F40); border-color: #3B4577; } }
+:root[data-theme="dark"] .act:not(:disabled) { background: linear-gradient(180deg, #1F2A5C, #171F40); border-color: #3B4577; }
+@media (prefers-reduced-motion: reduce) { .btn, .act, .tabs button { transition: none; } }
