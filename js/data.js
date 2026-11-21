@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -28,7 +28,7 @@ const LOCS = {
    type: nei 內功 / sword 劍法 / blade 刀法 / fist 拳掌 / dart 暗器 / qing 輕功
    attr: yang 陽剛 / yin 陰柔 / he 中和
    moves: [名稱, 解鎖層數, 耗內力, 威力, 特效]  特效: bleed 流血 poison 中毒 stun 震暈 weak 破勢 drain 吸血 pierce 破防 */
-const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', dart: '暗器', qing: '輕功' };
+const TYPE_N = { nei: '內功', sword: '劍法', blade: '刀法', fist: '拳掌', staff: '棒法', dart: '暗器', qing: '輕功' };
 const ATTR_N = { yang: '陽剛', yin: '陰柔', he: '中和' };
 const TIER_N = ['', '入門', '上乘', '絕學'];
 const FX_N = { bleed: '流血', poison: '中毒', stun: '震暈', weak: '破勢', drain: '吸血', pierce: '破防' };
@@ -85,6 +85,9 @@ const SKILLS = {
   wd_taiji:   { n: '太極拳', type: 'fist', tier: 3, attr: 'he', sect: 'wudang', d: '張三丰晚年所創，以靜制動、以柔克剛、後發制人。', moves: [['攬雀尾', 1, 13, 38, 'weak'], ['單鞭', 4, 21, 56, 'weak'], ['以柔克剛', 8, 38, 90, 'pierce']] },
   wd_zhenwu:  { n: '真武劍法', type: 'sword', tier: 3, attr: 'he', sect: 'wudang', d: '武當開派時的鎮山劍法，劍勢堂堂正正。', moves: [['真武蕩魔', 1, 14, 40], ['玄武鎮北', 4, 22, 56, 'weak'], ['真武七截', 8, 40, 92, 'pierce']] },
   em_ult:     { n: '四象掌', type: 'fist', tier: 3, attr: 'yin', sect: 'emei', d: '峨嵋派的上乘掌法，太陰少陰、太陽少陽，四象流轉。', moves: [['太陰', 1, 13, 40, 'weak'], ['少陽', 4, 21, 56], ['四象歸一', 8, 38, 92, 'pierce']] },
+  gb_dog:     { n: '打狗棒法', type: 'staff', tier: 3, attr: 'yin', sect: 'gaibang', d: '丐幫歷代幫主相傳的棒法，以絆、劈、纏、戳、挑、引、封、轉八字訣變化，輕靈巧妙。', moves: [['絆字訣', 1, 13, 38, 'weak'], ['纏字訣', 4, 21, 56, 'stun'], ['天下無狗', 8, 40, 94, 'pierce']] },
+  mj_qk:      { n: '乾坤大挪移', type: 'fist', tier: 3, attr: 'he', sect: 'mingjiao', d: '明教鎮教神功，挪移敵人的勁力為己用。練到第七層，世間少有人能及。', moves: [['挪移乾坤', 1, 14, 40, 'weak'], ['借力打力', 4, 22, 58, 'drain'], ['第七層', 8, 42, 98, 'pierce']] },
+  wd_taijian: { n: '太極劍', type: 'sword', tier: 3, attr: 'he', sect: 'wudang', d: '張三丰與太極拳同時創出的劍法，劍招連綿成圈，不求形似但求意到。', moves: [['三環套月', 1, 13, 38, 'weak'], ['大魁星', 4, 21, 56], ['劍意無形', 8, 38, 92, 'pierce']] },
   mj_ult:     { n: '聖火令武功', type: 'fist', tier: 3, attr: 'he', sect: 'mingjiao', d: '刻在聖火令上、從波斯傳來的古怪武功，招式匪夷所思。', moves: [['聖火', 1, 14, 42, 'stun'], ['無影', 4, 22, 58, 'weak'], ['焚我殘軀', 8, 40, 96, 'drain']] },
 
   // 江湖雜學
@@ -107,34 +110,37 @@ const SECTS = {
   quanzhen: { n: '全真教', loc: 'zhongnan', align: 1, from: 1170, to: 1400, master: '清虛道長', style: '劍法・內功・玄門正宗',
     tasks: ['下山採買糧米香燭', '在重陽宮前接待上山的香客', '抄寫道藏經卷', '清掃終南山的石階'],
     d: '重陽真人所創，天下玄門正宗。門規森嚴，弟子眾多。', req: s => s.stats.int >= 6, reqT: '悟性須達 6',
-    teach: [['qz_sword', 0, 0], ['qz_nei', 1, 60], ['qz_qing', 1, 80], ['qz_palm', 2, 160]], ult: 'qz_ult', head: '掌教' },
+    teach: [['qz_sword', 0, 0], ['qz_nei', 1, 60], ['qz_qing', 1, 80], ['qz_palm', 2, 160]], ults: [['qz_ult']], head: '掌教' },
   gaibang: { n: '丐幫', loc: 'junshan', align: 1, from: 1050, to: 1400, master: '錢八袋', style: '拳掌・市井實戰',
     tasks: ['沿街打探各路消息回報總舵', '在渡口替幫中兄弟排解糾紛', '押送一船糧米過洞庭', '照看幫裡收留的孤兒'],
     d: '天下第一大幫，弟子遍布各地，販夫走卒、乞兒流民都是兄弟。', req: () => true, reqT: '無',
-    teach: [['gb_fist', 0, 0], ['gb_nei', 1, 50], ['gb_qing', 1, 70], ['gb_palm', 2, 150]], ult: 'gb_ult', head: '幫主' },
+    teach: [['gb_fist', 0, 0], ['gb_nei', 1, 50], ['gb_qing', 1, 70], ['gb_palm', 2, 150]], ults: [['gb_ult'], ['gb_dog']], head: '幫主' },
   shaolin: { n: '少林寺', loc: 'shaolin', align: 1, from: 500, to: 1400, master: '慧明禪師', style: '拳掌・剛猛厚重',
     tasks: ['下山化緣、施粥濟貧', '護送香客過嵩山山道', '在藏經閣外打掃', '在羅漢堂陪練新入門的沙彌'],
     d: '武林泰山北斗，收俗家弟子，重根基，戒殺生。', req: s => s.moral >= 0 && s.stats.con >= 6, reqT: '根骨須達 6，且非奸邪之徒',
-    teach: [['sl_fist', 0, 0], ['sl_nei', 1, 60], ['sl_qing', 1, 80], ['sl_palm', 2, 160]], ult: 'sl_ult', head: '方丈' },
+    teach: [['sl_fist', 0, 0], ['sl_nei', 1, 60], ['sl_qing', 1, 80], ['sl_palm', 2, 160]], ults: [['sl_ult']], head: '方丈' },
   tiezhang: { n: '鐵掌幫', loc: 'tiezhang', align: -1, from: 1150, to: 1240, master: '沙香主', style: '掌法・狠辣霸道',
     tasks: ['押送一批來路不明的貨物', '替幫中收取各寨的供奉', '看守峰下的地牢'],
     d: '湘西一霸，幫主武功蓋世，暗中與金國往來。入幫者為俠義道所不齒。', req: s => s.moral <= 20, reqT: '俠義之名太盛者不收',
-    teach: [['tz_palm', 0, 0], ['tz_nei', 1, 50], ['tz_qing', 1, 80], ['tz_iron', 2, 150]], ult: 'tz_ult', head: '幫主' },
+    teach: [['tz_palm', 0, 0], ['tz_nei', 1, 50], ['tz_qing', 1, 80], ['tz_iron', 2, 150]], ults: [['tz_ult']], head: '幫主' },
   wudang: { n: '武當派', loc: 'wudang', align: 1, from: 1300, to: 1400, master: '清風道長', style: '拳劍・以柔克剛',
     tasks: ['下山替百姓排解糾紛', '在紫霄宮前接待訪客', '抄寫經卷', '巡山'],
     d: '張三丰真人所創，門下七俠名動天下。', req: s => s.stats.int >= 6 && s.moral >= 0, reqT: '悟性須達 6，且非奸邪之徒',
-    teach: [['wd_fist', 0, 0], ['wd_nei', 1, 60], ['wd_qing', 1, 80], ['wd_sword', 2, 160]], ult: 'wd_taiji', ultFrom: 1357, ultAlt: 'wd_zhenwu', head: '張真人' },
+    teach: [['wd_fist', 0, 0], ['wd_nei', 1, 60], ['wd_qing', 1, 80], ['wd_sword', 2, 160]], ults: [['wd_zhenwu'], ['wd_taiji', 1357], ['wd_taijian', 1357]], head: '張真人' },
   emei: { n: '峨嵋派', loc: 'emei', align: 1, from: 1285, to: 1400, master: '靜塵師太', style: '劍掌・輕靈綿密',
     tasks: ['替山下村民義診', '採集山中藥草', '巡守金頂', '抄寫經卷'],
     d: '郭襄女俠所創，門規極嚴，對魔教深惡痛絕。', req: s => s.moral >= 10 || s.stats.cha >= 7, reqT: '心存俠義（俠義 10 以上）或魅力達 7',
-    teach: [['em_sword', 0, 0], ['em_nei', 1, 60], ['em_palm', 2, 160]], ult: 'em_ult', head: '掌門師太' },
+    teach: [['em_sword', 0, 0], ['em_nei', 1, 60], ['em_palm', 2, 160]], ults: [['em_ult']], head: '掌門師太' },
   mingjiao: { n: '明教', loc: 'kunlun', align: 0, from: 1250, to: 1400, master: '林副使', style: '刀法・火器',
     tasks: ['替教中兄弟運送糧草', '在山下接應投奔的流民', '巡守光明頂', '探聽元軍動靜'],
     d: '源自波斯，教眾多是貧苦百姓。朝廷說他們是反賊，正派說他們是魔教。', req: s => s.moral <= 60, reqT: '名門正派出身、俠名太盛者不收',
-    teach: [['mj_blade', 0, 0], ['mj_nei', 1, 50], ['mj_dart', 2, 150]], ult: 'mj_ult', head: '教主' },
+    teach: [['mj_blade', 0, 0], ['mj_nei', 1, 50], ['mj_dart', 2, 150]], ults: [['mj_ult'], ['mj_qk']], head: '教主' },
 };
-// 武當太極拳要到至正十七年（1357）張真人創出之後才有，之前傳的是真武劍法
-const sectUlt = id => { const k = SECTS[id]; if (!k || !k.ult) return null; const y = typeof ad === 'function' && S ? ad() : 1222; return k.ultFrom && y < k.ultFrom ? k.ultAlt : k.ult; };
+// 鎮派絕學可以不只一門，依序傳授；[id, 最早年份]。武當太極拳、太極劍要到至正十七年（1357）張真人創出之後才有
+// 每多學一門，門檻再提高：貢獻 1000／1600／2200、聲望 300／500／700
+const ultsOf = id => (SECTS[id] && SECTS[id].ults) || [];
+const sectUlt = id => { const y = typeof ad === 'function' && S ? ad() : 1222; const u = ultsOf(id).find(x => !(S && S.skills && S.skills[x[0]]) && (!x[1] || y >= x[1])); return u ? u[0] : null; };
+const ultNeed = id => { const n = ultsOf(id).filter(x => S && S.skills && S.skills[x[0]]).length; return { contrib: 1000 + 600 * n, fame: 300 + 200 * n }; };
 const sectOpen = id => { const k = SECTS[id], y = typeof ad === 'function' && S ? ad() : 1222; return y >= k.from && y <= k.to; };
 
 /* ---------- 物品 ---------- */
