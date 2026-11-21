@@ -20,6 +20,8 @@ const RUMORS = [
   '想看大事，得先知道大事在哪裡發生。酒樓裡的閒話，有時候比官府的邸報還準。',
 ];
 
+// 同陣營：主角所屬門派的陣營（1 正道、0 中立、-1 邪道）與指定陣營相同。無門無派視為中立
+const sameSide = (s, align) => { const a = s.sect && SECTS[s.sect] ? SECTS[s.sect].align : 0; return a === align; };
 const win = (e, w, l, x) => Object.assign({ battle: e, win: w, lose: l }, x || {});
 const topNpc = min => { let b = null; for (const id in S.npcs) { const n = S.npcs[id]; if (n.met && n.fav >= min && (!b || n.fav > S.npcs[b].fav)) b = id; } return S.spouse || b; };
 
@@ -455,16 +457,16 @@ const EVENTS = [
     ] },
 
   /* ================= 同陣營一同學習 ================= */
-  // 範例：松林中老叫化示範降龍掌。同為丐幫弟子（外門以上）才能一同學；其他人只能旁觀
+  // 範例：松林中老叫化示範降龍掌。同陣營（正道）的人可以一同學；其他陣營只能旁觀
   { id: 'k_pine', type: '傳承', title: '松林傳功', ctx: ['wild', 'travel'], w: 10, once: true, art: 'legacy', who: 'elder',
-    cond: s => s.sect === 'gaibang' && s.rank >= 1 && ad() >= 1200 && ad() <= 1260,
+    cond: s => sameSide(s, 1) && ad() >= 1200 && ad() <= 1260,
     text: '松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身沒有倒下，只是從中間整齊地裂開，斷口平滑。\n\n老叫化回頭看見你，招了招手：「是丐幫的兄弟？過來。這掌法不傳外人，你我同幫，今天就讓你看看真的。」',
     choices: [
       { t: '跟著他一起練', go: () => { advance(10); return '你們在松林裡練了十天。他一邊演示，一邊讓你照著他的步法和發力，每一掌都要你自己感受「能發能收」。〔耗時十日〕' + learn('gb_ult'); } },
       { t: '站在一旁看，不敢出聲', go: () => '你只能在旁邊看。老叫化瞥了你一眼，沒有說話，但也沒有趕你。' + (xp(S.nei, 80) || '') + gain({ int: 1 }) },
     ] },
   { id: 'k_pine_out', type: '傳承', title: '松林外', ctx: ['wild', 'travel'], w: 10, once: true, art: 'legacy', who: 'elder',
-    cond: s => s.sect !== 'gaibang' && ad() >= 1200 && ad() <= 1260,
+    cond: s => !sameSide(s, 1) && ad() >= 1200 && ad() <= 1260,
     text: '松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身從中間整齊地裂開。\n\n他看見你，皺了皺眉：「你不是丐幫的人。站遠點，看看可以，學可不行。」',
     choices: [
       { t: '退開幾步，靜靜看', go: () => '你記住了幾處發力的方向，但只能看，無法真正學到。' + (xp(S.nei, 60) || '') + gain({ int: 1 }) },
