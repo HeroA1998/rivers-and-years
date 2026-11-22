@@ -144,6 +144,21 @@ async function verifyHud(page, width, height) {
         .every(mark => getComputedStyle(mark).backgroundImage.includes('/v12/stat_')),
     };
   });
+  const doubleDigitsFit = await page.evaluate(() => {
+    const original = { ...S.stats };
+    for (const key of Object.keys(S.stats)) S.stats[key] = 18;
+    render();
+    const fits = [...document.querySelectorAll('#app > .bhud .mini-stat')].every(cell => {
+      const frame = cell.getBoundingClientRect();
+      const icon = cell.querySelector('.mini-stat-mark').getBoundingClientRect();
+      const value = cell.querySelector('b').getBoundingClientRect();
+      return icon.left >= frame.left && value.right <= frame.right && icon.right <= value.left;
+    });
+    S.stats = original;
+    render();
+    return fits;
+  });
+  check(width + ' two-digit stats fit without touching the adjacent badge', doubleDigitsFit);
   const expected = width <= 355 ? [60, 82] : width <= 410 ? [64, 86] : [72, 96];
   if (height <= 520) expected[1] = 64;
   check(width + ' portrait frame size', hud.size.join() === expected.join());

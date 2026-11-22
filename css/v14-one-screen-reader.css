@@ -29,6 +29,19 @@
   gap:4px;
 }
 #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) > .bhud .hud-stats-mini {grid-area:auto}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) > .bhud .mini-stat {
+  padding:1px;
+  gap:1px;
+}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) > .bhud .mini-stat-mark {
+  flex:0 1 21px;
+  min-width:13px;
+  height:21px;
+}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) > .bhud .mini-stat b {
+  flex:none;
+  font-size:11px;
+}
 #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) > .bhud .hgear {
   grid-area:auto;
   width:var(--hud-gear-width);
