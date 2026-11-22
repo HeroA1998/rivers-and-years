@@ -195,23 +195,63 @@ const TABS = {
       <p class="desc">能力值只會因為升級配點、故事中的遭遇，以及裝備的兵刃、護甲、飾品與武功而改變。</p></section>`;
   },
   skill() {
-    const ids = Object.keys(S.skills).sort((a, b) => (S.eq.includes(b) - S.eq.includes(a)) || ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(a)) - ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(b)) || SKILLS[b].tier - SKILLS[a].tier);
+    // 參考背包的版型：上方武功詳情卡，下方深褐面板（摘要、五格武學、狀態條、武功方格）
+    const ids = Object.keys(S.skills).sort((x, y) => (S.eq.includes(y) - S.eq.includes(x)) || ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(x)) - ['atk', 'sup', 'nei', 'qing'].indexOf(artRole(y)) || SKILLS[y].tier - SKILLS[x].tier);
+    const sel = UI.skSel && S.skills[UI.skSel] ? UI.skSel : null;
+    const ROLE_CLS = { atk: 'sk-atk', nei: 'sk-nei', qing: 'sk-qing', sup: 'sk-sup' };
+    const pick = id => () => { UI.skSel = UI.skSel === id ? null : id; render(); };
+    const cell = (id, extra) => {
+      const sk = S.skills[id], r = artRole(id);
+      return '<button type="button" class="bk-cell sk-cell ' + ROLE_CLS[r] + (extra || '') + '"' + h(pick(id)) + ' aria-label="' + esc(SKILLS[id].n) + '">' +
+        ico(artIcon(id), 'bk-ico') + '<small>' + cnNum(sk.lv) + '</small></button>';
+    };
+    const slotCell = i => {
+      const id = S.eq[i];
+      if (!id) return '<span class="bk-cell bk-empty" title="空位">' + ico('nei', 'bk-ghost') + '<small class="bk-slotn">空</small></span>';
+      return '<button type="button" class="bk-cell bk-eq sk-cell ' + ROLE_CLS[artRole(id)] + (sel === id ? ' on' : '') + '"' + h(pick(id)) + ' aria-label="' + esc(SKILLS[id].n) + '">' +
+        ico(artIcon(id), 'bk-ico') + '<small>' + cnNum(S.skills[id].lv) + '</small></button>';
+    };
     const cb = activeCombo();
-    const slots = `<section class="group"><h3>武學裝備 ${S.eq.length}/${EQ_MAX}</h3><div class="slots">${[0, 1, 2, 3, 4].map(i => { const id = S.eq[i]; return id ? `<div class="slot r-${artRole(id)} tier-${SKILLS[id].tier}">${ico(artIcon(id), 'slotic')}<i>${ROLE_N[artRole(id)]}</i><b>${SKILLS[id].n}</b><em class="stars">${stars(SKILLS[id].tier)}</em><small>${artRole(id) === 'atk' ? `攻擊 ${artAtk(id)}` : `第${cnNum(S.skills[id].lv)}層`}</small></div>` : '<div class="slot empty">' + ico('nei', 'slotic') + '<i>空</i><b>—</b><small>未裝備</small></div>'; }).join('')}</div>
-      <p class="desc">${S.nei ? `主修內功：${SKILLS[S.nei].n}（${ATTR_N[SKILLS[S.nei].attr]}）——與招式屬性相合則威力大增。` : '沒有裝備內功：氣血內力較少，出招也沒有內力加成。'}${cb ? `<br>武功組合：<b>${cb.n}</b>，威力 +${Math.round(cb.mul * 100 - 100)}%。` : ''}<br>每門裝備中的武功依類別加能力值（入門 +1、上乘 +2、絕學 +3）；只有裝備中的武功會在實戰中長進。</p></section>`;
-    return slots + ids.map(id => {
-      const k = SKILLS[id], sk = S.skills[id], r = artRole(id), on = S.eq.includes(id), st = artSt(id), fx = artFxText(id);
-      const ctl = on ? B('卸下', () => unequipArt(id), 'mini on') : B('裝備', () => equipArt(id), 'mini', S.eq.length >= EQ_MAX);
-      const stat = Object.keys(st).map(x => `${STAT_N[x]}+${st[x]}`).join('、');
-      const detail = k.type === 'nei' ? `每層 氣血+${k.hp} 內力+${k.mp}${k.evil ? '・每升一層俠義-3' : ''}`
-        : k.type === 'qing' ? `每層 閃避+${k.dodge}`
-        : r === 'sup' ? '不出招，只提供戰鬥效果'
-        : k.moves.map(m => `<span class="${sk.lv >= m[1] ? '' : 'locked'}">${m[0]}${m[4] ? `〔${FX_N[m[4]]}〕` : ''}${sk.lv >= m[1] ? '' : `（${m[1]}層）`}</span>`).join('、');
-      return `<article class="card tier-${k.tier}${on ? ' equipped' : ''}"><div class="card-h"><span class="artic">${ico(artIcon(id), 'big')}</span><b>${k.n}</b><em class="stars">${stars(k.tier)}</em><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
-        <div class="lvrow">第${cnNum(sk.lv)}層 ${sk.lv >= 10 ? '<em>圓滿</em>' : bar(sk.exp, xpNeed(sk.lv, k.tier), 'xp') + `<em>${sk.exp}/${xpNeed(sk.lv, k.tier)}</em>`}</div>
-        <p class="props">${r === 'atk' ? `<span>攻擊力 <b>${artAtk(id)}</b></span>` : ''}<span>裝備加成 <b>${stat}</b></span>${fx ? `<span>效果 <b>${fx}</b></span>` : ''}</p>
-        <details class="skill-details"><summary>查看招式與典故</summary><p>${k.d}</p><p class="moves">${detail}</p></details></article>`;
-    }).join('');
+
+    // 詳情卡
+    let card;
+    if (sel) {
+      const k = SKILLS[sel], sk = S.skills[sel], r = artRole(sel), on = S.eq.includes(sel), st = artSt(sel), fx = artFxText(sel);
+      const stat = Object.keys(st).map(x => esc(STAT_N[x]) + '+' + st[x]).join('、');
+      const main = r === 'atk' ? '<b>攻擊力 ' + artAtk(sel) + '</b><small>' + esc(ROLE_N[r]) + '</small>'
+        : '<b>' + esc(ROLE_N[r]) + '</b>';
+      const movesHtml = k.type === 'nei' ? '<div class="sk-row">每層 氣血+' + k.hp + ' 內力+' + k.mp + (k.evil ? '・每升一層俠義-3' : '') + '</div>'
+        : k.type === 'qing' ? '<div class="sk-row">每層 閃避+' + k.dodge + '</div>'
+        : r === 'sup' ? '<div class="sk-row">不出招，只提供戰鬥效果</div>'
+        : (k.moves || []).map(m => '<div class="sk-row' + (sk.lv >= m[1] ? '' : ' locked') + '"><span>' + esc(m[0]) + '</span>' +
+            (m[4] ? '<em class="sk-fx">' + esc(FX_N[m[4]]) + '</em>' : '') +
+            '<small>' + (sk.lv >= m[1] ? '威力 ' + m[2] + '–' + m[3] : m[1] + ' 層解鎖') + '</small></div>').join('');
+      const lvBar = sk.lv >= 10 ? '<em>圓滿</em>' : '<span class="sk-bar"><i style="width:' + clamp(sk.exp / xpNeed(sk.lv, k.tier) * 100, 0, 100) + '%"></i></span><small>' + sk.exp + '/' + xpNeed(sk.lv, k.tier) + '</small>';
+      const ctl = on ? B('卸下', () => { UI.skSel = null; unequipArt(sel); }, 'bk-btn') : B('裝備', () => { equipArt(sel); }, 'bk-btn', S.eq.length >= EQ_MAX);
+      card = '<section class="bk-card sk-card"><div class="bk-head"><span class="bk-big ' + ROLE_CLS[r] + '">' + ico(artIcon(sel), 'bk-ico') + '</span>' +
+        '<div class="bk-title"><h3>' + esc(k.n) + (on ? '<em>使用中</em>' : '') + '</h3><span class="bk-kind">' + esc(TIER_N[k.tier]) + esc(TYPE_N[k.type]) + '・' + esc(ATTR_N[k.attr]) + '</span></div></div>' +
+        '<div class="bk-main">' + main + '</div>' +
+        '<div class="bk-chips"><span class="bk-chip">' + esc(cnNum(sk.lv)) + '層</span>' + (stat ? '<span class="bk-chip warn">裝備加成 ' + stat + '</span>' : '') + '</div>' +
+        '<div class="sk-lv">' + lvBar + '</div>' +
+        (fx ? '<div class="bk-trait">' + ico('star', 'bk-tico') + '<p>' + esc(fx) + '</p></div>' : '') +
+        '<div class="sk-moves">' + movesHtml + '</div>' +
+        '<p class="bk-desc">' + esc(k.d) + '</p>' +
+        '<div class="bk-acts">' + ctl + B('取消', () => { UI.skSel = null; render(); }, 'bk-btn') + '</div></section>';
+    } else {
+      card = '<section class="bk-card bk-idle"><p>點選下方的武功，查看招式與效果。</p></section>';
+    }
+
+    // 摘要：主修、組合、攻擊、閃避
+    const atkSum = atkArts().reduce((t, id) => t + artAtk(id), 0);
+    const strip = [['sword', '攻擊', Math.round(atkSum)], ['agi', '閃避', Math.round(pDodge())], ['nei', '主修', S.nei ? SKILLS[S.nei].n.slice(0, 4) : '無'], ['star', '組合', cb ? cb.n.slice(0, 4) : '無']]
+      .map(x => '<span class="bk-stat" title="' + esc(x[1]) + '">' + ico(x[0], 'bk-sico') + '<b>' + esc(String(x[2])) + '</b><small>' + esc(x[1]) + '</small></span>').join('');
+    const slots = [0, 1, 2, 3, 4].map(slotCell).join('');
+    const grid = ids.filter(id => !S.eq.includes(id)).map(id => cell(id, sel === id ? ' on' : ''))
+      .concat(Array.from({ length: Math.max(0, 14 - ids.filter(id => !S.eq.includes(id)).length) }, () => '<span class="bk-cell bk-blank"></span>')).join('');
+    return card + '<section class="bk-panel sk-panel"><div class="bk-top"><div class="bk-sum"><span>' + ico('star', 'bk-sico') + '<b>' + S.eq.length + '/' + EQ_MAX + '</b></span>' +
+      '<span>' + ico('nei', 'bk-sico') + '<b>' + (S.nei ? SKILLS[S.nei].tier : 0) + '</b></span></div>' + slots + '</div>' +
+      '<div class="bk-strip">' + strip + '</div><div class="bk-grid">' + grid + '</div>' +
+      (cb ? '<p class="sk-combo">武功組合：' + esc(cb.n) + '，威力 +' + Math.round(cb.mul * 100 - 100) + '%</p>' : '') + '</section>';
   },
   bag() {
     // 參考手遊的背包：上方道具詳情卡、深褐色背包面板（總覽＋裝備欄＋屬性條＋物品格）
