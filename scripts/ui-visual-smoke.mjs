@@ -176,52 +176,68 @@ for(const dims of [[320,700],[390,844],[430,932]]){
   await reveal(page);
   check(String(width)+' saved game resumed',await page.locator('.event-reader').count()>0);
  }
- // Each mobile viewport exercises the real, compact modal over its existing story.
+ // Verify the original illustrated battle scene and actual drag-to-roll d20.
  await page.evaluate(()=>{
    showEvent({type:'江湖',title:'山路試招',text:'前方有個山賊擋住去路。',choices:[
-     {s:'g',t:'挺身應戰',go:()=>({title:'山路對決',intro:'山賊擺開架勢。',battle:foe('山賊',2,0.15,'thug')})}
+     {s:'g',t:'挺身應戰',go:()=>{
+       const e=foe('山賊',2,0.15,'thug');e.hp=9999;e.mhp=9999;
+       return {title:'山路對決',intro:'山賊擺開架勢。',battle:e};
+     }}
    ]});
  });
  await reveal(page);
  await page.locator('.event-choice:not([disabled])').first().click();
- const dialog=page.getByRole('dialog',{name:'山路對決'});
- check(width+' compact battle modal',await dialog.count()===1);
- check(width+' original world remains visible',await page.locator('#app[data-page="world"] > .bhud').count()===1);
- check(width+' battle background story preserved',await page.locator('.battle-behind .reader-line').count()>0);
- check(width+' battle removes arena',await dialog.locator('.arena,.tray,.bnav,.bhud').count()===0);
- const geometry=await dialog.evaluate(el=>{
-   const r=el.getBoundingClientRect();
-   return {width:Math.round(r.width),height:Math.round(r.height),top:Math.round(r.top),
-     left:Math.round(r.left),viewportWidth:innerWidth,viewportHeight:innerHeight};
- });
- check(width+' compact battle fits screen',
-   geometry.width<=Math.min(geometry.viewportWidth-20,420) &&
-   geometry.height<=geometry.viewportHeight*.82 &&
-   geometry.left>=0&&geometry.top>=0,geometry);
- check(width+' battle has both HP bars',await dialog.locator('.battle-health').count()===2);
- check(width+' battle dice choices',
-   await dialog.getByRole('button',{name:/擲骰子/}).count()===1 &&
-   await dialog.getByRole('button',{name:/直接以 10 點開始/}).count()===1);
+ const dialog=page.getByRole('dialog',{name:'江湖戰鬥'});
+ check(width+' restored combat panel',await dialog.count()===1);
+ check(width+' duel arena present',await dialog.locator('.arena').count()===1);
+ check(width+' both animated fighters present',
+   await dialog.locator('.arena .fgt.p').count()===1 &&
+   await dialog.locator('.arena .fgt.e').count()===1);
+ check(width+' combat equipment cards visible',
+   await dialog.locator('.srow .sl').count()===1 &&
+   await dialog.locator('.srow .sr').count()===1);
+ const tray=dialog.locator('.tray');
+ check(width+' original 3D dice tray restored',await tray.count()===1);
+ check(width+' dice accepts pointer drag',
+   await tray.evaluate(el=>getComputedStyle(el).touchAction)==='none');
+ check(width+' dice renderer connected',
+   await page.evaluate(()=>DIE3!==null&&document.querySelector('.tray')?.classList.contains('live3d')));
+ const box=await dialog.boundingBox(),trayBox=await tray.boundingBox();
+ check(width+' restored scene fits viewport',!!box&&box.width<=width&&box.height<=height&&box.x>=0&&box.y>=0,
+   box?{width:box.width,height:box.height,x:box.x,y:box.y}:{box:null});
  if(width===390)
-   await page.screenshot({path:out+'/battle_dialog_before_roll_390x844.png',fullPage:false,animations:'disabled'});
- await dialog.getByRole('button',{name:/直接以 10 點開始/}).click();
- check(width+' dice result 10',await dialog.locator('.battle-die-score').textContent()==='10');
- await page.waitForSelector('.battle-dialog-actions button', {timeout:4000});
- const speed=dialog.getByRole('button',{name:/速度 ×/});
- if(await speed.count()) {
+   await page.screenshot({path:out+'/battle_arena_with_drag_dice_390x844.png',fullPage:false,animations:'disabled'});
+ await tray.scrollIntoViewIfNeeded();
+ const b=await tray.boundingBox();
+ await page.mouse.move(b.x+b.width/2,b.y+b.height/2);
+ await page.mouse.down();
+ await page.mouse.move(b.x+b.width/2+60,b.y+b.height/2-46,{steps:5});
+ await page.mouse.up();
+ const rolled=await page.evaluate(()=>({
+   roll:UI.ov?.roll,phase:UI.ov?.phase,seq:UI.ov?.seq,
+   hasWebGL:!!(DIE3&&document.querySelector('.tray')?.classList.contains('live3d'))
+ }));
+ check(width+' pull-back physically throws original d20',
+   Number.isInteger(rolled.roll)&&rolled.roll>=1&&rolled.roll<=20&&rolled.seq>0,rolled);
+ await page.waitForFunction(()=>UI.ov&&UI.ov.phase==='fight',{timeout:5000});
+ const speed=dialog.locator('.spd');
+ check(width+' original battle speed button exists',await speed.count()===1);
+ if(await speed.count()){
    await speed.click();
-   check(width+' battle speed toggle',await dialog.getByRole('button',{name:'速度 ×2'}).count()===1);
+   check(width+' battle speed toggles',await page.evaluate(()=>UI.ov?.speed===2));
  }
  if(width===390)
-   await page.screenshot({path:out+'/battle_dialog_fighting_390x844.png',fullPage:false,animations:'disabled'});
- const surrender=dialog.getByRole('button',{name:'投降'});
+   await page.screenshot({path:out+'/battle_after_dice_drag_390x844.png',fullPage:false,animations:'disabled'});
+ const surrender=dialog.locator('.bdock .surr button');
  if(await surrender.count()){
    await surrender.click();
-   check(width+' surrender outcome',await dialog.getByRole('button',{name:'繼續故事'}).count()===1);
-   await dialog.getByRole('button',{name:'繼續故事'}).click();
-   check(width+' battle returns to story',await page.locator('.event-reader .reader-result').count()>=1);
+   check(width+' surrender completes',await page.evaluate(()=>UI.ov?.over==='lose'));
+   const done=dialog.locator('.bdock .side button').filter({hasText:/繼續/});
+   await done.click();
+   check(width+' surrender returns to narrative',
+     await page.locator('.event-reader .reader-result').count()>0);
  }
- // A separate low-HP opponent checks the real automatic victory path.
+ // Verify the other built-in control: skip the physical throw and use 10.
  if(width===390){
    await page.evaluate(()=>{
      showEvent({type:'江湖',title:'收招測試',text:'另一名對手攔路。',choices:[
@@ -231,13 +247,15 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    });
    await reveal(page);
    await page.locator('.event-choice:not([disabled])').first().click();
-   const victory=page.getByRole('dialog',{name:'收招測試'});
-   await victory.getByRole('button',{name:/直接以 10 點開始/}).click();
-   await page.waitForSelector('.battle-dialog .battle-phase.complete',{timeout:9000});
-   check('390 automatic win',await victory.locator('.battle-phase').textContent()==='勝利');
-   await page.screenshot({path:out+'/battle_dialog_victory_390x844.png',fullPage:false,animations:'disabled'});
-   await victory.getByRole('button',{name:'繼續故事'}).click();
-   check('390 victory returns to story',await page.locator('.event-reader .reader-result').count()>0);
+   const victory=page.getByRole('dialog',{name:'江湖戰鬥'});
+   await victory.getByRole('button',{name:/跳過投擲/}).click();
+   check('390 skip uses 10',await page.evaluate(()=>UI.ov?.roll===10));
+   await page.waitForFunction(()=>UI.ov?.over==='win',{timeout:9000});
+   check('390 restored arena automatic victory',await page.evaluate(()=>UI.ov?.over==='win'));
+   await page.screenshot({path:out+'/battle_restored_victory_390x844.png',fullPage:false,animations:'disabled'});
+   await victory.locator('.bdock .side button').filter({hasText:/收招/}).click();
+   check('390 restored victory continues story',
+      await page.locator('.event-reader .reader-result').count()>0);
  }
  await ctx.close();
 }
