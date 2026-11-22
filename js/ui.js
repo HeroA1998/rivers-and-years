@@ -472,12 +472,11 @@ function eventReader(o) {
   const typing = state.revealed < lines.length;
   const label = esc(o.type || '江湖');
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
-  // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
+  // 只保留劇情中出場人物的肖像。按玩家要求移除事件風景插畫，
+  // 不再在正文之間插入橫幅；人物肖像及其他頁面的 art() 不受影響。
   const media = o.who && FACES.includes(o.who)
     ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>`
-    : o.big && o.art
-      ? `<div class="reader-media reader-landscape">${art(o.art, o.title)}</div>`
-      : '';
+    : '';
   let controls;
   if (o.result) {
     controls = B('繼續', closeEvent, 'story-option');
