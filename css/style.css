@@ -541,3 +541,46 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
 @media(prefers-reduced-motion:reduce){
   .story-options .btn.story-option{transition:none}
 }
+
+
+/* 單頁故事流：結果「繼續」直接換下一章，不返回江湖主頁 */
+.event-reader{padding-top:14px;gap:0;min-height:0}
+.event-reader .story-heading{padding-bottom:17px}
+.event-reader .story-prose{flex:0 0 auto}
+.event-reader .story-prose .reader-text{
+  font:400 clamp(16px,4.3vw,19px)/1.95 var(--f-brush);
+  white-space:pre-line;overflow-wrap:anywhere;
+}
+.reader-media{
+  align-self:center;width:min(100%,500px);max-height:190px;
+  overflow:hidden;margin:0 0 15px;border:1px solid #D3C2A7;border-radius:8px;
+  background:#F3EBDD;
+}
+.reader-landscape{height:clamp(100px,31vw,178px)}
+.reader-media .art{width:100%;height:100%;display:block;object-fit:cover;object-position:center;image-rendering:auto}
+.reader-character{display:flex;justify-content:center;align-items:flex-end;width:min(68%,210px);height:160px;
+  background:linear-gradient(180deg,#F8F0E1,#E4D7C1)}
+.reader-character .reader-face{height:160px;max-width:100%;object-fit:contain;object-position:bottom;
+  image-rendering:auto}
+.event-reader .story-choice-block{padding-top:clamp(18px,4vh,34px)}
+.event-reader .story-options{padding:2px 0 4px}
+.event-reader .story-options .btn.story-option{box-shadow:none}
+.event-reader .story-options .event-choice{align-items:center;gap:10px}
+.event-reader .choice-kind{
+  border:1px solid currentColor;border-radius:3px;font:600 11px/1.2 var(--f-ui);
+  padding:4px 5px;white-space:nowrap;color:#756C5D;
+}
+.event-reader .side-g .choice-kind{color:var(--jade)}
+.event-reader .side-e .choice-kind{color:var(--seal)}
+.event-reader .side-n .choice-kind{color:#8A7960}
+.event-reader .choice-content{flex:1;overflow-wrap:anywhere}
+.event-reader .choice-content small{display:block;font:12px/1.5 var(--f-ui);color:var(--seal)}
+.event-reader .story-options .event-choice:disabled{opacity:.52;cursor:not-allowed}
+.event-reader .story-options .event-choice:disabled::after{content:"—"}
+.idle-stage{min-height:260px}
+@media(max-width:380px){
+  .reader-media{max-height:140px;margin-bottom:10px}
+  .reader-character,.reader-character .reader-face{height:128px}
+  .event-reader .story-heading{padding-bottom:12px}
+  .event-reader .story-choice-block{padding-top:16px}
+}

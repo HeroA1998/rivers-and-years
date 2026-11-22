@@ -18,7 +18,8 @@ function render() {
   const sc = document.querySelector('.sheet');
   const keep = sc && UI.ov && UI.ov.k === 'menu' ? sc.scrollTop : 0;
   let html = SCREENS[UI.screen]();
-  if (UI.ov) html += overlay();
+  // 事件內容直接呈現在江湖頁，不再以全螢幕彈窗覆蓋故事。
+  if (UI.ov && UI.ov.k !== 'event') html += overlay();
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
   root.dataset.page = UI.screen === 'game' ? UI.tab : UI.screen;
@@ -39,7 +40,7 @@ const SCREENS = {
       <h1>江湖歲月錄</h1>
       <p class="lead">你不是郭靖，也不是張無忌。你只是那個年代裡的一個江湖人——親眼看著傳說發生，也過著自己的一生。</p>
       <div class="col">
-        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${reign((sv.y0 || 1222) + sv.date.y - 1)}</small>`, () => { S = migrate(sv); recalc(); UI = { screen: 'game', tab: 'world', ov: null }; render(); }, 'primary big') : ''}
+        ${sv ? B(`繼續前緣<small>${esc(sv.name)}・${reign((sv.y0 || 1222) + sv.date.y - 1)}</small>`, () => { S = migrate(sv); recalc(); UI = { screen: 'game', tab: 'world', ov: null }; Q = []; continueStory(); }, 'primary big') : ''}
         ${B('初入江湖', () => { UI.screen = 'create'; UI.create = { name: '', gender: '男', origin: 0, stats: rollStats(), year: ERAS[0].y }; render(); }, sv ? 'big' : 'primary big')}
       </div>
       <p class="ver">${VERSION}</p></div>`;
@@ -65,9 +66,6 @@ const SCREENS = {
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
     const isWorld = UI.tab === 'world';
-    const goal = isWorld ? nextGoal() : null;
-    // 江湖首頁只顯示緊湊人物資訊與當前故事選項。
-    // 人物與行囊頁仍可查閱銀兩、聲望等詳細資料。
     const resources = isWorld ? '' : `<div class="chips2" aria-label="江湖資源">
       <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
       <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
@@ -76,7 +74,7 @@ const SCREENS = {
     </div>`;
     return `${gameHud(false)}
       ${resources}
-      <main id="main-content">${isWorld ? TABS.world(goal) : TABS[UI.tab]()}</main>
+      <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
   },
   end() {
@@ -158,46 +156,17 @@ const TABS = {
     const sub = SUBS.some(x => x[0] === UI.sub) ? UI.sub : 'status';
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
-  world(ng = nextGoal()) {
-    const L = LOCS[S.loc];
-    const rumors = histRumors(720);
-    const hints = chainHints();
-    const logs = S.log.slice(-6).reverse();
-    const location = esc(L.n);
-    const chapter = `<section class="story-stage" aria-label="江湖故事與選項">
-      <div class="story-heading">
-        <span class="story-chapter">江湖紀事 · ${location}</span>
-        <h2>${esc(ng.title)}</h2>
-      </div>
-      <div class="story-prose">
-        <p>${esc(L.d)}</p>
-        <p>${esc(ng.desc)}</p>
-      </div>
-      <div class="story-choice-block">
-        <p class="story-question">你打算如何行事？</p>
-        <div class="story-options" role="group" aria-label="選擇下一段江湖故事">
-          ${ng.acts.map(a => B(esc(a[0]), a[1], 'story-option')).join('')}
-        </div>
-      </div>
+  world() {
+    // 每個事件都在同一個閱讀區呈現。情節結果的「繼續」由
+    // closeEvent() 直接取得下一事件，不插入遊歷方向畫面。
+    if (UI.ov && UI.ov.k === 'event') return eventReader(UI.ov);
+    return `<section class="story-stage idle-stage">
+      <div class="story-heading"><span class="story-chapter">江湖歲月錄</span><h2>江湖路上</h2></div>
+      <div class="story-prose"><p>前一段故事已落下帷幕。接下來，又會遇見怎樣的人與事？</p></div>
+      <div class="story-choice-block"><div class="story-options">
+        ${B('繼續', continueStory, 'story-option')}
+      </div></div>
     </section>`;
-    // 原風聞、奇緣提示與日誌仍然可查閱，但不常駐佔據故事畫面。
-    const rumorContent = rumors.map(x =>
-      `<p class="archive-rumor"><b>${esc(x.when)}・${esc(x.where)}</b>
-      ${x.now ? '<strong>正在發生</strong>' : ''}　${esc(x.h.rumor)}</p>`).join('');
-    const hintsContent = hints.map(x =>
-      `<p class="archive-rumor"><b>奇緣：${esc(x.title)}</b>　${esc(x.hint)}</p>`).join('');
-    const history = `<details class="world-archive">
-      <summary>江湖風聞與旅途札記</summary>
-      <div class="world-archive-inner">
-        ${ng.note ? `<p class="archive-note">${esc(ng.note)}</p>` : ''}
-        <h3>江湖風聞</h3>
-        ${rumorContent || '<p class="archive-note">暫無新的江湖風聞。</p>'}
-        ${hintsContent}
-        <h3>旅途札記</h3>
-        <ul class="log">${logs.map(l => `<li><time>${esc(l.t)}</time>${esc(l.s)}</li>`).join('')}</ul>
-      </div>
-    </details>`;
-    return chapter + history;
   },
   status() {
     return `<section class="group"><h3>${esc(S.name)}・Lv ${S.lv}</h3>
@@ -365,45 +334,66 @@ MENUS.shop = () => {
   return ['商人', seg + purse + list];
 };
 
+
+/* ---------- 單一故事閱讀區：事件、結果、下一章直接銜接 ---------- */
+function eventReader(o) {
+  const pendingPage = !o.result && o.pages && o.pi < o.pages.length - 1;
+  const storyText = o.result || (o.pages ? o.pages[o.pi] : o.text) || '';
+  const label = esc(o.type || '江湖');
+  const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
+  // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
+  const media = o.who && FACES.includes(o.who)
+    ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>`
+    : o.big && o.art
+      ? `<div class="reader-media reader-landscape">${art(o.art, o.title)}</div>`
+      : '';
+  let controls;
+  if (o.result) {
+    controls = B('繼續', closeEvent, 'story-option');
+  } else if (pendingPage) {
+    controls = B('繼續', () => {
+      o.pi++;
+      render();
+      window.scrollTo(0, 0);
+    }, 'story-option');
+  } else if (!o.choices || !o.choices.length) {
+    controls = B('繼續', closeEvent, 'story-option');
+  } else {
+    controls = o.choices.map((c, i) =>
+      `<button type="button" class="btn story-option event-choice side-${c.s || 'n'}"
+        ${c.dis ? ' disabled' : h(() => choose(i))}>
+        ${c.plain ? '' : `<span class="choice-kind">${SIDE_LABEL[c.s] || '選擇'}</span>`}
+        <span class="choice-content">${esc(c.t)}
+          ${c.dis && c.reqT ? `<small>（${esc(c.reqT)}）</small>` : ''}
+        </span>
+      </button>`).join('');
+  }
+  const prompt = o.result || pendingPage || !o.choices || !o.choices.length
+    ? '故事仍在繼續' : '你會如何抉擇？';
+  return `<article class="story-stage event-reader" aria-label="江湖事件">
+    <div class="story-heading">
+      <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
+      <h2>${esc(o.title || '江湖紀事')}</h2>
+    </div>
+    ${media}
+    <div class="story-prose"><p class="reader-text">${esc(storyText)}</p></div>
+    <div class="story-choice-block">
+      <p class="story-question">${prompt}</p>
+      <div class="story-options" role="group" aria-label="故事選擇與繼續">
+        ${controls}
+      </div>
+    </div>
+  </article>`;
+}
+
 function overlay() {
   const o = UI.ov;
   if (o.k === 'menu') {
     const [title, body] = MENUS[o.m]();
     return `<div class="veil"><div class="sheet"><div class="sheet-h"><h2>${title}</h2>${B(o.m === 'shop' ? '離開' : '關閉', o.m === 'shop' ? closeShop : closeMenu, 'mini')}</div>${body}</div></div>`;
   }
-  if (o.k === 'event') {
-    const illustration = o.art || (o.type === '戰鬥' ? 'fight' :
-      o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road');
-    let content;
-    if (o.result) {
-      content = '<p class="story">' + o.result + '</p><div class="col">' +
-        B('繼續', closeEvent, 'primary big') + '</div>';
-    } else if (o.pages && o.pi < o.pages.length - 1) {
-      content = '<p class="story">' + o.pages[o.pi] + '</p><div class="col">' +
-        B('繼續　' + (o.pi + 1) + '/' + o.pages.length, () => {
-          o.pi++; render(); document.querySelector('.sheet').scrollTop = 0;
-        }, 'primary big') + '</div>';
-    } else {
-      content = '<p class="story">' + (o.pages ? o.pages[o.pi] : o.text) +
-        '</p><p class="note">你打算如何應對？</p><div class="col">' +
-        o.choices.map((c, i) =>
-          '<button type="button" class="btn choice side-' + c.s +
-          (c.plain ? ' plain' : '') + '"' +
-          (c.dis ? ' disabled' : h(() => choose(i))) + '>' +
-          (c.plain ? '' : '<i class="side">' + SIDE_LABEL[c.s] + '</i>') +
-          '<span>' + c.t +
-          (c.dis && c.reqT ? '<small>（' + c.reqT + '）</small>' : '') +
-          '</span></button>').join('') + '</div>';
-    }
-    return '<div class="veil"><section class="sheet event" role="dialog" aria-modal="true" aria-label="' +
-      esc(o.title) + '">' +
-      '<div class="event-topline"><span class="tag ' + (TYPE_CLS[o.type] || 'grey') +
-      '">' + esc(o.type) + '事件</span><span class="event-date">' +
-      dateStr() + '</span></div>' +
-      '<div class="scene">' + art(illustration, o.title) + face(o.who, 'on-art') +
-      '</div><h2 class="event-title">' + esc(o.title) + '</h2>' +
-      content + '</section></div>';
-  }
+  // 故事事件已搬進江湖閱讀區；其他系統視窗維持原有處理。
+  if (o.k === 'event') return '';
   if (o.k === 'lvup') {
     const used = Object.values(o.add).reduce((a, b) => a + b, 0), left = S.pts - used;
     return `<div class="veil"><div class="sheet lvup">

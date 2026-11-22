@@ -296,7 +296,6 @@ function goTown() {
   log(`這個月你回了一趟${LOCS[to].n}，路上走了${cnNum(d)}日。`);
   S.flags.moved = [from, LOCS[to].n];
   S.loc = '_road'; advance(d); S.loc = to;
-  return true;
 }
 const artShop = s => Object.keys(ITEMS).filter(id => ITEMS[id].kind === 'manual' && !knows(ITEMS[id].skill));
 // 回城：買藥、買裝備、客棧休息，三個都要花錢，沒有正邪之分（選項不標示陣營）
@@ -473,6 +472,8 @@ function bridgeEvent() {
   const t = today();
   const r = histRumors(720, false).find(r => {
     const h = r.h;
+    // 拒絕過的歷史邀請不應在每次「繼續」後重複攔路。
+    if (S.flags.skippedBridge && S.flags.skippedBridge[h.id]) return false;
     if (S.loc === h.loc) return false;
     const need = travelDays(h.loc);
     return hStart(h) - t - need <= 40 && t + need < hEnd(h);
@@ -484,7 +485,10 @@ function bridgeEvent() {
       `想要親眼看見的話，就得現在動身了。你收拾好行囊，把盤纏和乾糧又清點了一遍。\n\n錯過了這一場，往後恐怕只能從別人口中聽說。`],
     choices: [{ s: 'g', t: `動身前往${LOCS[h.loc].n}`, go: () => go(need, '') },
       { s: 'e', t: '搶一匹快馬趕路', go: () => go(Math.max(1, Math.ceil(need / 2)), `你在驛站外解了一匹快馬就走，馬主追在後面大罵。` + gain({ moral: -4 })) },
-      { s: 'n', t: '這次就算了', go: () => '你把這件事放下了。日子還長，江湖上的熱鬧，總歸不止這一場。' }] };
+      { s: 'n', t: '這次就算了', go: () => {
+        (S.flags.skippedBridge = S.flags.skippedBridge || {})[h.id] = today();
+        return '你把這件事放下了。日子還長，江湖上的熱鬧，總歸不止這一場。';
+      } }] };
   function go(d, pre) {
     const from = LOCS[S.loc].n;
     log(`自${from}啟程，行了${cnNum(d)}日，抵達${LOCS[h.loc].n}。`);
@@ -503,10 +507,10 @@ function newsEvent() {
 }
 
 // 每月一次：偶爾換個地方
-function maybeMove(force = false) {
-  if (!force && !chance(34)) return false;
-  const cand = Object.keys(LOCS).filter(id => id !== S.loc && travelDays(id) <= (force ? 20 : 12));
-  if (!cand.length) return false;
+function maybeMove() {
+  if (!chance(34)) return;
+  const cand = Object.keys(LOCS).filter(id => id !== S.loc && travelDays(id) <= 12);
+  if (!cand.length) return;
   // 有師門的人常回山門；有心上人的常去看對方；還沒拜師的偶爾往山門走
   const home = S.sect && sectOpen(S.sect) ? SECTS[S.sect].loc : null, love = S.flags.lover ? NPCS[S.flags.lover].loc : null;
   const sectLocs = !S.sect ? Object.keys(SECTS).filter(sectOpen).map(k => SECTS[k].loc).filter(l => cand.includes(l)) : [];
@@ -521,49 +525,33 @@ function maybeMove(force = false) {
   S.loc = '_road'; advance(d); S.loc = to;
 }
 
-function adventureMonth(mode = 'usual') {
+function adventureMonth() {
   UI.ov = null;
-  // 已知歷史大事臨近時，優先接回固定編年史劇情，不能讓
-  // 玩家因為選了傳聞／訪人／旅行而錯過原有的橋接事件。
   const br = bridgeEvent();
   if (br) { Q.push(br); return pump(); }
-
-  // 三個故事方向各有實際作用，不是三個按鈕都觸發相同的抽卡。
-  S.flags.moved = null;
-  if (mode === 'travel') maybeMove(true);            // 優先前往附近地點
-  else if (mode === 'usual') maybeMove();             // 舊流程的自動漫遊
-  const left = 30;
-  advanceSteps(Math.max(5, left - (S.flags.moved ? 8 : 0)));
+  maybeMove();
+  const left = 30 - 0;
+  const moved = advanceSteps(Math.max(5, left - (S.flags.moved ? 8 : 0)));
   const g = (40 + S.stats.int * 5) * 0.08;
   for (const id of S.eq) xp(id, g);
-  S.flags.sinceFight = S.flags.sinceFight == null ? 1 : S.flags.sinceFight + 1;
+  S.flags.sinceFight = (S.flags.sinceFight == null ? 1 : S.flags.sinceFight + 1);
   if (histNow()) return pump();
-
   const kind = cardCtx();
-  const quiet = S.flags.sinceFight < 2;
-  const known = histRumors(720, false).length;
-  const unknown = histRumors(720, true)
-    .filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]).length;
-
+  // 風聲：近兩年有大事、你還不知道時，偶爾有人帶來消息
+  const known = histRumors(720, false).length, unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]).length;
+  if (!known && unknown && chance(40)) { Q.push(newsEvent()); return pump(); }
+  const quiet = (S.flags.sinceFight == null ? 99 : S.flags.sinceFight) < 2;   // 剛打完，這個月偏向平靜的牌
   let ev = null;
-  if (mode === 'rumor') {
-    // 必定取得一段真正的傳聞事件，可能揭示新的歷史消息。
-    ev = newsEvent();
-  } else if (mode === 'explore') {
-    // 留在當地，優先抽取符合所在地類型的市井／奇遇／人物故事。
-    ev = drawCard(false) || rollEvent(kind);
-  } else if (mode === 'travel') {
-    // 已移動則優先旅途事件；若四周無可抵達地點，退回當地事件。
-    ev = S.flags.moved ? (rollEvent('travel') || drawCard(false))
-      : (drawCard(false) || rollEvent(kind));
-  } else {
-    // 相容舊流程，供其他程式仍可無參數呼叫。
-    if (!known && unknown && chance(40)) ev = newsEvent();
-    if (!ev && chance(62)) ev = drawCard(false);
-    if (!ev) ev = rollEvent(S.flags.moved && chance(50) ? 'travel' : kind);
-  }
+  if (chance(62)) ev = drawCard(false);
+  if (!ev) ev = rollEvent(S.flags.moved && chance(50) ? 'travel' : kind);
   if (ev && ev.type === '戰鬥' && quiet) ev = drawCard(false) || ev;
   if (!ev) ev = drawCard(true);
-  if (ev) Q.push(ev);
+  if (!ev) {
+    // 事件池耗盡時仍然給一段可閱讀、可繼續的過場，避免空白首頁。
+    ev = { type: '江湖', title: '江湖歲月', art: LOCS[S.loc].art,
+      text: '一段時日悄然過去。山川依舊，人事卻未必如昨。你整好行裝，繼續這段江湖路。',
+      choices: [] };
+  }
+  Q.push(ev);
   pump();
 }

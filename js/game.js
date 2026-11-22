@@ -293,14 +293,35 @@ function rollEvent(ctx) {
   for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) return pool[i].chain ? chainStep(pool[i].chain) : pool[i]; }
   return null;
 }
-function pump() {
+function pump(autoContinue = false) {
   if (S.life <= 0 && UI.screen === 'game' && !(UI.ov && UI.ov.k === 'battle')) { UI.ov = null; return retire('戰死'); }
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
   const h = histDue();
   if (h) { UI.ov = null; save(); showEvent(h); return; }
   if (S.pts > 0) { UI.ov = { k: 'lvup', add: {} }; save(); render(); return; }
-  save(); render();
+  save();
+  if (autoContinue && UI.screen === 'game') {
+    // 封印後不再無限推進月份，改以傳承事件完結這一世。
+    if (ad() > SEAL_YEAR) {
+      UI.ov = null;
+      return showEvent({
+        type: '傳承', title: '江湖歲月終章',
+        text: '這段江湖歲月已到了終章。許多英雄往事留在紙上，你也可以將自己的故事交予後人。',
+        choices: [{ plain: true, s: 'n', t: '封劍歸隱，將故事傳給後人',
+          go: () => ({ end: '歸隱' }) }]
+      });
+    }
+    // 不返回舊首頁，也不顯示額外的三個遊歷方向選項。
+    return adventureMonth();
+  }
+  render();
+}
+function continueStory() {
+  if (!S || UI.screen !== 'game') return;
+  UI.tab = 'world';
+  UI.ov = null;
+  return pump(true);
 }
 /* 每個事件固定三個選項：正派行動、反派行動、無視或拒絕 */
 const SIDE_LABEL = { g: '正派', e: '反派', n: '無視' };
@@ -315,17 +336,19 @@ function sides(list) {
   return out;
 }
 function showEvent(ev) {
-  if (ev.due != null && today() - ev.due > 5) return pump();
-  if (ev.cond && ev.fixed && !ev.cond(S)) return pump();
+  if (ev.due != null && today() - ev.due > 5) return pump(true);
+  if (ev.cond && ev.fixed && !ev.cond(S)) return pump(true);
+  UI.tab = 'world';
   if (ev.id) { S.done[ev.id] = (S.done[ev.id] || 0) + 1; S.flags.lastEv = ev.id; (S.flags.evLast = S.flags.evLast || {})[ev.id] = today(); }
   const pages = ev.pages ? (typeof ev.pages === 'function' ? ev.pages(S) : ev.pages) : null;
   const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const raw = typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || [];
   const choices = sides(raw).map(c => { const qi = c.qi != null ? c.qi : autoQi(c); return Object.assign({}, c, { qi, t: c.t + (qi ? `〔耗內力${qi}〕` : ''), dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S)) || (qi && S.qi < qi)), reqT: c.reqT || (qi && S.qi < qi ? '內力不足' : '') }); });
-  if (choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
+  if (choices.length && choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
   UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who, big: ['歷史', '傳承', '奇遇', '奇緣'].includes(ev.type) };
   log(`【${ev.type}】${ev.title}`);
   render();
+  window.scrollTo(0, 0);
 }
 function choose(i) {
   const o = UI.ov, c = o.choices[i];
@@ -345,8 +368,9 @@ function handleResult(r) {
   ov.result = (r || '此事就此揭過。') + takePend();
   ov.choices = [];
   render();
+  window.scrollTo(0, 0);
 }
-function closeEvent() { UI.ov = null; pump(); }
+function closeEvent() { UI.ov = null; pump(true); }
 /* 升級配點 */
 function lvAdd(k) { const o = UI.ov, used = Object.values(o.add).reduce((a, b) => a + b, 0); if (used >= S.pts || S.base[k] + (o.add[k] || 0) >= 30) return; o.add[k] = (o.add[k] || 0) + 1; render(); }
 function lvReset() { UI.ov.add = {}; render(); }
@@ -354,7 +378,7 @@ function lvOk() {
   const o = UI.ov;
   for (const k in o.add) { S.base[k] += o.add[k]; S.pts -= o.add[k]; }
   recalc();
-  UI.ov = null; pump();
+  UI.ov = null; pump(true);
 }
 
 /* ---------- 戰鬥 ---------- */
@@ -585,60 +609,7 @@ function travelDays(to) {
 }
 function toastRender(s) { toast(s); render(); }
 
-/* ---------- 下一步：唯一的主行動是「歷練」，其餘一切都在事件裡發生 ---------- */
-function nextGoal() {
-  const t = today();
-  const L = LOCS[S.loc];
-  // 三個故事方向不是「換字而已」，各自導向不同事件池：
-  // 風聞 = 消息事件；訪人 = 當地事件；前行 = 移動與旅途事件。
-  const rumorLabel = L.kind === 'city' ? '到茶樓聽聽江湖傳聞'
-    : L.kind === 'sect' ? '向山門過客打聽風聲'
-    : '向過路人打聽江湖風聲';
-  const exploreLabel = '留在' + L.n + '，尋訪奇人異事';
-  const travelLabel = '收拾行囊，沿路繼續前行';
-  const storyActs = [
-    [rumorLabel, () => adventureMonth('rumor')],
-    [exploreLabel, () => adventureMonth('explore')],
-    [travelLabel, () => adventureMonth('travel')],
-  ];
-  const retireAct = ['封劍歸隱，將故事交給後人',
-    () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。',
-      () => retire('歸隱'))];
-  // 神鵰、倚天尚未開放時仍尊重既有年代封印及傳承流程。
-  if (ad() > SEAL_YEAR) {
-    return {
-      title: '射鵰篇落幕',
-      desc: '舊日風雲都已遠去。你把一生所見寫入手札，終於到了決定去留的時候。',
-      note: '神鵰篇與倚天篇尚未開放。歸隱後可傳下一門武功，讓後人重走射鵰年代。',
-      acts: [retireAct]
-    };
-  }
-  const known = histRumors(720, false).find(r => {
-    const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc);
-    return t + need < hEnd(h);
-  });
-  const unknown = histRumors(720, true).filter(x =>
-    !x.now && !(S.flags.heardOf || {})[x.h.id]);
-  const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t)
-    .sort((a, b) => hStart(a) - hStart(b))[0];
-  if (!known && !unknown.length && (!nx || age() + (nx.y - ad()) > 66)) {
-    return {
-      title: '江湖舊事',
-      desc: nx ? '往後仍有江湖大事，只怕那時你已年邁。眼下的路，仍可由自己決定。'
-        : '許多故事都已成為往事，但這個江湖仍有人與事值得一看。',
-      note: '可以繼續尋訪、趕路，也可以歸隱傳承。',
-      acts: [storyActs[1], storyActs[2], retireAct]
-    };
-  }
-  return {
-    title: '江湖路上',
-    desc: known
-      ? '酒肆中有人低聲談起：' + known.h.rumor + '　你記下了這條風聲，心中思量著下一步。'
-      : '天下廣闊，每一處山川和市井都可能藏著一段故事。你會如何走下去？',
-    note: '選擇會影響下次遇到的事件類型與去向；時間仍隨遊歷自然流逝。',
-    acts: storyActs
-  };
-}
+/* 故事推進由 continueStory() / closeEvent() 自動接入下一個事件。 */
 
 /* ---------- 門派（由事件觸發） ---------- */
 function joinSectNow(id) {
