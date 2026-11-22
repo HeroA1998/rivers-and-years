@@ -644,76 +644,62 @@ function gameNav(active, live) {
 const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
 
 /* ---------- 簡潔戰鬥對話框（不取代原本的故事畫面） ---------- */
+/* ---------- 還原原版戰場和可拖動 3D 二十面骰 ---------- */
 function battleView(o) {
-  const e = o.e, adv = o.over ? null : advPct(o);
+  const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
+  const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
+  const chips = ids => ids.map(id => `<i class="ac r-${artRole(id)} tier-${SKILLS[id].tier}" title="${SKILLS[id].n}">${ico(artIcon(id))}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
+  const pop = o.pop || { toE: 0, toP: 0 }, fight = o.phase === 'fight';
+  const pcls = `fgt p${fight && pop.toE ? ' atk' : ''}${fight && pop.toP ? ' hit' : ''}${o.god ? ' god' : ''}`;
+  const ecls = `fgt e${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
+  const last = o.log[o.log.length - 1];
+  // 點數在骰子落定時才揭曉；落定動畫只播一次（之後的重繪不重播）
+  const tone = o.roll === 20 ? 'gold' : o.roll === 1 ? 'iron' : 'red';
+  const dieCls = `bigdie${o.roll === 20 ? ' crit' : o.roll === 1 ? ' fumble' : ''}`;
+  // 3D 骰子由 DIE3 掛載（render 之後執行）；沒有 three.js 時退回平面骰
+  const dieInner = DIE3 ? '' : `${d20Svg(tone)}<b>${o.roll == null || o.phase === 'rolling' ? '' : o.roll}</b>`;
+  const PB = (label, fn, cls = '') => `<button type="button" class="pxbtn ${cls}"${h(fn)}>${label}</button>`;
+  let side;
+  if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
+  else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
+  else side = '';
+  const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
+  const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
+  const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
+  const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
+  const mine = S.eq.map(id => slot(artIcon(id), ROLE_COL[artRole(id)], S.skills[id].lv)).join('');
+  const theirs = e.moves.map(() => slot(foeIco, '#B0463F', '')).join('');
+  const shield = `<img class="pxi shd" src="${pxIcon('shield', '#EDE7D3', 12)}" alt="">`;
   const pct = (v, m) => clamp(m ? v / m * 100 : 0, 0, 100);
-  const hp = (v, m) => Math.max(0, Math.round(v * 10) / 10) + '／' + Math.round(m * 10) / 10;
-  const btn = (label, fn, cls = '') =>
-    '<button type="button" class="battle-action ' + cls + '"' + h(fn) + '>' + label + '</button>';
-  const finished = !!o.over;
-  const rolling = o.phase === 'rolling';
-  const roll = o.roll;
-  const intro = o.log && o.log.length ? o.log[o.log.length - 1] : '';
-  const outcome = finished ? (o.over === 'win' ? '勝利' : o.surr ? '投降' : '落敗') : '交鋒';
-  const advantage = adv == null ? '' :
-    '<span class="battle-advantage' + (adv >= 50 ? ' winning' : ' losing') +
-    '">勝算 ' + adv.toFixed(1) + '%</span>';
-  const tag = roll == null
-    ? '<span class="battle-die-placeholder">?</span>'
-    : rolling
-      ? '<span class="battle-die-placeholder rolling" aria-label="擲骰中">…</span>'
-      : '<strong class="battle-die-score">' + roll + '</strong>';
-  const dieLabel = roll == null ? '擲出 1–20 點決定戰力' :
-    rolling ? '擲骰中…' :
-      '擲出 ' + roll + ' 點' + (o.god ? ' · 無敵' : ' · 戰力 ' + Math.round(o.mult * 100) + '%');
-  const effects = o.fx ? [
-    o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '',
-    o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''
-  ].filter(Boolean).join('、') : '';
-  let controls = '';
-  if (finished) {
-    controls = btn('繼續故事', endBattle, 'primary');
-  } else if (o.phase === 'roll') {
-    controls = btn('擲骰子（1–20）', () => rollBattle(false), 'primary') +
-      btn('直接以 10 點開始', () => rollBattle(true), 'secondary') +
-      btn('投降', pSurrender, 'quiet');
-  } else if (o.phase === 'fight') {
-    controls = btn('速度 ×' + o.speed, battleSpeed, 'secondary') +
-      btn('投降', pSurrender, 'quiet');
-  } else if (rolling) {
-    controls = '<span class="battle-wait">判定中，戰鬥將自動開始…</span>';
-  }
-  return '<div class="veil bveil battle-dialog-overlay">' +
-    '<section class="sheet battle-dialog" role="dialog" aria-modal="true" ' +
-      'aria-labelledby="battle-dialog-title" aria-describedby="battle-dialog-log">' +
-      '<header class="battle-dialog-header">' +
-        '<span class="battle-dialog-kicker">江湖交鋒</span>' +
-        '<h2 id="battle-dialog-title">' + esc(o.title || '狹路相逢') + '</h2>' +
-        '<span class="battle-phase' + (finished ? ' complete' : '') + '">' + outcome + '</span>' +
-      '</header>' +
-      '<div class="battle-participants">' +
-        '<div class="battle-party player"><span class="battle-party-caption">你</span>' +
-          '<b class="battle-party-name">' + esc(S.name) + '</b>' +
-          '<div class="battle-health" aria-label="我方氣血 ' + hp(S.hp, maxHp()) + '">' +
-            '<i style="width:' + pct(S.hp, maxHp()) + '%"></i></div>' +
-          '<small class="battle-hp-value">' + hp(S.hp, maxHp()) + '</small>' +
-        '</div>' +
-        '<span class="battle-versus" aria-hidden="true">對</span>' +
-        '<div class="battle-party enemy"><span class="battle-party-caption">敵方</span>' +
-          '<b class="battle-party-name">' + esc(e.n) + '</b>' +
-          '<div class="battle-health" aria-label="敵方氣血 ' + hp(e.hp, e.mhp) + '">' +
-            '<i style="width:' + pct(e.hp, e.mhp) + '%"></i></div>' +
-          '<small class="battle-hp-value">' + hp(e.hp, e.mhp) + '</small>' +
-        '</div>' +
-      '</div>' +
-      '<div class="battle-status">' + advantage +
-        '<div class="battle-die-mini" aria-label="' + esc(dieLabel) + '">' +
-          tag + '<span>' + esc(dieLabel) + '</span></div>' +
-        (effects ? '<p class="battle-effects">異常：' + esc(effects) + '</p>' : '') +
-        '<p class="battle-last" id="battle-dialog-log" role="status">' + esc(intro) + '</p>' +
-      '</div>' +
-      '<div class="battle-dialog-actions">' + controls + '</div>' +
-    '</section></div>';
+  return `<div class="veil bveil battle-restored-overlay"><section class="sheet battle auto battle-restored" role="dialog" aria-modal="true" aria-label="江湖戰鬥">
+    ${gameHud(true)}
+    <div class="bpanel">
+      <div class="bhead">
+        <div class="side-p"><b>${esc(S.name)}</b><span class="pw">${PXI('sword', '#6B6556', 12)}${pw.toFixed(1)}</span></div>
+        <img class="orn" src="${PIX.diamond()}" alt="">
+        <div class="adv">${adv == null ? '' : `<b class="${adv >= 50 ? 'win' : 'lose'}">${adv >= 65 ? '優勢' : adv >= 45 ? '勢均' : '劣勢'}</b><span class="${adv >= 50 ? 'win' : 'lose'}">${adv.toFixed(1)}%</span>`}</div>
+        <img class="orn" src="${PIX.diamond()}" alt="">
+        <div class="side-e"><b>${e.n}</b><span class="pw">${e.P.toFixed(1)}${PXI('sword', '#6B6556', 12)}</span></div>
+      </div>
+      <div class="hprow">
+        <div class="pxbar p">${shield}<i style="width:${pct(S.hp, maxHp())}%"></i><span>${Math.max(0, S.hp)}/${maxHp()}</span></div>
+        <div class="pxbar e"><i style="width:${pct(e.hp, e.mhp)}%"></i><span>${Math.max(0, e.hp)}/${e.mhp}</span>${shield.replace('shd"', 'shd r"')}</div>
+      </div>
+      <div class="arena">${art(battleBg(o), e.n, 'bg')}
+        <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
+        <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
+        ${o.god ? '<div class="godtag">無敵</div>' : ''}
+      </div>
+      <div class="srow"><div class="sl">${mine}</div><div class="sr">${fx}${theirs}</div>
+        ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
+    </div>
+    <div class="bdock">
+      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}>${ico('flag')}<span>投降</span></button>`}</div>
+      <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
+      <div class="side">${side}</div>
+    </div>
+    ${gameNav(null, false)}
+  </section></div>`;
 }
 
 /* ---------- 啟動 ---------- */

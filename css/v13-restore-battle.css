@@ -1,0 +1,125 @@
+/* v13 — Restore the REAL duel arena, fighter animations and draggable d20.
+ * This is a presentation-only override. js/game.js and js/die3d.js stay unchanged.
+ * Retain a centered overlay instead of returning to a dedicated full-screen page.
+ */
+#app .veil.bveil.battle-restored-overlay {
+  position:fixed;inset:0;z-index:25;
+  display:flex;justify-content:center;align-items:center;
+  padding:
+    calc(7px + env(safe-area-inset-top))
+    calc(8px + env(safe-area-inset-right))
+    calc(7px + env(safe-area-inset-bottom))
+    calc(8px + env(safe-area-inset-left));
+  background:rgba(24,25,22,.7);
+  backdrop-filter:blur(1.5px);
+}
+#app .bveil .sheet.battle-restored {
+  box-sizing:border-box;position:relative;
+  width:min(100%,560px);max-width:560px;
+  height:auto;min-height:0;
+  max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-x:hidden;overflow-y:auto;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;
+  gap:8px;
+  margin:0;padding:10px;
+  background:linear-gradient(160deg,#F9F0DC,#E8D8BC);
+  border:2px solid #B99159;border-radius:12px;
+  box-shadow:0 0 0 3px rgba(252,239,201,.3),0 12px 35px rgba(21,24,20,.42);
+}
+/* Compact portrait/stat block doesn't override the live combat stats. */
+#app .battle-restored .bhud {
+  flex:none;min-width:0;padding:3px 4px 6px;
+  border:0;border-bottom:1px solid #C5AB80;
+  background:transparent;box-shadow:none;
+}
+#app .battle-restored .bhud .hud-core {
+  display:grid;grid-template-columns:42px minmax(0,1fr);
+  align-items:center;gap:6px;
+}
+#app .battle-restored .bhud .hport {
+  display:block;width:42px;height:52px;
+  min-width:0;overflow:hidden;border:1px solid #AE8954;
+}
+#app .battle-restored .bhud .hero-portrait {
+  display:block;width:100%;height:100%;object-fit:cover;
+}
+#app .battle-restored .bhud .hud-stats-mini,
+#app .battle-restored .bhud .hgear,
+#app .battle-restored .bhud .hud-bottom,
+#app .battle-restored .bhud .hxp {display:none}
+#app .battle-restored .bhud .hud-life {flex-direction:row;gap:5px}
+#app .battle-restored .bhud .hud-identity {gap:3px}
+#app .battle-restored .bhud .hud-name-row .hname {
+  font:600 15px/1.2 'Noto Serif TC',serif;
+  padding:3px 7px;
+}
+#app .battle-restored .bpanel {
+  flex:0 0 auto;
+  display:flex;flex-direction:column;gap:6px;
+  padding:7px;
+  background:linear-gradient(#FBF2E2,#F0E3CD);
+  border:1px solid #B9A17C;border-radius:7px;
+}
+#app .battle-restored .bhead {gap:4px;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr)}
+#app .battle-restored .bhead b {font:600 15px/1.2 'Noto Serif TC',serif}
+#app .battle-restored .bhead .pw {font-size:11px}
+#app .battle-restored .hprow {gap:6px}
+#app .battle-restored .pxbar {height:30px}
+#app .battle-restored .arena {
+  width:100%;height:auto;
+  aspect-ratio:800/420;max-height:min(29dvh,220px);
+  flex:0 0 auto;border-radius:6px;
+  overflow:hidden;
+}
+#app .battle-restored .arena .bg {
+  width:100%;height:100%;object-fit:cover;
+}
+#app .battle-restored .srow {
+  min-height:34px;gap:4px;
+}
+#app .battle-restored .bdock {
+  flex:0 0 auto;display:grid;
+  grid-template-columns:66px minmax(0,1fr) 114px;
+  gap:5px;align-items:center;
+}
+#app .battle-restored .bdock .tray{
+  position:relative;height:130px;min-width:0;
+  touch-action:none;user-select:none;
+  overflow:hidden;cursor:grab;
+  background:radial-gradient(ellipse at 45% 25%,#537D68,#284C3E 75%);
+  border:2px solid #A68850;border-radius:10px;
+}
+#app .battle-restored .bdock .tray.live:active{cursor:grabbing}
+#app .battle-restored .bdock .tray canvas {
+  display:block;width:100%;height:130px;
+}
+#app .battle-restored .bdock .pxbtn{
+  font:500 12px/1.3 'Noto Serif TC',serif;
+  min-height:42px;padding:5px 3px;
+}
+#app .battle-restored .bdock .side .col{gap:5px}
+/* The main footer is already visible (dimmed) behind the dialog.
+   No second copy inside the combat panel. */
+#app .battle-restored > .bnav:not(.live){display:none}
+@media(max-width:375px){
+  #app .bveil .sheet.battle-restored{padding:6px;gap:6px}
+  #app .battle-restored .bpanel{padding:5px;gap:5px}
+  #app .battle-restored .bdock{
+    grid-template-columns:54px minmax(0,1fr) 94px;gap:4px;
+  }
+  #app .battle-restored .bdock .tray,
+  #app .battle-restored .bdock .tray canvas{height:116px}
+  #app .battle-restored .bdock .pxbtn{font-size:11px}
+  #app .battle-restored .bhead{grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr)}
+}
+@media(max-height:640px){
+  #app .bveil .sheet.battle-restored{gap:4px;padding:6px}
+  #app .battle-restored .bhud{display:none}
+  #app .battle-restored .arena{max-height:150px}
+  #app .battle-restored .bdock .tray,
+  #app .battle-restored .bdock .tray canvas{height:100px}
+}
+@media(prefers-reduced-motion:reduce){
+  #app .battle-restored .arena .fgt{transition:none}
+}
