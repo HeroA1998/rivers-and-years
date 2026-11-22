@@ -1,3 +1,4 @@
+/* Activated reference art: actual 13 local WebP assets are committed to this PR branch. */
 
 #app[data-page="world"] .approved-portrait{
   background:url("../assets/ui/v8/portrait.webp") center/cover no-repeat;
@@ -10,6 +11,8 @@
 }
 #app[data-page="world"] .hud-life .ico svg.heart *,
 #app[data-page="world"] .hud-life .ico svg.orb *{opacity:0}
+#app[data-page="world"] .hud-life .ico svg.off{opacity:.38}
+#app[data-page="world"] .hud-life .ico svg.on{opacity:1}
 #app[data-page="world"] .mini-stat-mark{
   background-color:transparent!important;background-repeat:no-repeat;
   background-position:center;background-size:contain;font-size:0;border:0;box-shadow:none;
