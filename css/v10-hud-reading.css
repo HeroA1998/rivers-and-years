@@ -253,3 +253,7 @@
   border-radius:5px;overflow:hidden;
 }
 #app[data-page="battle"] .hxp i{height:100%;display:block;background:#4b9f82}
+
+/* Disabled world shortcuts are not actionable during combat; hide the ghost
+   labels and keep attention on the roll controls and battle scene. */
+#app[data-page="battle"] .bnav{display:none!important}
