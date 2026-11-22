@@ -341,6 +341,11 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
   font-size:13px;line-height:1.35;text-align:center;width:100%}
 .bdock .side .col{gap:8px}
 .bdock .surr .pxbtn{color:var(--seal)}
+.battle-ic{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.battle-ic .ic{width:20px;height:20px}
+.slot2 .battle-ic .ic{width:23px;height:23px}
+.bdock .surr .ic{width:20px;height:20px}
+
 .bdock .surr .pxi{width:18px}
 .tray{position:relative;height:150px;touch-action:none;user-select:none;border:2px solid #A68850;
   border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 32%,#58796A,#305345 70%,#223F37)}
@@ -369,6 +374,12 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
 .mv b{font-size:17px}.mv small{font-size:12px}
 .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
 .rule{font-size:12px;color:var(--ink2)}
+@media (max-width:520px){
+  .bdock{grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:7px}
+  .bdock .tray{grid-column:1/-1;grid-row:1}
+  .bdock .surr{grid-column:1;grid-row:2}
+  .bdock .side{grid-column:2;grid-row:2}
+}
 @media (max-width:390px){
   #app{padding-inline:12px;gap:11px}
   .bhud{padding:10px}
@@ -378,7 +389,7 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
   .slot{padding-inline:1px}.slot b{font-size:12px}
   .card.has-face{grid-template-columns:82px minmax(0,1fr)}
   .card.has-face .face{width:82px}
-  .bdock{grid-template-columns:60px minmax(0,1fr) 105px;gap:5px}
+  .bdock{gap:7px}
   .pxbtn{font-size:12px;padding:6px 3px}
   .slot2{width:34px;height:34px}
   .bpanel{padding:8px}
