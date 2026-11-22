@@ -74,7 +74,7 @@ const SCREENS = {
       <span>${esc(moralName())}</span>
       ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
     </div>`;
-    return `<div class="wuxia-masthead" aria-hidden="true"><span class="masthead-seal">江湖歲月錄</span><small>金庸編年史</small></div>${gameHud(false)}
+    return `<header class="wuxia-masthead" aria-label="江湖歲月錄"><span class="masthead-seal">江湖歲月錄</span></header>${gameHud(false)}
       ${resources}
       <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
@@ -441,13 +441,14 @@ function eventReader(o) {
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
-      <h2>${esc(o.title || '江湖紀事')}</h2>
+      <h2>〈${esc(String(o.title || '江湖紀事').replace(/[〈〉]/g, ''))}〉</h2>
     </div>
     ${media}
     <div class="story-prose" aria-label="當前故事">${transcript}</div>
     <button type="button" class="reader-skip" data-story-skip>顯示全文</button>
+    <div class="reader-folio" aria-label="本事件段落 ${lines.length}"><span>${lines.length}</span></div>
     <div class="story-choice-block">
-      <div class="story-divider" aria-hidden="true"><span>✦</span></div>
+      <div class="story-divider" aria-hidden="true"><span>❀</span></div>
       <div class="story-options" role="group" aria-label="故事選擇與繼續">
         ${controls}
       </div>
