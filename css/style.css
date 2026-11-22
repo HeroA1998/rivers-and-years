@@ -774,3 +774,34 @@ body { font-size: 16px; }
 .bnav { margin-top: auto; display: flex; justify-content: space-around; align-items: center; opacity: .5; padding: 14px 4px 0; }
 .bnav .pxi { height: 36px; }
 .hmid { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
+
+/* ================= v6.6.1 修正：深色模式下按鈕與選項看不清，統一紙面配色 =================
+   紙面（按鈕、選項、任務卡）與字色成對變化：淺色模式米黃底配深棕字，深色模式靛藍底配米白字。 */
+:root { --sf-a: #FFF9EA; --sf-b: #F1E2BD; --sf-ink: #2B1C10; --sf-ink2: #6B5438; --sf-edge: #B8A07A; --sf-q: #FAF0D7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sf-a: #26337A; --sf-b: #151C42; --sf-ink: #F5ECD2; --sf-ink2: #C4BA98; --sf-edge: #56649E; --sf-q: #1B2452; } }
+:root[data-theme="dark"] { --sf-a: #26337A; --sf-b: #151C42; --sf-ink: #F5ECD2; --sf-ink2: #C4BA98; --sf-edge: #56649E; --sf-q: #1B2452; }
+
+.btn { background: linear-gradient(180deg, var(--sf-a), var(--sf-b)); color: var(--sf-ink); border-color: var(--sf-edge); }
+.btn.on, .btn.mini.on { color: var(--on-jade); }
+.btn.surr { background: linear-gradient(180deg, var(--sf-a), var(--sf-b)); color: var(--seal); }
+.btn.choice { color: var(--sf-ink); }
+.btn.choice small { color: var(--sf-ink2); }
+.btn.choice.side-g { background: linear-gradient(90deg, color-mix(in srgb, #1E6E63 28%, var(--sf-a)), var(--sf-b) 75%); border-left-color: #2E9C8A; }
+.btn.choice.side-e { background: linear-gradient(90deg, color-mix(in srgb, #C0392B 30%, var(--sf-a)), var(--sf-b) 75%); border-left-color: #E0584A; }
+.btn.choice.side-n { background: linear-gradient(90deg, color-mix(in srgb, #8A7A5C 30%, var(--sf-a)), var(--sf-b) 75%); border-left-color: #A89674; }
+.act:not(:disabled) { background: linear-gradient(180deg, var(--sf-a), var(--sf-b)); border-color: var(--sf-edge); color: var(--sf-ink); }
+.act small { color: var(--sf-ink2); }
+.guide { background: linear-gradient(160deg, var(--sf-a), var(--sf-b)); color: var(--sf-ink); }
+.guide h3 { color: var(--gold-hi); }
+.guide p { color: var(--sf-ink); }
+.quest { background: var(--sf-q); color: var(--sf-ink); }
+.quest h3 { color: var(--gold-hi); }
+.seg { background: var(--sf-b); border-color: var(--sf-edge); }
+.seg button { color: var(--sf-ink2); }
+.seg button.on { color: var(--on-jade); }
+.tag.grey { background: var(--sf-b); color: var(--sf-ink2); border-color: var(--sf-edge); }
+.opt { background: linear-gradient(180deg, var(--sf-a), var(--sf-b)); color: var(--sf-ink); }
+.opt b { color: var(--sf-ink); }
+.opt span, .opt b i { color: var(--sf-ink2); }
+.opt.sealed { color: var(--sf-ink2); }
+.sheet .story, .story { color: var(--ink); }
