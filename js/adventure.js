@@ -299,14 +299,29 @@ function goTown() {
   S.loc = '_road'; advance(d); S.loc = to;
 }
 const artShop = s => Object.keys(ITEMS).filter(id => ITEMS[id].kind === 'manual' && !knows(ITEMS[id].skill));
+// 回城：買藥、買裝備、客棧休息，三個都要花錢，沒有正邪之分（選項不標示陣營）
+const $p = o => Object.assign(o, { s: 'n', plain: true });
+// 買裝備：付得起的最貴一件；都付不起就給最便宜的（按鈕會顯示需要的銀兩）
+function townGear(s) {
+  const cands = Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))
+    .sort((x, y) => ITEMS[x].price - ITEMS[y].price);
+  if (!cands.length) return null;
+  const aff = cands.filter(id => ITEMS[id].price <= s.silver);
+  return aff.length ? aff[aff.length - 1] : cands[0];
+}
 function townMedCard(s) {
   goTown();
   const n = Math.max(1, Math.min(3, Math.floor(s.silver / 30))), cost = 30 * n, qiToo = s.silver - cost >= 40;
   const hurtNow = s.life < lifeMax();
-  return { title: '回城買藥', art: 'city', text: `你回到${LOCS[s.loc].n}，${hurtNow ? `身上的傷還沒好利索（氣血 ${s.life}/${lifeMax()}），` : ''}順路拐進了老字號的藥舖。掌櫃從櫃檯後探出頭：「金創藥三十兩一份，回氣散四十兩，貨真價實，不摻假。」\n\n你身上有 ${s.silver} 兩，金創藥 ${s.inv.jinchuang || 0} 份。`,
-    opts: [$g(P(`買金創藥 ×${n}${qiToo ? '、回氣散 ×1' : ''}（${cost + (qiToo ? 40 : 0)} 兩）`, ['你付了銀子，掌櫃把藥包好遞過來。', { silver: -(cost + (qiToo ? 40 : 0)) }, () => addItem('jinchuang', n) + (qiToo ? addItem('huiqi') : '')], { req: money(30), reqT: '需 30 兩' })),
-      $e(O('趁掌櫃轉身，順手抓幾包藥', 'agi', 12, ['你的手比眼快，兩包金創藥和一包回氣散已經進了袖子。', {}, () => addItem('jinchuang', 2) + addItem('huiqi')], ['掌櫃一把攥住你的手腕，喊來了夥計。你賠了錢，還挨了一頓打。', { silver: -Math.min(s.silver, 40), fame: -3 }])),
-      $n(P('只在客店歇一晚', ['你要了間客房，睡了個踏實覺，內息順暢了不少。', { silver: -Math.min(s.silver, 10) }, () => gainQi(99)]))] };
+  const gid = townGear(s), gp = gid ? ITEMS[gid].price : 0;
+  const restCost = Math.min(s.silver, 10);
+  return { title: '回城', art: 'city', text: `你回到${LOCS[s.loc].n}，${hurtNow ? `身上的傷還沒好利索（氣血 ${s.life}/${lifeMax()}），` : ''}先在街上轉了一圈。\n\n你身上有 ${s.silver} 兩，金創藥 ${s.inv.jinchuang || 0} 份。`,
+    opts: [
+      $p(P(`買藥：金創藥 ×${n}${qiToo ? '、回氣散 ×1' : ''}（${cost + (qiToo ? 40 : 0)} 兩）`, ['你付了銀子，掌櫃把藥包好遞過來。', { silver: -(cost + (qiToo ? 40 : 0)) }, () => addItem('jinchuang', n) + (qiToo ? addItem('huiqi') : '')], { req: money(30), reqT: '需 30 兩' })),
+      $p(gid ? P(`買裝備：${ITEMS[gid].n}（${gp} 兩）`, [`你付了銀子，把${ITEMS[gid].n}收進行囊。`, { silver: -gp }, () => { addItem(gid); return autoGear(gid); }], { req: money(gp), reqT: `需 ${gp} 兩` })
+        : P('買裝備：鋪子裡暫時沒有能買的', ['你在鋪子裡轉了一圈，沒有合意的。'], { dis: true })),
+      $p(P(`客棧休息一夜（${restCost} 兩）`, ['你要了間客房，睡了個踏實覺，氣血與內息都回復了一些。', { silver: -restCost }, () => gain({ hp: 1 }) + gainQi(1)], { req: money(Math.max(1, restCost)), reqT: '需 10 兩' }))
+    ] };
 }
 function townArtCard(s) {
   goTown();
@@ -412,7 +427,7 @@ function cardEvent(card) {
   const prefix = S.flags.moved ? `（這個月你從${S.flags.moved[0]}來到了${S.flags.moved[1]}。）\n\n` : '';
   S.flags.moved = null;
   return { type: card.type || '歷練', title: card.title, art: card.art || LOCS[S.loc].art, text: prefix + card.text, who: card.who,
-    choices: card.opts.map(o => ({ s: o.s, t: `${o.t}${reqLine(o) ? '　' + reqLine(o) : ''}`, req: o.req, reqT: o.reqT, qi: o.qi != null ? o.qi : (o.fight ? 0 : (['agi', 'str', 'con'].includes(o.stat) && o.dc >= 12) || QI_KEY.test(o.t) ? 1 : 0), go: () => resolveOpt(o) })) };
+    choices: card.opts.map(o => ({ s: o.s, plain: o.plain, t: `${o.t}${reqLine(o) ? '　' + reqLine(o) : ''}`, req: o.req, reqT: o.reqT, qi: o.qi != null ? o.qi : (o.fight ? 0 : (['agi', 'str', 'con'].includes(o.stat) && o.dc >= 12) || QI_KEY.test(o.t) ? 1 : 0), go: () => resolveOpt(o) })) };
 }
 function resolveOpt(o) {
   if (o.days) advanceSteps(o.days);

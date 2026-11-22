@@ -283,7 +283,7 @@ function overlay() {
       ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
         : o.pages && o.pi < o.pages.length - 1
           ? `<p class="story">${o.pages[o.pi]}</p><div class="col">${B(`繼續　${o.pi + 1}/${o.pages.length}`, () => { o.pi++; render(); document.querySelector('.sheet').scrollTop = 0; }, 'primary big')}</div>`
-          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => `<button type="button" class="btn choice side-${c.s}"${c.dis ? ' disabled' : h(() => choose(i))}><i class="side">${SIDE_LABEL[c.s]}</i><span>${c.t}${c.dis && c.reqT ? `<small>（${c.reqT}）</small>` : ''}</span></button>`).join('')}</div>`}
+          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => `<button type="button" class="btn choice side-${c.s}${c.plain ? ' plain' : ''}"${c.dis ? ' disabled' : h(() => choose(i))}>${c.plain ? '' : `<i class="side">${SIDE_LABEL[c.s]}</i>`}<span>${c.t}${c.dis && c.reqT ? `<small>（${c.reqT}）</small>` : ''}</span></button>`).join('')}</div>`}
     </div></div>`;
   }
   if (o.k === 'lvup') {

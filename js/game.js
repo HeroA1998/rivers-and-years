@@ -305,6 +305,7 @@ function pump() {
 /* 每個事件固定三個選項：正派行動、反派行動、無視或拒絕 */
 const SIDE_LABEL = { g: '正派', e: '反派', n: '無視' };
 function sides(list) {
+  if (list.some(x => x.plain)) return list;          // 不分正邪的選項（如回城）全部保留
   const out = [];
   for (const k of ['g', 'e', 'n']) {
     const c = list.find(x => x.s === k);
