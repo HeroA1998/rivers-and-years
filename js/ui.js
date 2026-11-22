@@ -423,8 +423,6 @@ function eventReader(o) {
         </span>
       </button>`).join('');
   }
-  const prompt = o.result || pendingPage || !o.choices || !o.choices.length
-    ? '接下來' : '你會如何抉擇？';
   const transcript = lines.map((line, i) =>
     `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}">
       <span class="reader-screenreader">${esc(line.text)}</span>
@@ -437,9 +435,9 @@ function eventReader(o) {
     </div>
     ${media}
     <div class="story-prose" aria-label="當前故事">${transcript}</div>
-    <button type="button" class="reader-skip" data-story-skip>點按顯示全文</button>
+    <button type="button" class="reader-skip" data-story-skip>顯示全文</button>
     <div class="story-choice-block">
-      <p class="story-question">${prompt}</p>
+      <div class="story-divider" aria-hidden="true"><span>✦</span></div>
       <div class="story-options" role="group" aria-label="故事選擇與繼續">
         ${controls}
       </div>
