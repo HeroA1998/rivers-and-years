@@ -1,13 +1,4 @@
-/* v8 optional high-fidelity artwork layer.
-   ONLY activate after assets/ui/v8/*.webp are committed on the same branch.
-   Mirrors the accepted 941x1672 original concept without baking dynamic text. */
-#app[data-page="world"] .wuxia-masthead{
-  height:clamp(46px,13vw,64px);min-height:clamp(46px,13vw,64px);
-  background:#2B413A url("../assets/ui/v8/header.webp") center/100% 100% no-repeat;
-}
-#app[data-page="world"] .wuxia-masthead::before,
-#app[data-page="world"] .wuxia-masthead::after{display:none}
-#app[data-page="world"] .wuxia-masthead .masthead-seal{opacity:0}
+
 #app[data-page="world"] .approved-portrait{
   background:url("../assets/ui/v8/portrait.webp") center/cover no-repeat;
 }
