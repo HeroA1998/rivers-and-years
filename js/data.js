@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.8.2';
+const VERSION = 'v6.9.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -185,6 +185,23 @@ const SKILLS = {
    性質：攻擊（提供招式與攻擊力）、內功（氣血內力、內力屬性）、身法（閃避）、輔助（不出招，只給戰鬥效果）
    每門裝備中的武功依類別加能力值（入門 +1、上乘 +2、絕學 +3），部分武功另有特殊效果 */
 const EQ_MAX = 5;
+// 裝備欄位：主手、副手、護甲、飾品、奇物（雙手兵器佔主手與副手）
+const GEAR_SLOTS = [['weapon', '主手'], ['off', '副手'], ['armor', '護甲'], ['acc', '飾品'], ['relic', '奇物']];
+const GEAR_KIND = { weapon: 'weapon', off: 'off', armor: 'armor', acc: 'acc', relic: 'relic' };
+// 攻擊類型：刀鞭主斬、劍槍暗器主刺、棒主鈍、拳掌主內勁
+const ATK_T = { blade: 'slash', whip: 'slash', sword: 'pierce', spear: 'pierce', dart: 'pierce', staff: 'blunt', fist: 'inner' };
+const ATK_TN = { slash: '斬', pierce: '刺', blunt: '鈍', inner: '內勁' };
+// 敵人對各類攻擊的承受倍率（>1 怕、<1 抗）：機關人刀劍難入卻怕重擊、野獸皮糙怕刺、高手內勁深厚
+const FOE_RES = {
+  puppet: { slash: 0.7, pierce: 0.75, blunt: 1.35, inner: 1.15 },
+  beast:  { pierce: 1.2, slash: 1.1, blunt: 0.85 },
+  master: { inner: 0.8, blunt: 0.9, pierce: 1.1 },
+  demon:  { pierce: 1.15, inner: 0.9 },
+  blade:  { blunt: 1.1 },
+  sword:  { slash: 1.1 },
+};
+// 反刺只對拳掌類（徒手）對手生效
+const BARE_FOE = ['thug', 'master', 'beast'];
 const ART_ST = { fist: 'str', blade: 'str', spear: 'str', sword: 'agi', whip: 'agi', staff: 'agi', dart: 'luck', nei: 'con', qing: 'agi' };
 const ROLE_N = { atk: '攻擊', nei: '內功', qing: '身法', sup: '輔助' };
 // eye 每點戰力 +3%・regen 每兩步回血比例・mpr 每兩步回內力・guard 每點減傷 15%・dmgRed 減傷・reflect 反震・foeWeak 削弱對手攻擊・crit 暴擊率・opener 開戰先發暗器・stunOpen 開戰震暈
@@ -284,19 +301,19 @@ const ITEMS = {
   w_sword3:  { n: '寒玉劍', kind: 'weapon', wt: 'sword', atk: 26, price: 0, st: { agi: 2, int: 1 } },
   w_blade1:  { n: '鬼頭刀', kind: 'weapon', wt: 'blade', atk: 7, price: 90, st: { str: 1 } },
   w_blade2:  { n: '百煉刀', kind: 'weapon', wt: 'blade', atk: 15, price: 440, st: { str: 2 } },
-  w_blade3:  { n: '隕鐵刀', kind: 'weapon', wt: 'blade', atk: 27, price: 0, st: { str: 3 } },
+  w_blade3:  { n: '隕鐵刀', kind: 'weapon', wt: 'blade', atk: 27, price: 0, st: { str: 3 }, req: { str: 9 } },
   w_fist1:   { n: '鐵指套', kind: 'weapon', wt: 'fist', atk: 5, price: 70, st: { str: 1 } },
   w_fist2:   { n: '精鋼護手', kind: 'weapon', wt: 'fist', atk: 12, price: 400, st: { str: 2, con: 1 } },
   w_dart1:   { n: '柳葉鏢', kind: 'weapon', wt: 'dart', atk: 6, price: 80, st: { luck: 1 } },
   w_dart2:   { n: '透骨釘', kind: 'weapon', wt: 'dart', atk: 14, price: 420, st: { luck: 2 } },
   w_staff1:  { n: '竹棒', kind: 'weapon', wt: 'staff', atk: 5, price: 30, st: { cha: 1 } },
-  w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 14, price: 400, st: { con: 2 } },
-  w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 7, price: 90, st: { str: 1 } },
-  w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 15, price: 440, st: { str: 1, con: 1 } },
+  w_staff2:  { n: '鑌鐵棍', kind: 'weapon', wt: 'staff', atk: 16, price: 400, st: { con: 2 }, hand: 2 },
+  w_spear1:  { n: '白蠟桿槍', kind: 'weapon', wt: 'spear', atk: 9, price: 90, st: { str: 1 }, hand: 2 },
+  w_spear2:  { n: '點鋼槍', kind: 'weapon', wt: 'spear', atk: 18, price: 440, st: { str: 1, con: 1 }, hand: 2, req: { str: 7 } },
   w_whip1:   { n: '長鞭', kind: 'weapon', wt: 'whip', atk: 6, price: 80, st: { agi: 1 } },
   w_whip2:   { n: '金龍鞭', kind: 'weapon', wt: 'whip', atk: 14, price: 420, st: { agi: 2 } },
   a_cloth:   { n: '牛皮護甲', kind: 'armor', def: 4, price: 70, st: { con: 1 } },
-  a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520, st: { con: 2, agi: 1 } },
+  a_gold:    { n: '金絲軟甲', kind: 'armor', def: 11, price: 520, st: { con: 2, agi: 1 }, fx: { dmgRed: 0.05, d: '輕軟貼身：受傷 -5%' } },
   acc_jade:   { n: '羊脂玉佩', kind: 'acc', price: 200, st: { cha: 2 } },
   acc_amulet: { n: '開光護身符', kind: 'acc', price: 150, st: { luck: 2 } },
   acc_bead:   { n: '菩提佛珠', kind: 'acc', price: 180, st: { int: 2 } },
@@ -304,6 +321,23 @@ const ITEMS = {
   acc_ring:   { n: '翡翠扳指', kind: 'acc', price: 220, st: { int: 1, cha: 1 } },
   acc_boots:  { n: '千層底快靴', kind: 'acc', price: 160, st: { agi: 2 } },
   acc_sachet: { n: '百花香囊', kind: 'acc', price: 120, st: { cha: 1, luck: 1 } },
+  // ---- 裝備系統 v2：雙手兵器、能力門檻、副手、奇物、詞條（參考 Life in Adventure 的裝備設計，取材原著） ----
+  w_heavy:   { n: '精鐵重劍', kind: 'weapon', wt: 'sword', atk: 24, price: 720, st: { str: 2 }, hand: 2, stat: 'str', req: { str: 9 }, fx: { pierce: 1, d: '重劍無鋒，大巧不工：以臂力出劍，無視對手三成防禦' } },
+  w_scholar: { n: '文士劍', kind: 'weapon', wt: 'sword', atk: 11, price: 360, st: { int: 1 }, alt: 'int', fx: { d: '劍走輕靈，悟性高者可改以悟性御劍' } },
+  w_cleaver: { n: '開山斧', kind: 'weapon', wt: 'blade', atk: 20, price: 520, st: { str: 2 }, hand: 2, req: { str: 8 }, fx: { crit: 4, d: '勢大力沉：暴擊率 +4%' } },
+  off_arm:   { n: '鑌鐵護臂', kind: 'off', price: 160, st: { con: 1 }, fx: { block: 12, d: '格擋：12% 機率擋下一擊' } },
+  off_sleeve:{ n: '袖箭', kind: 'off', price: 180, st: { luck: 1 }, fx: { opener: 0.9, d: '開戰先發：袖中一箭，先傷對手' } },
+  off_stone: { n: '飛蝗石', kind: 'off', price: 60, fx: { opener: 0.5, d: '開戰先發：擲石擾敵' } },
+  off_dagger:{ n: '短匕', kind: 'off', price: 140, st: { agi: 1 }, fx: { bleed: 15, d: '短刃補刀：15% 機率令對手流血' } },
+  a_thorn:   { n: '刺藤甲', kind: 'armor', def: 7, price: 380, st: { con: 1 }, fx: { thorns: 0.25, d: '反刺：拳掌類對手打你，反傷兩成五（仿桃花島軟蝟甲之意）' } },
+  a_night:   { n: '夜行衣', kind: 'armor', def: 3, price: 220, st: { agi: 1 }, fx: { chk: { agi: 2 }, d: '事件中的身法檢定 +2' } },
+  a_iron:    { n: '鐵葉重甲', kind: 'armor', def: 18, price: 600, st: { con: 2, agi: -1 }, req: { str: 7 }, fx: { dmgRed: 0.05, d: '厚重：受傷 -5%，身法 -1' } },
+  acc_coldjade:{ n: '寒玉佩', kind: 'acc', price: 340, st: { int: 1 }, fx: { attrUp: { yin: 0.15 }, d: '寒氣入脈：陰柔武功威力 +15%' } },
+  acc_sunstone:{ n: '赤陽石', kind: 'acc', price: 340, st: { str: 1 }, fx: { attrUp: { yang: 0.15 }, d: '熱力透體：陽剛武功威力 +15%' } },
+  r_fistbook:{ n: '拳經殘卷', kind: 'relic', price: 300, fx: { bare: 0.25, d: '空手入白刃：不拿兵刃時，拳掌武功威力 +25%' } },
+  r_flute:   { n: '玉簫', kind: 'relic', price: 420, fx: { foeWeak: 0.08, d: '簫音擾敵：對手攻擊 -8%' } },
+  r_page:    { n: '真經殘頁', kind: 'relic', price: 0, fx: { regen: 0.02, eye: 1, d: '殘頁心法：每兩步回 2% 氣血，戰力 +3%' } },
+  r_map:     { n: '江湖路引', kind: 'relic', price: 160, fx: { chk: { int: 1, cha: 1 }, d: '通曉人情地理：事件中的悟性、魅力檢定 +1' } },
   bk_fist:   { n: '《太祖長拳譜》', kind: 'manual', skill: 'm_fist', price: 120 },
   bk_sword:  { n: '《青城劍訣》', kind: 'manual', skill: 'm_sword', price: 140 },
   bk_staff:  { n: '《齊眉棍法》', kind: 'manual', skill: 'm_staff', price: 120 },

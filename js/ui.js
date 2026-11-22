@@ -216,18 +216,22 @@ const TABS = {
   bag() {
     const ids = Object.keys(S.inv);
     const stx = it => Object.keys(it.st || {}).map(k => STAT_N[k] + '+' + it.st[k]).join('、');
-    const desc = it => it.d || (it.kind === 'weapon'
+    const desc = it => [it.d || (it.kind === 'weapon'
       ? TYPE_N[it.wt] + '威力+' + it.atk + '（僅對同類武功有效）'
       : it.kind === 'armor' ? '防禦+' + it.def : it.kind === 'acc' ? '飾品'
-      : it.kind === 'manual' ? '可習得' + SKILLS[it.skill].n : '');
+      : it.kind === 'off' ? '副手' : it.kind === 'relic' ? '奇物'
+      : it.kind === 'manual' ? '可習得' + SKILLS[it.skill].n : ''),
+      GEAR_KIND[it.kind] ? gearInfo(it) : ''].filter(Boolean).join('・');
     const slot = (n, id, ic) => '<div>' + ico(ic, 'gearic') +
       '<span>' + n + '</span><b>' + (id ? ITEMS[id].n : '—') + '</b><small>' +
       (id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備') + '</small></div>';
     const equipped = '<section class="group"><h3>隨身裝備</h3><div class="stats gear">' +
-      slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword') +
-      slot('護甲', S.armor, 'shield') + slot('飾品', S.acc, 'ring') + '</div></section>';
+      slot('主手', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword') +
+      slot('副手', S.weapon && ITEMS[S.weapon].hand === 2 ? null : S.off, 'dart') +
+      slot('護甲', S.armor, 'shield') + slot('飾品', S.acc, 'ring') +
+      slot('奇物', S.relic, 'scroll') + '</div></section>';
     const groups = [
-      ['兵器與裝備', ['weapon', 'armor', 'acc']],
+      ['兵器與裝備', ['weapon', 'off', 'armor', 'acc', 'relic']],
       ['藥品與補給', ['med', 'tonic']],
       ['武功秘笈', ['manual']],
       ['其他物品', []]
@@ -241,9 +245,10 @@ const TABS = {
       if (!matching.length) return '';
       return '<section class="bag-section"><h3>' + title + '</h3>' +
         matching.map(id => {
-          const it = ITEMS[id], eqd = S.weapon === id || S.armor === id || S.acc === id;
+          const it = ITEMS[id], eqd = GEAR_SLOTS.some(x => S[x[0]] === id);
           const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備',
-            armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
+            off: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上',
+            relic: eqd ? '卸下' : '佩帶' }[it.kind];
           return '<article class="card row-card"><span class="itemic">' + ico(itemIcon(it), 'big') +
             '</span><div><b>' + it.n + '</b> ×' + S.inv[id] +
             (eqd ? ' <span class="tag jade">使用中</span>' : '') +
@@ -339,7 +344,7 @@ Object.assign(MENUS, MENU_EXTRA);
 MENUS.shop = () => {
   const o = UI.ov, tab = o.tab === 'sell' ? 'sell' : 'buy';
   const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
-  const dsc = it => [it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `武功「${SKILLS[it.skill].n}」的秘笈，買下就學會` : ''), stx(it)].filter(Boolean).join('・');
+  const dsc = it => [it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `武功「${SKILLS[it.skill].n}」的秘笈，買下就學會` : ''), stx(it), GEAR_KIND[it.kind] ? gearInfo(it) : ''].filter(Boolean).join('・');
   const seg = `<div class="seg two">${[['buy', '買'], ['sell', '賣']].map(x => `<button type="button" class="${tab === x[0] ? 'on' : ''}"${h(() => { o.tab = x[0]; render(); })}>${x[1]}</button>`).join('')}</div>`;
   const purse = `<p class="desc">身上銀兩 <b class="price">${S.silver}</b></p>`;
   let list;

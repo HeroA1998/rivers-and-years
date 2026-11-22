@@ -110,7 +110,7 @@ function equipBonus() {
   const b = {};
   const add = o => { for (const x in o || {}) b[x] = (b[x] || 0) + o[x]; };
   for (const id of S.eq) add(artSt(id));
-  for (const sl of ['weapon', 'armor', 'acc']) if (S[sl] && ITEMS[S[sl]]) add(ITEMS[S[sl]].st);
+  for (const [sl] of GEAR_SLOTS) if (S[sl] && ITEMS[S[sl]]) add(ITEMS[S[sl]].st);
   return b;
 }
 function recalc() {
@@ -123,7 +123,41 @@ function recalc() {
   S.hp = Math.min(S.hp, maxHp()); S.mp = Math.min(S.mp, maxMp());
   S.life = Math.min(S.life, lifeMax()); S.qi = Math.min(S.qi, qiMax());
 }
-const fxSum = key => S.eq.reduce((t, id) => t + (artFx(id)[key] || 0), 0);
+const fxSum = key => S.eq.reduce((t, id) => t + (artFx(id)[key] || 0), 0) + gearFx(key);
+
+/* ---------- 裝備系統 v2 ----------
+   兵刃綁一項能力值（刀拳看臂力、劍鞭看身法、暗器看福緣，少數名器可改看別項），威力隨能力放大；
+   雙手兵器佔用副手；重兵重甲有能力門檻；詞條（fx）與武功效果共用同一套計算。 */
+const gearList = () => GEAR_SLOTS.map(x => S[x[0]]).filter(id => id && ITEMS[id]);
+const gearFx = key => gearList().reduce((t, id) => { const f = ITEMS[id].fx; return t + (f && typeof f[key] === 'number' ? f[key] : 0); }, 0);
+const gearChk = st => gearList().reduce((t, id) => t + ((((ITEMS[id].fx || {}).chk) || {})[st] || 0), 0);
+const gearAttrUp = a => gearList().reduce((t, id) => t + ((((ITEMS[id].fx || {}).attrUp) || {})[a] || 0), 0);
+const wStat = it => { const st = it.stat || ART_ST[it.wt] || 'str'; return it.alt && S.stats[it.alt] > S.stats[st] ? it.alt : st; };
+// 兵刃威力：綁定能力為 5 時是原值，每多一點 +6%
+function weaponAtk(type) { const it = S.weapon && ITEMS[S.weapon]; return it && it.wt === type ? it.atk * (0.7 + 0.06 * S.stats[wStat(it)]) : 0; }
+const reqOk = it => Object.keys(it.req || {}).every(k => S.stats[k] >= it.req[k]);
+const reqText = it => Object.keys(it.req || {}).map(k => `需${STAT_N[k]} ${it.req[k]}`).join('、');
+const resOf = (e, type) => ((FOE_RES[e.style] || {})[ATK_T[type]]) || 1;
+function gearInfo(it) {
+  const p = [];
+  if (it.kind === 'weapon') p.push(`${ATK_TN[ATK_T[it.wt]]}擊・看${STAT_N[it.stat || ART_ST[it.wt]]}${it.alt ? `（悟性高時改看${STAT_N[it.alt]}）` : ''}`);
+  if (it.hand === 2) p.push('雙手');
+  if (it.req) p.push(reqText(it));
+  if (it.fx && it.fx.d) p.push(it.fx.d);
+  return p.join('・');
+}
+// 穿戴或卸下：雙手兵器會卸下副手；副手不能和雙手兵器同時拿；能力不足用不動
+function equipGear(id) {
+  const it = ITEMS[id], sl = GEAR_KIND[it.kind];
+  if (!sl) return '';
+  if (S[sl] === id) { S[sl] = null; recalc(); return `卸下${it.n}`; }
+  if (!reqOk(it)) return `${reqText(it)}，現在還用不動${it.n}`;
+  if (sl === 'off' && S.weapon && ITEMS[S.weapon].hand === 2) return `${ITEMS[S.weapon].n}是雙手兵器，騰不出手拿${it.n}`;
+  let note = `裝備${it.n}`;
+  if (sl === 'weapon' && it.hand === 2 && S.off) { note = `雙手持${it.n}，卸下了${ITEMS[S.off].n}`; S.off = null; }
+  S[sl] = id; recalc();
+  return note;
+}
 
 /* ---------- 命（氣血）與氣團（內力） ----------
    氣血是「命」：起始 3 顆愛心，打輸一場、事件失敗各扣一顆，歸零就是命喪江湖。
@@ -415,6 +449,8 @@ function battleOpen(b) {
     if (f.opener && k.moves) b.log.push('【先發】' + hitFoe(b, k.moves[0][0], k, S.skills[id].lv, k.moves[0][3], 0.6 * f.opener));
     if (f.stunOpen) { b.fx.stun = 1; b.log.push(`【${k.n}】你一聲長嘯，${b.e.n}心神大亂，第一手使不出來。`); }
   }
+  const go = gearFx('opener');
+  if (go && S.off) b.log.push('【先發】' + hitFoe(b, ITEMS[S.off].n, { type: 'dart', attr: 'he', tier: 1 }, 1, 12, 0.6 * go));
   if (b.e.hp <= 0) { b.e.hp = 1; }
 }
 const BARE = { n: '空手', type: 'fist', tier: 1, attr: 'he', moves: [['空手拳腳', 1, 0, 6]] };
@@ -447,13 +483,16 @@ function bLog(s) { const b = UI.ov; b.log.push(s); if (b.log.length > 80) b.log.
 function hitFoe(b, label, k, lv, pow, mul, fx) {
   const e = b.e;
   if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
-  const w = S.weapon && ITEMS[S.weapon].wt === k.type ? ITEMS[S.weapon].atk : 0;
-  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1) * (b.esc || 1);
+  const w = weaponAtk(k.type), res = resOf(e, k.type), wi = S.weapon && ITEMS[S.weapon];
+  const bare = !S.weapon && k.type === 'fist' ? 1 + gearFx('bare') : 1;
+  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * (1 + gearAttrUp(k.attr)) * bare * res * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1) * (b.esc || 1);
   const crit = chance(S.stats.luck * 1.3 + fxSum('crit'));
   if (crit) dmg *= 1.6;
-  dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25)));
+  const heavy = wi && wi.wt === k.type && wi.fx && wi.fx.pierce ? 0.7 : 1;
+  dmg = Math.max(1, Math.round(dmg - (fx === 'pierce' ? 0 : e.def * 0.25 * heavy)));
   e.hp -= dmg;
-  let s = `你的「${label}」${crit ? '正中要害，' : ''}造成 ${dmg} 點傷害。`;
+  let s = `你的「${label}」${crit ? '正中要害，' : ''}${res > 1 ? '正克其短，' : res < 1 ? '被對方所抗，' : ''}造成 ${dmg} 點傷害。`;
+  if (!fx && gearFx('bleed') && chance(gearFx('bleed'))) fx = 'bleed';
   if (fx === 'bleed') { b.fx.bleed = 2; b.fx.bleedV = Math.max(2, Math.round(dmg * 0.4)); s += '對方血流不止。'; }
   if (fx === 'poison') { b.fx.poison = 3; b.fx.poisonV = 6 + lv * 2 + k.tier * 4; s += '毒性滲入經脈。'; }
   if (fx === 'stun' && chance(45)) { b.fx.stun = 1; s += '對方被震得頭暈目眩，下一手使不出來。'; }
@@ -464,9 +503,12 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
 function hitMe(b, label, mult, mul = 1) {
   const e = b.e;
   if (chance(clamp((pDodge() - e.agi) * 1.2 + 4, 0, 30))) return `${e.n}的「${label}」被你閃身避過。`;
+  if (gearFx('block') && chance(gearFx('block'))) return `你舉臂格擋，${e.n}的「${label}」沒能打中你。`;
   const red = (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15)) * (1 - fxSum('foeWeak'));
   const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul * red * (b.esc || 1)));
   S.hp -= dmg;
+  const th = gearFx('thorns');
+  if (th && BARE_FOE.includes(e.style)) { const r = Math.max(1, Math.round(dmg * th)); e.hp -= r; return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害；甲上倒刺反傷對方 ${r} 點。`; }
   const rf = fxSum('reflect');
   if (rf) { const r = Math.max(1, Math.round(dmg * rf)); e.hp -= r; return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害；你挪移卸勁，反震 ${r} 點。`; }
   return `${e.n}的「${label}」打中你，受到 ${dmg} 點傷害。`;
@@ -510,7 +552,7 @@ function battleSpeed() { const b = UI.ov; if (!b || b.k !== 'battle') return; b.
 function advPct(b) {
   if (b.god) return 99.9;
   const e = b.e, bm = basicMove(), dm = b.roll ? b.mult : 1, tk = b.roll ? b.take : 1;
-  const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + (S.weapon && ITEMS[S.weapon].wt === bm.k.type ? ITEMS[S.weapon].atk : 0)) * neiFactor() * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006));
+  const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + weaponAtk(bm.k.type)) * neiFactor() * resOf(e, bm.k.type) * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006));
   const op = Math.max(1, (e.atk * 1.15 * DMG_K * (1 - fxSum('foeWeak')) - pDef() * 0.25) * (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15)));
   const pe = my * dm / Math.max(1, e.hp), pp = op * tk / Math.max(1, S.hp);
   return clamp(Math.round(pe / (pe + pp) * 1000) / 10, 0.1, 99.9);
@@ -607,12 +649,11 @@ function useItem(id) {
     toast(`服下${it.n}` + useMed(id));
   }
   else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain({ con: 1, bonusLife: 1 })); }
-  else if (it.kind === 'acc') { S.acc = S.acc === id ? null : id; recalc(); }
+  else if (GEAR_KIND[it.kind]) { toast(equipGear(id)); }
   else if (it.kind === 'manual') {
     if (knows(it.skill)) return toast('這門功夫你已經會了');
     addItem(id, -1); toast(learn(it.skill));
-  } else if (it.kind === 'weapon') { S.weapon = S.weapon === id ? null : id; recalc(); }
-  else if (it.kind === 'armor') { S.armor = S.armor === id ? null : id; recalc(); }
+  }
   save(); render();
 }
 let toastMsg = '';
