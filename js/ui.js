@@ -137,7 +137,8 @@ const IC = {
   settings: '<path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M10 2h4l.6 2.5 2 1.1 2.4-.8 2 3.4-1.8 1.8v2l1.8 1.8-2 3.4-2.4-.8-2 1.1L14 22h-4l-.6-2.5-2-1.1-2.4.8-2-3.4L4.8 14v-2L3 10.2l2-3.4 2.4.8 2-1.1z"/>',
   flag: '<path d="M5 21V4M5 5c5-3 9 3 14 0v10c-5 3-9-3-14 0z"/>',
 };
-const ico = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
+const ico = (n, cls = '') => { const gk = n && n.startsWith('gi:') ? n.slice(3) : GIK[n]; return gk && GI[gk] ? `<svg class="ic ${cls}" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">${GI[gk]}</svg>` : ico0(n, cls); };
+const ico0 = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
 const artIcon = id => artRole(id) === 'sup' ? 'sup' : SKILLS[id].type;
 const itemIcon = it => ({ med: 'bottle', tonic: 'bottle', gift: 'box', misc: 'leaf', manual: 'scroll', armor: 'shield', acc: 'ring', off: 'dart', relic: 'scroll' }[it.kind] || it.wt || 'box');
 const stars = n => '★'.repeat(n);
@@ -203,13 +204,13 @@ const TABS = {
     const cell = (id, extra) => {
       const sk = S.skills[id], r = artRole(id);
       return '<button type="button" class="bk-cell sk-cell ' + ROLE_CLS[r] + (extra || '') + '"' + h(pick(id)) + ' aria-label="' + esc(SKILLS[id].n) + '">' +
-        ico(artIcon(id), 'bk-ico') + '<small>' + cnNum(sk.lv) + '</small></button>';
+        ico(artIc(id), 'bk-ico') + '<small>' + cnNum(sk.lv) + '</small></button>';
     };
     const slotCell = i => {
       const id = S.eq[i];
       if (!id) return '<span class="bk-cell bk-empty" title="空位">' + ico('nei', 'bk-ghost') + '<small class="bk-slotn">空</small></span>';
       return '<button type="button" class="bk-cell bk-eq sk-cell ' + ROLE_CLS[artRole(id)] + (sel === id ? ' on' : '') + '"' + h(pick(id)) + ' aria-label="' + esc(SKILLS[id].n) + '">' +
-        ico(artIcon(id), 'bk-ico') + '<small>' + cnNum(S.skills[id].lv) + '</small></button>';
+        ico(artIc(id), 'bk-ico') + '<small>' + cnNum(S.skills[id].lv) + '</small></button>';
     };
     const cb = activeCombo();
 
@@ -228,7 +229,7 @@ const TABS = {
             '<small>' + (sk.lv >= m[1] ? '威力 ' + m[2] + '–' + m[3] : m[1] + ' 層解鎖') + '</small></div>').join('');
       const lvBar = sk.lv >= 10 ? '<em>圓滿</em>' : '<span class="sk-bar"><i style="width:' + clamp(sk.exp / xpNeed(sk.lv, k.tier) * 100, 0, 100) + '%"></i></span><small>' + sk.exp + '/' + xpNeed(sk.lv, k.tier) + '</small>';
       const ctl = on ? B('卸下', () => { UI.skSel = null; unequipArt(sel); }, 'bk-btn') : B('裝備', () => { equipArt(sel); }, 'bk-btn', S.eq.length >= EQ_MAX);
-      card = '<section class="bk-card sk-card"><div class="bk-head"><span class="bk-big ' + ROLE_CLS[r] + '">' + ico(artIcon(sel), 'bk-ico') + '</span>' +
+      card = '<section class="bk-card sk-card"><div class="bk-head"><span class="bk-big ' + ROLE_CLS[r] + '">' + ico(artIc(sel), 'bk-ico') + '</span>' +
         '<div class="bk-title"><h3>' + esc(k.n) + (on ? '<em>使用中</em>' : '') + '</h3><span class="bk-kind">' + esc(TIER_N[k.tier]) + esc(TYPE_N[k.type]) + '・' + esc(ATTR_N[k.attr]) + '</span></div></div>' +
         '<div class="bk-main">' + main + '</div>' +
         '<div class="bk-chips"><span class="bk-chip">' + esc(cnNum(sk.lv)) + '層</span>' + (stat ? '<span class="bk-chip warn">裝備加成 ' + stat + '</span>' : '') + '</div>' +
@@ -260,7 +261,7 @@ const TABS = {
       : { armor: '護甲', acc: '飾品', off: '副手', relic: '奇物', med: '藥品', tonic: '補品', manual: '武功秘笈', gift: '禮物' }[it.kind] || '物品';
     const stClass = k => 'bk-' + (k || 'misc');
     const cell = (id, extra, fn, badge) => '<button type="button" class="bk-cell ' + stClass(ITEMS[id].kind) + (extra || '') + '"' + h(fn) + ' aria-label="' + esc(ITEMS[id].n) + '">' +
-      ico(itemIcon(ITEMS[id]), 'bk-ico') + (badge > 1 ? '<small>' + badge + '</small>' : '') + '</button>';
+      ico(itemIc(ITEMS[id]), 'bk-ico') + (badge > 1 ? '<small>' + badge + '</small>' : '') + '</button>';
     const pick = (id) => () => { UI.bagSel = UI.bagSel === id ? null : id; render(); };
 
     // 詳情卡
@@ -274,7 +275,7 @@ const TABS = {
       const req = it.req ? '<span class="bk-chip warn' + (reqOk(it) ? '' : ' bad') + '">' + esc(reqText(it)) + '</span>' : '';
       const trait = it.fx && it.fx.d ? '<div class="bk-trait">' + ico('star', 'bk-tico') + '<p>' + esc(it.fx.d) + '</p></div>' : '';
       const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: '裝備', off: '裝備', armor: '穿上', acc: '戴上', relic: '佩帶' }[it.kind];
-      card = '<section class="bk-card"><div class="bk-head"><span class="bk-big ' + stClass(it.kind) + '">' + ico(itemIcon(it), 'bk-ico') + '</span>' +
+      card = '<section class="bk-card"><div class="bk-head"><span class="bk-big ' + stClass(it.kind) + '">' + ico(itemIc(it), 'bk-ico') + '</span>' +
         '<div class="bk-title"><h3>' + esc(it.n) + (S.inv[sel] > 1 ? ' ×' + S.inv[sel] : '') + (eqd ? '<em>使用中</em>' : '') + '</h3><span class="bk-kind">' + esc(kindName(it)) + '</span></div></div>' +
         (main ? '<div class="bk-main">' + main + '</div>' : '') + ((stats || req) ? '<div class="bk-chips">' + stats + req + '</div>' : '') + trait +
         (it.d && GEAR_KIND[it.kind] ? '<p class="bk-desc">' + esc(it.d) + '</p>' : '') +
@@ -338,7 +339,7 @@ const closeMenu = () => {
 
 const CRED_HTML = () => {
   const list = Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('');
-  return `<p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。</p><ul class="credits">${list}</ul>`;
+  return `<p class="desc">場景圖取自克里夫蘭美術館開放典藏的中國古畫，授權為 CC0 公有領域，經裁切使用。<br>歷史事件改寫自金庸小說，年份大致依網路流傳的大事年表，文字為本作重寫。<br>人物立繪由 <a href="https://linxuelian.itch.io" target="_blank" rel="noopener">LinXueLian</a> 手繪（linxuelian.itch.io），授權為 CC BY-SA 4.0，經合成與裁切使用。<br>介面圖示取自 <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>（CC BY 3.0），作者包括 Lorc、Delapouite 等，完整名單見專案的 CREDITS.md。</p><ul class="credits">${list}</ul>`;
 };
 const MENUS = {
   confirm: () => { const o = UI.ov; return [o.title, `<p class="desc">${o.text}</p><div class="col">${B('確定', () => { UI.ov = null; o.yes(); }, 'primary big')}</div>`]; },
@@ -398,13 +399,13 @@ MENUS.shop = () => {
     const stock = (S.town && S.town.stock) || [];
     list = stock.length ? stock.map((e, i) => {
       const it = ITEMS[e.id];
-      return `<article class="card row-card${e.sold ? ' sold' : ''}"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b>${it.kind === 'manual' ? ' <span class="tag gold">武功</span>' : ''}<p>${dsc(it)}</p><p class="price">${it.price} 兩</p></div>${B(e.sold ? '已售' : '購買', () => shopBuy(i), 'mini', e.sold || S.silver < it.price)}</article>`;
+      return `<article class="card row-card${e.sold ? ' sold' : ''}"><span class="itemic">${ico(itemIc(it), 'big')}</span><div><b>${it.n}</b>${it.kind === 'manual' ? ' <span class="tag gold">武功</span>' : ''}<p>${dsc(it)}</p><p class="price">${it.price} 兩</p></div>${B(e.sold ? '已售' : '購買', () => shopBuy(i), 'mini', e.sold || S.silver < it.price)}</article>`;
     }).join('') : '<p class="empty">貨架空了。</p>';
   } else {
     const ids = Object.keys(S.inv).filter(id => ITEMS[id] && ITEMS[id].price);
     list = ids.length ? ids.map(id => {
       const it = ITEMS[id], used = gearUsed(id) && S.inv[id] === 1;
-      return `<article class="card row-card"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]}${used ? ' <span class="tag jade">使用中</span>' : ''}<p>${dsc(it)}</p><p class="price">收購 ${sellPrice(id)} 兩</p></div>${B('賣出', () => shopSell(id), 'mini', used)}</article>`;
+      return `<article class="card row-card"><span class="itemic">${ico(itemIc(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]}${used ? ' <span class="tag jade">使用中</span>' : ''}<p>${dsc(it)}</p><p class="price">收購 ${sellPrice(id)} 兩</p></div>${B('賣出', () => shopSell(id), 'mini', used)}</article>`;
     }).join('') : '<p class="empty">行囊裡沒有可賣的東西。</p>';
   }
   return ['商人', seg + purse + list];

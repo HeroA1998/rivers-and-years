@@ -40,3 +40,18 @@
 ## 第三方程式庫
 
 - three.js r160（`js/vendor/three.min.js`），MIT 授權，授權全文見 `js/vendor/three.LICENSE.txt`。用於戰鬥的 3D 骰子。
+
+## 圖示（game-icons.net）
+
+背包、武功、商店等介面的圖示取自 [game-icons.net](https://game-icons.net)，授權為 [Creative Commons Attribution 3.0（CC BY 3.0）](https://creativecommons.org/licenses/by/3.0/)，經程式嵌入後以單色顯示。依授權要求，標示如下（Icons made by {作者}）：
+
+- Icons made by Lorc（63 個）：arrow-cluster、aura、barbed-spear、battle-axe、belt-buckles、bolt-eye、brain、breastplate、broad-dagger、broadsword、charm、clover、cog、compass、crescent-blade、curvy-knife、divided-spiral、electric-whip、feather、fire-punch、fist、gem-necklace、gem-pendant、gems、heart-bottle、lotus、lotus-flower、lyre、machete、magic-swirl、mailed-fist、meditation、open-book、piercing-sword、plain-dagger、pointy-sword、psychic-waves、punch、punch-blast、relic-blade、run、rune-sword、scroll-unfurled、shining-sword、shuriken、spear-hook、spears、spiked-armor、sprint、stone-spear、telepathy、third-eye、thrown-daggers、thrown-spear、tied-scroll、treasure-map、trident、triple-needle、vine-whip、whip、whiplash、winged-leg、wizard-staff
+- Icons made by Delapouite（40 個）：all-seeing-eye、ancient-sword、backpack、biceps、bo、cleaver、crescent-staff、dart、delicate-perfume、flail、flute、fly、gauntlet、health-potion、heart-shield、herbs-bundle、high-kick、high-punch、katana、lasso、leather-armor、lipstick、magic-potion、ninja-armor、nunchaku、person、prayer-beads、present、ring、rope-dart、secret-book、spear-feather、star-flag、star-medal、stone-pile、tribal-pendant、two-coins、wine-bottle、wood-club、yin-yang
+- Icons made by DarkZaitzev（4 個）：flying-shuriken、star-shuriken、tabi-boot、three-pointed-shuriken
+- Icons made by Skoll（1 個）：bracers
+- Icons made by Willdabeast（1 個）：chain-mail
+- Icons made by Caro Asercion（1 個）：round-potion
+- Icons made by GeneralAce135（1 個）：shepherds-crook
+- Icons made by Sbed（1 個）：shield
+
+原始圖示集與各作者資訊見 https://github.com/game-icons/icons 的 license.txt。
