@@ -687,7 +687,8 @@ body{background:#C7BAA5;color:var(--ink)}
 }
 /* 選項看起來是小說接下來的句子，而不是 app 表單 */
 #app[data-page="world"] .story-choice-block{
-  margin-top:auto;padding:19px 0 4px;
+  /* 選項接在最後一句故事後面；空白留在選項下方，而非故事中間。 */
+  margin-top:0;padding:19px 0 4px;
 }
 #app[data-page="world"] .story-divider{
   display:flex;align-items:center;gap:10px;margin:0 0 6px;
