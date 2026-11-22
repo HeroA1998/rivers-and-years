@@ -749,3 +749,14 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
 @media(prefers-reduced-motion:reduce){
   #app[data-page="world"] .event-reader .reader-line{animation:none}
 }
+
+
+/* 參考作品的角色狀態與底部導航固定，閱讀長故事時仍可隨時查看。 */
+#app[data-page="world"] .bhud{
+  position:sticky;top:0;z-index:12;
+  background:rgba(244,239,228,.97);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+#app[data-page="world"] .event-reader .reader-line{
+  scroll-margin-top:125px;scroll-margin-bottom:104px;
+}
