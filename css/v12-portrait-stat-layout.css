@@ -94,12 +94,12 @@
   background-repeat:no-repeat!important;
   image-rendering:auto;
 }
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-str .mini-stat-mark{background-image:url("../assets/ui/v12/stat_str.webp")!important}
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-con .mini-stat-mark{background-image:url("../assets/ui/v12/stat_con.webp")!important}
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-int .mini-stat-mark{background-image:url("../assets/ui/v12/stat_int.webp")!important}
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-agi .mini-stat-mark{background-image:url("../assets/ui/v12/stat_agi.webp")!important}
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-luck .mini-stat-mark{background-image:url("../assets/ui/v12/stat_luck.webp")!important}
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-cha .mini-stat-mark{background-image:url("../assets/ui/v12/stat_cha.webp")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-str .mini-stat-mark{background-image:url("../assets/ui/v12/stat_str.svg")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-con .mini-stat-mark{background-image:url("../assets/ui/v12/stat_con.svg")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-int .mini-stat-mark{background-image:url("../assets/ui/v12/stat_int.svg")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-agi .mini-stat-mark{background-image:url("../assets/ui/v12/stat_agi.svg")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-luck .mini-stat-mark{background-image:url("../assets/ui/v12/stat_luck.svg")!important}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .ms-cha .mini-stat-mark{background-image:url("../assets/ui/v12/stat_cha.svg")!important}
 #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .mini-stat b{
   flex:0 1 auto;min-width:0;
   color:#342A22;font:700 12px/1.1 'Noto Sans TC',sans-serif;
