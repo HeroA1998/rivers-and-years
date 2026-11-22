@@ -209,10 +209,23 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    await page.screenshot({path:out+'/battle_arena_with_drag_dice_390x844.png',fullPage:false,animations:'disabled'});
  await tray.scrollIntoViewIfNeeded();
  const b=await tray.boundingBox();
- await page.mouse.move(b.x+b.width/2,b.y+b.height/2);
- await page.mouse.down();
- await page.mouse.move(b.x+b.width/2+60,b.y+b.height/2-46,{steps:5});
- await page.mouse.up();
+ if(width===390){
+   // 真正的觸控事件，不是用滑鼠模擬點擊。通過 CDP 觸發
+   // touchstart/move/end，驗證手機 PointerEvent 的拖曳流程。
+   const cdp=await ctx.newCDPSession(page);
+   const x=b.x+b.width/2,y=b.y+b.height/2;
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
+   for(let step=1;step<=5;step++)
+     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',
+       touchPoints:[{x:x+60*step/5,y:y-46*step/5,id:1}]});
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+   await cdp.detach();
+ }else{
+   await page.mouse.move(b.x+b.width/2,b.y+b.height/2);
+   await page.mouse.down();
+   await page.mouse.move(b.x+b.width/2+60,b.y+b.height/2-46,{steps:5});
+   await page.mouse.up();
+ }
  const rolled=await page.evaluate(()=>({
    roll:UI.ov?.roll,phase:UI.ov?.phase,seq:UI.ov?.seq,
    hasWebGL:!!(DIE3&&document.querySelector('.tray')?.classList.contains('live3d'))
