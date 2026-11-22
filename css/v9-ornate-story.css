@@ -40,6 +40,8 @@
   background-position:center top;
   background-size:100% 100%;
   background-repeat:no-repeat;
+  /* Mask partially scrolled prose directly under the sticky plaque. */
+  box-shadow:0 7px 0 rgba(247,231,204,.98);
 }
 #app[data-page="world"] .story-stage,
 #app[data-page="world"] .event-reader {
