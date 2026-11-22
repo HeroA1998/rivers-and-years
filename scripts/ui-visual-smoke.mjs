@@ -52,6 +52,23 @@ for(const dims of [[320,700],[390,844],[430,932]]){
  await page.waitForSelector('#app[data-page="world"] .bhud',{timeout:15000});
  await reveal(page);
  await snapshot(page,'world_'+width+'x'+height);
+ if(width===390){
+   const art=await page.evaluate(async()=>{
+     const paths=['assets/ui/v9/story-border.webp','assets/ui/v9/story-header.webp','assets/ui/v9/story-button.webp'];
+     const fetched=await Promise.all(paths.map(async path=>{
+       const r=await fetch(path,{cache:'no-store'});
+       return {path,ok:r.ok,status:r.status,type:r.headers.get('content-type')};
+     }));
+     const option=document.querySelector('#main-content .story-option');
+     const background=option?getComputedStyle(option).backgroundImage:'';
+     const main=document.querySelector('#main-content');
+     const panel=main?getComputedStyle(main).borderImageSource:'';
+     return {fetched,background,panel};
+   });
+   check('390 all three ornate images loaded',art.fetched.every(x=>x.ok),{assets:art.fetched});
+   check('390 real gilded option artwork enabled',art.background.includes('story-button.webp'));
+   check('390 actual decorative border enabled',art.panel.includes('story-border.webp'));
+ }
  await page.evaluate(()=>{
    showEvent({type:'江湖',title:'長篇故事的視覺驗收',
      text:Array.from({length:12},(_,i)=>'第'+(i+1)+'段：江湖風雨如晦，山野行人仍循著故人留下的線索前行。').join('\n'),
