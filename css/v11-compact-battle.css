@@ -165,6 +165,7 @@
 }
 #app .battle-dialog .battle-action:active{transform:translateY(1px)}
 #app .battle-dialog .battle-dialog-actions>.primary:only-child{grid-column:1/-1}
+#app .battle-dialog .battle-dialog-actions>.secondary:first-child:nth-last-child(2){grid-column:1/-1}
 #app .battle-dialog .battle-dialog-actions>.battle-wait{
   grid-column:1/-1;min-height:37px;
   text-align:center;color:#836C56;
