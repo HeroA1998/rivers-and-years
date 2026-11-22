@@ -177,6 +177,24 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    await dialog.getByRole('button',{name:'繼續故事'}).click();
    check(width+' battle returns to story',await page.locator('.event-reader .reader-result').count()>=1);
  }
+ // A separate low-HP opponent checks the real automatic victory path.
+ if(width===390){
+   await page.evaluate(()=>{
+     showEvent({type:'江湖',title:'收招測試',text:'另一名對手攔路。',choices:[
+       {s:'g',t:'應戰',go:()=>{const e=foe('路人',1,0,'thug');e.hp=1;e.mhp=1;
+         return {title:'收招測試',intro:'對方攻勢已盡。',battle:e};}}
+     ]});
+   });
+   await reveal(page);
+   await page.locator('.event-choice:not([disabled])').first().click();
+   const victory=page.getByRole('dialog',{name:'收招測試'});
+   await victory.getByRole('button',{name:/直接以 10 點開始/}).click();
+   await page.waitForSelector('.battle-dialog .battle-phase.complete',{timeout:9000});
+   check('390 automatic win',await victory.locator('.battle-phase').textContent()==='勝利');
+   await page.screenshot({path:out+'/battle_dialog_victory_390x844.png',fullPage:false,animations:'disabled'});
+   await victory.getByRole('button',{name:'繼續故事'}).click();
+   check('390 victory returns to story',await page.locator('.event-reader .reader-result').count()>0);
+ }
  await ctx.close();
 }
 writeFileSync(out+'/report.json',JSON.stringify(result,null,2));
