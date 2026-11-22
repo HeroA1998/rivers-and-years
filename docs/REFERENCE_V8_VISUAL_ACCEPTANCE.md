@@ -4,10 +4,11 @@
 
 ## Design source
 - **Single approved reference:** the 941×1672 mobile wuxia concept image accepted by the player on 2026-11-22.
-- Measured reference groups: mountain title (top ~7%), portrait + two vitality rows + six attributes (~15%), decorative gold rule, story prose/choices, illustrated six-button footer (~14%).
+- Measured reference groups: portrait + two vitality rows + six attributes, decorative gold rule, story prose/choices, illustrated six-button footer. **The player's latest instruction supersedes the approved reference's top title banner: no gameplay masthead.**
 - Active game UI remains live HTML: names, attributes, HP, qi, XP, story text and choices are **never baked into a screenshot**.
 
 ## Implemented on this branch
+- Removed the extra top 「江湖歲月錄」 masthead entirely, including its CSS and optional artwork integration. The title screen remains unchanged. The portrait HUD now starts at the top safe area and the story receives the reclaimed vertical space.
 - Separate central story scrolling from top HUD and six-choice navigation. On a long event, status and navigation remain visible while the story is scrollable.
 - Referenced typography hierarchy, 〈chapter〉 title, small folio number and restrained choice markers.
 - Explicit 320–375px small-screen rules, 390/430px mobile styling and landscape under 500px height.
@@ -23,7 +24,7 @@ A separate static HTML/CSS mock with these local art crops was rendered in headl
 - 390×844 — body stays within 844px; navigation begins at y=743px.
 - 430×932 — body stays within 932px; navigation begins at y=831px.
 
-Those screenshots show the **art-directed static mock**, not the actual deployed game. Do not treat them as a live game screenshot or as proof that binary assets were committed.
+Those screenshots show the **art-directed static mock with the previous top title**, not the actual deployed game. New screenshots without the masthead are required. Do not treat them as a live game screenshot or as proof that binary assets were committed.
 
 ## Remaining must-pass gates before merge
 - [ ] Commit all non-embedded, original screenshot-derived art crops under `assets/ui/v8/` (or higher-quality newly generated replacement masters), and point actual UI CSS to those local files.
