@@ -62,38 +62,20 @@ const SCREENS = {
     </div>`;
   },
   game() {
-    const L = LOCS[S.loc];
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
-
     const isWorld = UI.tab === 'world';
     const goal = isWorld ? nextGoal() : null;
-    // 主操作直接放在場景圖內：沿用 nextGoal().acts 的原始 callback，
-    // 不因版面改動而漏掉「歸隱」或歷史落幕等第二個行動。
-    const scene = isWorld ? `
-      <section class="scene-wrap" aria-label="目前所在地與下一步">
-        <div class="scene scenery-${esc(L.art)}${goal.acts.length > 1 ? ' scene-multiple' : ''}">
-          ${art(L.art, S.loc + season())}
-          <span class="place">${esc(L.n)}</span>
-          <div class="scene-overlay">
-            <span class="scene-kicker">下一步 · ${esc(goal.title)}</span>
-            <div class="scene-actions">
-              ${goal.acts.map((a, i) => B(esc(a[0]), a[1],
-                i === 0 ? 'primary big hero-cta' : 'big hero-cta hero-cta-alt')).join('')}
-            </div>
-          </div>
-        </div>
-        <div class="scene-caption"><strong>${esc(L.n)}</strong><span>${esc(L.d)}</span></div>
-      </section>` : '';
-
+    // 江湖首頁只顯示緊湊人物資訊與當前故事選項。
+    // 人物與行囊頁仍可查閱銀兩、聲望等詳細資料。
+    const resources = isWorld ? '' : `<div class="chips2" aria-label="江湖資源">
+      <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
+      <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
+      <span>${esc(moralName())}</span>
+      ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
+    </div>`;
     return `${gameHud(false)}
-      ${scene}
-      <div class="chips2" aria-label="江湖資源">
-        <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
-        <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
-        <span>${esc(moralName())}</span>
-        ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
-      </div>
+      ${resources}
       <main id="main-content">${isWorld ? TABS.world(goal) : TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
   },
@@ -177,34 +159,45 @@ const TABS = {
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
   world(ng = nextGoal()) {
-    const logs = S.log.slice(-6).reverse();
-    const rum = histRumors(720);
+    const L = LOCS[S.loc];
+    const rumors = histRumors(720);
     const hints = chainHints();
-    const urgent = rum.find(x => x.now);
-    // 簡短提示按需展開；主按鈕已放到場景中央，不重複渲染。
-    const guide = `<details class="brief world-guide">
-      <summary>旅程提示</summary>
-      <div class="world-guide-content">
-        <h3>${esc(ng.title)}</h3>
+    const logs = S.log.slice(-6).reverse();
+    const location = esc(L.n);
+    const chapter = `<section class="story-stage" aria-label="江湖故事與選項">
+      <div class="story-heading">
+        <span class="story-chapter">江湖紀事 · ${location}</span>
+        <h2>${esc(ng.title)}</h2>
+      </div>
+      <div class="story-prose">
+        <p>${esc(L.d)}</p>
         <p>${esc(ng.desc)}</p>
-        ${ng.note ? `<small>${esc(ng.note)}</small>` : ''}
+      </div>
+      <div class="story-choice-block">
+        <p class="story-question">你打算如何行事？</p>
+        <div class="story-options" role="group" aria-label="選擇下一段江湖故事">
+          ${ng.acts.map(a => B(esc(a[0]), a[1], 'story-option')).join('')}
+        </div>
+      </div>
+    </section>`;
+    // 原風聞、奇緣提示與日誌仍然可查閱，但不常駐佔據故事畫面。
+    const rumorContent = rumors.map(x =>
+      `<p class="archive-rumor"><b>${esc(x.when)}・${esc(x.where)}</b>
+      ${x.now ? '<strong>正在發生</strong>' : ''}　${esc(x.h.rumor)}</p>`).join('');
+    const hintsContent = hints.map(x =>
+      `<p class="archive-rumor"><b>奇緣：${esc(x.title)}</b>　${esc(x.hint)}</p>`).join('');
+    const history = `<details class="world-archive">
+      <summary>江湖風聞與旅途札記</summary>
+      <div class="world-archive-inner">
+        ${ng.note ? `<p class="archive-note">${esc(ng.note)}</p>` : ''}
+        <h3>江湖風聞</h3>
+        ${rumorContent || '<p class="archive-note">暫無新的江湖風聞。</p>'}
+        ${hintsContent}
+        <h3>旅途札記</h3>
+        <ul class="log">${logs.map(l => `<li><time>${esc(l.t)}</time>${esc(l.s)}</li>`).join('')}</ul>
       </div>
     </details>`;
-    const rumors = rum.map(x => '<small class="rum' + (x.now ? ' now' : '') +
-      '"><b>' + x.when + '・' + x.where + '</b>' + (x.now ? '　正在發生！' : '') +
-      '<span> ' + x.h.rumor + '</span></small>').join('');
-    const rumorPanel = '<details class="brief"><summary>江湖風聞</summary>' +
-      '<p class="brief-preview">' + (urgent ? '重要消息：' + urgent.h.rumor :
-        rum.length ? rum[0].h.rumor : '江湖暫無重大消息。') + '</p>' +
-      '<section class="quest"><h3>' + reign(ad()) + '（' + ad() + '年）</h3>' +
-      (rumors || '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>') +
-      hints.map(c => '<small class="side"><span class="tag jade">奇緣</span> ' + c.title +
-        '：' + c.hint + '</small>').join('') + '</section></details>';
-    const logPanel = '<details class="brief"><summary>旅途札記</summary><p class="brief-preview">' +
-      (logs.length ? logs[0].s : '旅程才剛開始') + '</p>' +
-      '<ul class="log">' + logs.map(l => '<li><time>' + l.t + '</time>' + l.s + '</li>').join('') +
-      '</ul></details>';
-    return guide + rumorPanel + logPanel;
+    return chapter + history;
   },
   status() {
     return `<section class="group"><h3>${esc(S.name)}・Lv ${S.lv}</h3>
