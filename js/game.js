@@ -588,21 +588,56 @@ function toastRender(s) { toast(s); render(); }
 /* ---------- 下一步：唯一的主行動是「歷練」，其餘一切都在事件裡發生 ---------- */
 function nextGoal() {
   const t = today();
-  // 神鵰篇、倚天篇封印中：射鵰篇的故事走完，這一世就在這裡收尾
-  if (ad() > SEAL_YEAR) return { title: '射鵰篇落幕', desc: '你親眼見過的、聽人說過的，都已成了往事。後面的年代（神鵰篇、倚天篇）暫時封印著，這一世的故事就走到這裡。', note: '歸隱後可以選一門武功傳給後人，讓後人重走射鵰的年代。',
-    acts: [['歸隱，把武功傳給後人', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
-  const known = histRumors(720, false).find(r => { const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc); return t + need < hEnd(h); });
-  const unknown = histRumors(720, true).filter(x => !x.now && !(S.flags.heardOf || {})[x.h.id]);
-  const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t).sort((a, b) => hStart(a) - hStart(b))[0];
-  if (!known && !unknown.length && (!nx || age() + (nx.y - ad()) > 66)) {
-    return { title: nx ? '下一件大事，你等不到了' : '這個時代的大事都過去了', desc: nx ? `下一件大事要到${reign(nx.y)}，那時你已經太老了。` : '你親眼見過的、聽人說過的，都已成了往事。',
-      note: '可以繼續歷練，過自己的日子；或者歸隱，把武功傳給下一代，讓後人去看下一個時代。',
-      acts: [['繼續歷練', adventureMonth], ['歸隱，傳給下一代', () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。', () => retire('歸隱'))]] };
+  const L = LOCS[S.loc];
+  // 三個故事方向不是「換字而已」，各自導向不同事件池：
+  // 風聞 = 消息事件；訪人 = 當地事件；前行 = 移動與旅途事件。
+  const rumorLabel = L.kind === 'city' ? '到茶樓聽聽江湖傳聞'
+    : L.kind === 'sect' ? '向山門過客打聽風聲'
+    : '向過路人打聽江湖風聲';
+  const exploreLabel = '留在' + L.n + '，尋訪奇人異事';
+  const travelLabel = '收拾行囊，沿路繼續前行';
+  const storyActs = [
+    [rumorLabel, () => adventureMonth('rumor')],
+    [exploreLabel, () => adventureMonth('explore')],
+    [travelLabel, () => adventureMonth('travel')],
+  ];
+  const retireAct = ['封劍歸隱，將故事交給後人',
+    () => confirmBox('封劍歸隱？', '這一世的故事將就此結算，你可以選一門武功傳給後人，開啟下一代。',
+      () => retire('歸隱'))];
+  // 神鵰、倚天尚未開放時仍尊重既有年代封印及傳承流程。
+  if (ad() > SEAL_YEAR) {
+    return {
+      title: '射鵰篇落幕',
+      desc: '舊日風雲都已遠去。你把一生所見寫入手札，終於到了決定去留的時候。',
+      note: '神鵰篇與倚天篇尚未開放。歸隱後可傳下一門武功，讓後人重走射鵰年代。',
+      acts: [retireAct]
+    };
   }
-  const acts = [['歷練一個月', adventureMonth]];
-  return known
-    ? { title: '歷練', desc: `風聞：${known.h.rumor}（${known.when}，${known.where}）`, note: '按一次過約一個月。拜師、買賣、情緣、奇遇都在路上的事件裡。日子近了，會有劇情帶你趕到現場。', acts }
-    : { title: '歷練', desc: '江湖上暫時沒有大事的風聲。出門走走，遇人、遇事、遇機緣；在城裡的酒樓和茶樓，更容易聽到消息。', note: '按一次過約一個月。每件事都有三條路：正派、反派、或不予理會。', acts };
+  const known = histRumors(720, false).find(r => {
+    const h = r.h, need = S.loc === h.loc ? 0 : travelDays(h.loc);
+    return t + need < hEnd(h);
+  });
+  const unknown = histRumors(720, true).filter(x =>
+    !x.now && !(S.flags.heardOf || {})[x.h.id]);
+  const nx = HIST.filter(h => h.loc && h.scene && !S.hist[h.id] && hStart(h) > t)
+    .sort((a, b) => hStart(a) - hStart(b))[0];
+  if (!known && !unknown.length && (!nx || age() + (nx.y - ad()) > 66)) {
+    return {
+      title: '江湖舊事',
+      desc: nx ? '往後仍有江湖大事，只怕那時你已年邁。眼下的路，仍可由自己決定。'
+        : '許多故事都已成為往事，但這個江湖仍有人與事值得一看。',
+      note: '可以繼續尋訪、趕路，也可以歸隱傳承。',
+      acts: [storyActs[1], storyActs[2], retireAct]
+    };
+  }
+  return {
+    title: '江湖路上',
+    desc: known
+      ? '酒肆中有人低聲談起：' + known.h.rumor + '　你記下了這條風聲，心中思量著下一步。'
+      : '天下廣闊，每一處山川和市井都可能藏著一段故事。你會如何走下去？',
+    note: '選擇會影響下次遇到的事件類型與去向；時間仍隨遊歷自然流逝。',
+    acts: storyActs
+  };
 }
 
 /* ---------- 門派（由事件觸發） ---------- */
