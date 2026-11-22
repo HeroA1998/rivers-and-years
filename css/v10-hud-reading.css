@@ -1,0 +1,259 @@
+/* v10 — approved-layout refinement: protagonist presence, HUD proportions,
+   readable dialogue hierarchy. Loaded AFTER v9 without modifying gameplay. */
+:root{--hud-deep-jade:#244b40;--hud-ivory:#f8e5bd;--hud-gold:#c69c55}
+#app[data-page="world"] .bhud{
+  box-sizing:border-box;padding:10px 7px 8px;gap:6px;
+  background:linear-gradient(132deg,#f7e7cd 0%,#f0ddb9 55%,#e8cda2 100%);
+  box-shadow:inset 0 1px #fff9ed,0 2px 0 #d8b77e;
+}
+#app[data-page="world"] .hud-core{
+  display:grid;
+  grid-template-columns:104px minmax(98px,1fr) 120px 24px;
+  align-items:center;gap:5px;min-width:0;
+}
+#app[data-page="world"] .hport{
+  width:104px;height:118px;align-self:end;
+  border:2px solid #b48a4f;border-radius:2px;
+  box-shadow:0 0 0 2px #ecd09d,0 2px 4px #69492155;
+  background:#d8c39b;
+}
+#app[data-page="world"] .approved-portrait{
+  width:100%;height:100%;background-position:center center;
+  background-size:cover;
+}
+#app[data-page="world"] .avatar-monogram{
+  width:100%;height:100%;font-size:44px;
+  background:radial-gradient(ellipse at 40% 28%,#547d69,#23453e);
+}
+#app[data-page="world"] .hud-identity{
+  display:flex;flex-direction:column;align-items:stretch;
+  gap:7px;min-width:0;
+}
+#app[data-page="world"] .hud-name-row{
+  display:flex;align-items:center;gap:4px;min-width:0;
+}
+#app[data-page="world"] .hname{
+  flex:1 1 auto;min-width:0;max-width:100%;
+  padding:5px 7px 6px;text-align:center;
+  font:600 clamp(15px,3.9vw,18px)/1.2 var(--f-reading);
+  color:#f8e2b9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border:1px solid #d8b16f;border-radius:2px;
+  background:linear-gradient(155deg,#2b5b4c,#224439 75%);
+  box-shadow:inset 0 0 0 1px #597969,0 2px 2px #6e523c3d;
+}
+#app[data-page="world"] .hud-level{
+  flex:none;white-space:nowrap;color:#7e5f3a;
+  font:600 11px/1.2 var(--f-ui);
+}
+#app[data-page="world"] .hfame{
+  font:400 11px/1.2 var(--f-reading);
+  color:#886c48;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-align:center;
+}
+#app[data-page="world"] .hud-life{display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+#app[data-page="world"] .hud-life>span{display:flex;align-items:center;gap:4px}
+#app[data-page="world"] .vital-label{
+  color:#734e33;font:600 12px/1 var(--f-reading);flex:none;
+}
+#app[data-page="world"] .hud-life .ico{gap:1px;flex-wrap:nowrap}
+#app[data-page="world"] .hud-life .ico svg{
+  flex:none;width:18px;height:18px;filter:drop-shadow(0 1px 1px #7151394b);
+}
+#app[data-page="world"] .hud-stats-mini{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px 2px;align-content:center;min-width:0;
+}
+#app[data-page="world"] .mini-stat{
+  height:39px;display:flex;align-items:center;
+  gap:0;padding:1px 0;min-width:0;
+  background:transparent;border:0;border-right:1px solid #d0ab78;
+  border-bottom:1px solid #d0ab78;border-radius:0;box-shadow:none;
+}
+#app[data-page="world"] .mini-stat-mark{
+  display:block;flex:none;width:26px;height:26px;
+  border:0;border-radius:0;box-shadow:none;
+  background-size:contain;
+}
+#app[data-page="world"] .mini-stat b{
+  flex:1;min-width:0;
+  font:600 13px/1.1 var(--f-ui);
+  color:#3d2b22;text-align:center;
+}
+#app[data-page="world"] .hgear{
+  align-self:start;justify-self:center;width:24px;height:31px;
+  color:#94672d;
+}
+#app[data-page="world"] .hud-bottom{
+  padding:0 2px;display:flex;justify-content:space-between;
+  color:#795836;font:11px/1.4 var(--f-reading);
+}
+#app[data-page="world"] .hxp{height:8px;box-shadow:0 0 0 1px #c89d55}
+#app[data-page="world"] .hxp i{
+  background:linear-gradient(90deg,#2b745c,#79be92 72%,#a7cf9c);
+}
+/* Story remains a single scrollable page. Distinguish speaker-led prose,
+   player decisions, and consequence paragraphs without modifying their text. */
+#app[data-page="world"] .story-stage h2{
+  font:600 clamp(18px,4.8vw,21px)/1.45 var(--f-reading);
+  color:#3f291d;
+}
+#app[data-page="world"] .story-prose .reader-line{
+  line-height:1.78;letter-spacing:.005em;
+}
+#app[data-page="world"] .story-prose .reader-line.reader-dialogue{
+  padding:5px 6px 5px 13px;
+  margin:4px 0 3px 9px;
+  border-left:2px solid #b69460;
+  background:linear-gradient(90deg,#b99b6640,transparent 82%);
+  color:#493024;font-weight:500;
+}
+#app[data-page="world"] .story-prose .reader-line.reader-choice{
+  margin-top:8px;color:#8b4236;font-weight:500;
+}
+#app[data-page="world"] .story-prose .reader-line.reader-result{
+  margin-top:6px;padding-left:9px;
+  border-left:2px solid #d0ac74;
+}
+#app[data-page="world"] .story-options .btn.story-option{
+  min-height:clamp(55px,14.4vw,66px);
+  font-size:clamp(16px,4.3vw,18px);
+  letter-spacing:.008em;
+}
+/* The portrait must not force the status grid to overflow narrow phones. */
+@media(max-width:382px){
+  #app[data-page="world"] .hud-core{
+    grid-template-columns:88px minmax(0,1fr) 24px;
+    grid-template-areas:"portrait identity gear" "portrait stats stats";
+    gap:5px 8px;
+  }
+  #app[data-page="world"] .hport{grid-area:portrait;width:88px;height:124px}
+  #app[data-page="world"] .hport{align-self:start}
+  #app[data-page="world"] .approved-portrait{transform:none}
+  #app[data-page="world"] .hud-identity{grid-area:identity;gap:4px}
+  #app[data-page="world"] .hud-stats-mini{
+    grid-area:stats;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  #app[data-page="world"] .mini-stat{height:27px}
+  #app[data-page="world"] .mini-stat-mark{width:22px;height:22px}
+  #app[data-page="world"] .mini-stat b{font-size:12px}
+  #app[data-page="world"] .hgear{grid-area:gear}
+  #app[data-page="world"] .hud-life{gap:3px}
+  #app[data-page="world"] .hud-life .ico svg{width:16px;height:16px}
+  #app[data-page="world"] .hname{font-size:15px}
+}
+@media(max-width:340px){
+  #app[data-page="world"] .bhud{padding-left:6px;padding-right:6px}
+  #app[data-page="world"] .hud-core{
+    grid-template-columns:80px minmax(0,1fr) 22px;gap:4px 6px;
+  }
+  #app[data-page="world"] .hport{width:80px;height:114px}
+  #app[data-page="world"] .hud-life .ico svg{width:15px;height:15px}
+}
+@media(orientation:landscape) and (max-height:500px){
+  #app[data-page="world"] .hport{width:76px;height:77px}
+  #app[data-page="world"] .hud-core{
+    grid-template-columns:76px minmax(0,1fr) 118px 24px;
+  }
+  #app[data-page="world"] .hud-identity{gap:3px}
+  #app[data-page="world"] .hud-life{gap:3px}
+  #app[data-page="world"] .mini-stat{height:31px}
+  #app[data-page="world"] .mini-stat-mark{width:22px;height:22px}
+}
+
+
+/* Shared jade name plaque on non-story menus, so the identity stays consistent. */
+#app:is([data-page="me"],[data-page="bag"]) .hud-name-row{
+  display:flex;align-items:center;gap:7px;min-width:0;
+}
+#app:is([data-page="me"],[data-page="bag"]) .hud-name-row .hname{
+  flex:0 1 auto;min-width:0;margin:0;
+  padding:4px 9px;border:1px solid #d2ad6e;border-radius:2px;
+  background:linear-gradient(145deg,#2c584a,#274539);
+  box-shadow:inset 0 0 0 1px #577b68;
+  color:#f9e5bb;font:600 17px/1.3 var(--f-reading);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app:is([data-page="me"],[data-page="bag"]) .hud-level{
+  color:#865f37;font:500 12px/1 var(--f-ui);
+}
+
+/* The battle view has its own page scope. Reuse the real portrait and readable
+   vital icons, but do not force six detailed attributes into a compact fight HUD. */
+#app[data-page="battle"] .bhud.dim{
+  box-sizing:border-box;
+  padding:8px 10px 9px;gap:5px;
+  border:1px solid #c8a576;border-radius:12px;
+  background:linear-gradient(135deg,#f9edda,#edddbf);
+}
+#app[data-page="battle"] .bhud .hud-core{
+  display:grid;grid-template-columns:61px minmax(0,1fr);
+  align-items:center;gap:9px;
+}
+#app[data-page="battle"] .bhud .hport{
+  display:block;width:61px;height:70px;
+  overflow:hidden;flex:none;
+  padding:0;border:1px solid #c39b60;border-radius:3px;
+  background:#e6d1af;
+}
+#app[data-page="battle"] .bhud .approved-portrait{
+  display:block;width:100%;height:100%;
+  background:url("../assets/ui/v8/portrait.webp") center/cover no-repeat;
+}
+#app[data-page="battle"] .bhud .avatar-monogram{
+  display:grid;place-items:center;width:100%;height:100%;
+  background:#2b5146;color:#f4dfb8;font:600 27px var(--f-reading);
+}
+#app[data-page="battle"] .hud-identity{
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+}
+#app[data-page="battle"] .hud-name-row{
+  display:flex;align-items:center;gap:7px;min-width:0;
+}
+#app[data-page="battle"] .hud-name-row .hname{
+  font:600 17px/1.2 var(--f-reading);color:#3c2b20;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app[data-page="battle"] .hud-level{
+  font:500 11px var(--f-ui);color:#8c663b;
+}
+#app[data-page="battle"] .hfame{
+  font:400 11px/1.1 var(--f-reading);color:#826747;
+}
+#app[data-page="battle"] .hud-life{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;
+  font:400 12px/1.2 var(--f-ui);
+}
+#app[data-page="battle"] .hud-life>span{
+  display:inline-flex;align-items:center;gap:4px;
+}
+#app[data-page="battle"] .vital-label{
+  color:#815b3b;font:500 11px var(--f-reading);
+}
+#app[data-page="battle"] .hud-life .ico{
+  display:inline-flex;gap:1px;align-items:center;flex-wrap:nowrap;
+}
+#app[data-page="battle"] .hud-life .ico svg{
+  width:17px;height:17px;flex:none;
+}
+#app[data-page="battle"] .hud-life svg.heart{background:url("../assets/ui/v8/redheart.webp") center/contain no-repeat}
+#app[data-page="battle"] .hud-life svg.orb{background:url("../assets/ui/v8/greenheart.webp") center/contain no-repeat}
+#app[data-page="battle"] .hud-life svg.heart *,
+#app[data-page="battle"] .hud-life svg.orb *{opacity:0}
+#app[data-page="battle"] .hud-life svg.off{opacity:.38}
+#app[data-page="battle"] .hud-stats-mini,
+#app[data-page="battle"] .hgear{display:none!important}
+#app[data-page="battle"] .hud-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;color:#7d6245;
+  font:400 11px/1.35 var(--f-reading);
+}
+#app[data-page="battle"] .hxp{
+  height:5px;background:#e1d1b1;border:1px solid #b49362;
+  border-radius:5px;overflow:hidden;
+}
+#app[data-page="battle"] .hxp i{height:100%;display:block;background:#4b9f82}
+
+/* Disabled world shortcuts are not actionable during combat; hide the ghost
+   labels and keep attention on the roll controls and battle scene. */
+#app[data-page="battle"] .bnav{display:none!important}

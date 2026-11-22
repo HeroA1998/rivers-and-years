@@ -1,0 +1,186 @@
+/* v11: 戰鬥只是一個閱讀畫面上的小型對話框。
+   沒有戰鬥場景、道具排列、底部重複導航或巨型3D骰子。 */
+#app .veil.bveil.battle-dialog-overlay {
+  position:fixed;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + env(safe-area-inset-top))
+          calc(12px + env(safe-area-inset-right))
+          calc(16px + env(safe-area-inset-bottom))
+          calc(12px + env(safe-area-inset-left));
+  background:rgba(29,29,25,.54);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+#app .bveil .sheet.battle-dialog {
+  box-sizing:border-box;
+  flex:0 1 auto;
+  width:min(100%,410px);
+  max-width:410px;
+  height:auto;min-height:0;
+  max-height:min(80dvh,560px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  display:flex;flex-direction:column;gap:0;
+  padding:0 18px 16px;
+  background:linear-gradient(165deg,#FFF6E5,#F4E5CC);
+  color:#3B3027;
+  border:2px solid #B58D52;
+  border-radius:13px;
+  box-shadow:0 0 0 3px rgba(251,239,208,.46),
+    0 15px 44px rgba(27,26,22,.35);
+}
+#app .battle-dialog .battle-dialog-header{
+  position:static;
+  display:flex;align-items:center;gap:7px;
+  min-height:48px;
+  margin:0 -18px 14px;
+  padding:11px 16px;
+  background:linear-gradient(95deg,#284D45,#345A4B);
+  color:#F9E5B9;
+  border-bottom:2px solid #C6A368;
+}
+#app .battle-dialog .battle-dialog-kicker{
+  font:500 10px/1.2 'Noto Sans TC',sans-serif;
+  padding:4px 6px;white-space:nowrap;
+  border:1px solid rgba(244,218,155,.6);
+  border-radius:4px;color:#F0D7A0;
+}
+#app .battle-dialog #battle-dialog-title{
+  min-width:0;flex:1;
+  margin:0;font:600 18px/1.35 'Noto Serif TC',serif;
+  overflow-wrap:anywhere;color:#FFF0CC;
+}
+#app .battle-dialog .battle-phase{
+  flex:none;font:500 11px/1.2 'Noto Sans TC',sans-serif;color:#EDD09C;
+}
+#app .battle-dialog .battle-phase.complete{color:#F6D278;font-weight:700}
+#app .battle-dialog .battle-participants{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);
+  gap:8px;align-items:center;
+}
+#app .battle-dialog .battle-party{
+  min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;
+}
+#app .battle-dialog .battle-party-caption{
+  font:500 10px/1.4 'Noto Sans TC',sans-serif;color:#806C56;
+}
+#app .battle-dialog .battle-party-name{
+  display:block;min-height:22px;
+  color:#3D3129;font:600 16px/1.38 'Noto Serif TC',serif;
+  overflow-wrap:anywhere;
+}
+#app .battle-dialog .battle-party.enemy{text-align:right}
+#app .battle-dialog .battle-versus{
+  align-self:center;text-align:center;
+  color:#B39768;font:500 13px 'Noto Serif TC',serif;
+}
+#app .battle-dialog .battle-health{
+  height:11px;border-radius:6px;overflow:hidden;
+  background:#DED0B7;box-shadow:inset 0 1px 2px #7D6E5955;
+  border:1px solid #BAA687;
+}
+#app .battle-dialog .battle-health i{
+  display:block;height:100%;
+  background:linear-gradient(90deg,#386A5B,#71A895);
+  transition:width .2s ease;
+}
+#app .battle-dialog .battle-party.enemy .battle-health i{
+  background:linear-gradient(90deg,#B76052,#A83D3A);
+}
+#app .battle-dialog .battle-hp-value{
+  font:500 11px/1.3 'Noto Sans TC',sans-serif;
+  color:#736653;font-variant-numeric:tabular-nums;
+}
+#app .battle-dialog .battle-status{
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;
+  margin:13px 0 9px;padding:12px 9px 10px;
+  background:rgba(235,219,186,.4);
+  border:1px solid #D9C3A0;border-radius:9px;
+}
+#app .battle-dialog .battle-advantage{
+  color:#88684B;font:500 11px/1.3 'Noto Sans TC',sans-serif;
+}
+#app .battle-dialog .battle-advantage.winning{color:#316B54}
+#app .battle-dialog .battle-advantage.losing{color:#9B4A3C}
+#app .battle-dialog .battle-die-mini{
+  display:flex;justify-content:center;align-items:center;gap:9px;
+  min-height:58px;width:100%;margin-top:3px;
+}
+#app .battle-dialog .battle-die-mini>span:last-child{
+  color:#66533D;text-align:left;
+  font:500 12px/1.5 'Noto Sans TC',sans-serif;
+}
+#app .battle-dialog .battle-die-score,
+#app .battle-dialog .battle-die-placeholder{
+  flex:0 0 auto;
+  display:grid;place-items:center;
+  width:42px;height:42px;
+  background:linear-gradient(145deg,#A6443B,#6E2E31);
+  color:#F9DB9F;border:2px solid #D7AB6D;
+  border-radius:10px;
+  font:700 23px/1 'Noto Serif TC',serif;
+  box-shadow:0 2px 6px #58402E35;
+}
+#app .battle-dialog .battle-die-placeholder{background:#827767}
+#app .battle-dialog .battle-die-placeholder.rolling{animation:battlePulse 600ms ease-in-out infinite alternate}
+#app .battle-dialog .battle-effects{
+  margin:0;color:#A5473A;font:500 11px/1.6 'Noto Sans TC',sans-serif;
+}
+#app .battle-dialog .battle-last{
+  margin:5px 0 0;
+  max-width:100%;overflow-wrap:anywhere;
+  color:#57473A;
+  font:400 12px/1.65 'Noto Serif TC',serif;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;
+}
+#app .battle-dialog .battle-dialog-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;margin-top:7px;
+}
+#app .battle-dialog .battle-action{
+  display:flex;justify-content:center;align-items:center;
+  padding:8px;min-height:43px;
+  border:1px solid #C3A577;border-radius:8px;
+  background:#F7E7CD;
+  color:#57422C;
+  font:500 13px/1.4 'Noto Serif TC',serif;
+  text-align:center;
+  box-shadow:0 1px 2px #5C4A3920;
+  cursor:pointer;
+}
+#app .battle-dialog .battle-action.primary{
+  color:#FFF0D4;background:linear-gradient(135deg,#9F493E,#B65B49);
+  border-color:#944537;
+}
+#app .battle-dialog .battle-action.secondary{background:#E8DBC2}
+#app .battle-dialog .battle-action.quiet{
+  grid-column:1/-1;background:transparent;border:0;box-shadow:none;
+  color:#91534A;min-height:35px;
+}
+#app .battle-dialog .battle-action:focus-visible{
+  outline:2px solid #386B5B;outline-offset:2px;
+}
+#app .battle-dialog .battle-action:active{transform:translateY(1px)}
+#app .battle-dialog .battle-dialog-actions>.primary:only-child{grid-column:1/-1}
+#app .battle-dialog .battle-dialog-actions>.secondary:first-child:nth-last-child(2){grid-column:1/-1}
+#app .battle-dialog .battle-dialog-actions>.battle-wait{
+  grid-column:1/-1;min-height:37px;
+  text-align:center;color:#836C56;
+  font:12px/37px 'Noto Sans TC',sans-serif;
+}
+@keyframes battlePulse{to{opacity:.58;transform:scale(.96)}}
+@media(max-width:350px){
+  #app .bveil .sheet.battle-dialog{padding:0 12px 12px}
+  #app .battle-dialog .battle-dialog-header{margin:0 -12px 12px;padding:10px 11px}
+  #app .battle-dialog .battle-dialog-kicker{font-size:9px}
+  #app .battle-dialog #battle-dialog-title{font-size:16px}
+  #app .battle-dialog .battle-participants{gap:5px}
+  #app .battle-dialog .battle-party-name{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){
+  #app .battle-dialog .battle-die-placeholder.rolling{animation:none}
+  #app .battle-dialog .battle-health i{transition:none}
+}
