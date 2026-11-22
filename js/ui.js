@@ -65,9 +65,17 @@ const SCREENS = {
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
     return `${gameHud(false)}
-      <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
-      <div class="chips2"><span><img class="pxi" src="${pxIcon('coin', '#C9A24A', 12)}" alt="">銀兩 <b>${S.silver}</b></span><span><img class="pxi" src="${pxIcon('star', '#C9A24A', 12)}" alt="">聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
-      <main>${TABS[UI.tab]()}</main>
+      <section class="scene-wrap" aria-label="目前所在地">
+        <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
+        <div class="scene-caption"><strong>${L.n}</strong><span>${L.d}</span></div>
+      </section>
+      <div class="chips2" aria-label="江湖資源">
+        <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
+        <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
+        <span>${esc(moralName())}</span>
+        ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
+      </div>
+      <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
   },
   end() {
@@ -382,26 +390,39 @@ const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name))
 const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
 function gameHud(dim) {
-  const orbRow = (n, m, kind) => Array.from({ length: m }, (_, i) => `<img class="pxo" src="${PIX.orb(kind, i < n)}" alt="">`).join('');
-  const stat = k => `<span class="hs" title="${STAT_N[k]}"><img class="pxi" src="${pxIcon(k, STAT_COL[k], 14)}" alt=""><b>${S.stats[k]}</b></span>`;
-  const gear = dim ? `<span class="hgear"><img class="pxi" src="${PIX.gear()}" alt=""></span>`
-    : `<button type="button" class="hgear" aria-label="設定"${h(() => openMenu('settings'))}><img class="pxi" src="${PIX.gear()}" alt=""></button>`;
-  return `<div class="bhud${dim ? ' dim' : ''}">
-    <div class="hport"><img class="pxi" src="${pxIcon('person', '#E8D6B0', 30)}" alt=""></div>
-    <div class="hmid"><div class="hname">${esc(fameTitle())} ${esc(S.name)}</div>
-      <div class="orbs">${orbRow(S.life, lifeMax(), 'red')}</div><div class="orbs">${orbRow(S.qi, qiMax(), 'green')}</div></div>
-    <div class="htop">${gear}</div>
-    <div class="hstats">${Object.keys(STAT_N).map(stat).join('')}</div>
-    <div class="hxp"><i style="width:${clamp(S.exp / expNeed(S.lv) * 100, 0, 100)}%"></i><em>Lv ${S.lv}</em></div>
-    <span class="hdate">${dateStr()}<b>${season()}</b></span>
-  </div>`;
+  const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +
+    h(() => openMenu('settings')) + '>' + ico('shield') + '</button>';
+  const stats = '<div class="statrow">' + Object.keys(STAT_N).map(k =>
+    '<span>' + ico(k) + '<i>' + STAT_N[k] + '</i><b>' + S.stats[k] + '</b>' +
+    (S.bonus && S.bonus[k] ? '<small>+' + S.bonus[k] + '</small>' : '') + '</span>'
+  ).join('') + '</div>';
+  return '<header class="bhud' + (dim ? ' dim' : '') + '">' +
+    '<div class="hud-head"><div class="hport" aria-hidden="true">俠</div>' +
+    '<div class="hud-title"><div class="hname">' + esc(S.name) +
+    ' <small>Lv ' + S.lv + '</small></div><div class="hfame">' +
+    esc(fameTitle()) + '</div></div>' + gear + '</div>' +
+    '<div class="hud-life"><span><strong>氣血</strong><span class="ico">' + hearts() +
+    '</span></span><span><strong>內力</strong><span class="ico">' +
+    orbs(S.qi, qiMax()) + '</span></span></div>' +
+    '<div class="hud-meta"><span>閱歷 ' + S.exp + '/' + expNeed(S.lv) +
+    '</span><span class="hdate">' + dateStr() + '<b>' + season() + '</b></span></div>' +
+    '<div class="hxp" aria-label="閱歷進度"><i style="width:' +
+    clamp(S.exp / expNeed(S.lv) * 100, 0, 100) + '%"></i></div>' +
+    (dim ? '' : '<details class="hud-stats"><summary>查看六項能力值 ▾</summary>' +
+      stats + '</details>') + '</header>';
 }
 // 底部導覽：江湖／人物／行囊；戰鬥中同一排圖示壓暗、不能按
 const TAB_DEF = [['world', '江湖', 'compass', '#4F7F92'], ['me', '人物', 'person', '#C9B48E'], ['bag', '行囊', 'bag', '#A8743F']];
 function gameNav(active, live) {
-  return `<nav class="bnav${live ? ' live' : ''}">${TAB_DEF.map(t => live
-    ? `<button type="button" class="${active === t[0] ? 'on' : ''}" aria-label="${t[1]}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></button>`
-    : `<span><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></span>`).join('')}</nav>`;
+  return '<nav class="bnav' + (live ? ' live' : '') + '" aria-label="主要分頁">' +
+    TAB_DEF.map(t => live
+      ? '<button type="button" class="' + (active === t[0] ? 'on' : '') +
+        '" aria-label="' + t[1] + '"' +
+        (active === t[0] ? ' aria-current="page"' : '') +
+        h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); }) + '>' +
+        ico(t[2]) + '<span>' + t[1] + '</span></button>'
+      : '<span aria-hidden="true">' + ico(t[2]) + '<span>' + t[1] +
+        '</span></span>').join('') + '</nav>';
 }
 // 戰鬥背景：用事件或所在地的場景圖，不再固定同一張
 const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
