@@ -584,3 +584,168 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
   .event-reader .story-heading{padding-bottom:12px}
   .event-reader .story-choice-block{padding-top:16px}
 }
+
+
+/* v5 — 參考作品的「印刷小說」閱讀密度，而非卡片式網頁風格。
+   字體：思源宋體負責章節／正文／故事選項；思源黑體負責數值和操作標籤。 */
+:root {
+  --f-reading:'Noto Serif TC','Songti TC','PMingLiU',serif;
+}
+#app[data-page="world"]{
+  background:#F4EFE4;
+  gap:5px;
+  padding-top:max(5px,env(safe-area-inset-top));
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#app[data-page="world"] .bhud{
+  background:transparent;
+  border:0;
+  border-bottom:1px solid #B8A98F;
+  border-radius:0;box-shadow:none;
+  padding:5px 2px 7px;gap:3px;
+}
+#app[data-page="world"] .hud-head{
+  display:grid;grid-template-columns:48px minmax(0,1fr) 35px;gap:8px;align-items:center;
+}
+#app[data-page="world"] .hport{
+  width:48px;height:55px;overflow:hidden;border:1px solid #BCA783;border-radius:3px;
+  background:#E6D3B2;display:block;line-height:0;
+}
+.avatar-svg{width:100%;height:100%;display:block}
+#app[data-page="world"] .hud-title{min-width:0}
+#app[data-page="world"] .hname{
+  font:500 clamp(16px,4.3vw,19px)/1.25 var(--f-reading);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app[data-page="world"] .hname small{font:400 12px/1.3 var(--f-ui);color:#6A5B4B;margin-left:5px}
+#app[data-page="world"] .hfame{
+  font:400 11px/1.4 var(--f-ui);color:#806C51;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app[data-page="world"] .hud-life{display:flex;flex-wrap:wrap;gap:1px 9px;font:400 11px/1.25 var(--f-ui)}
+#app[data-page="world"] .hud-life>span{gap:3px}
+#app[data-page="world"] .hud-life strong{font:400 11px var(--f-ui)}
+#app[data-page="world"] .ico{gap:1px}
+#app[data-page="world"] .hud-life svg{width:15px;height:15px}
+#app[data-page="world"] .hgear{
+  width:35px;height:38px;min-width:35px;background:transparent;border:0;
+  box-shadow:none;color:#78664E;
+}
+#app[data-page="world"] .hgear .ic{width:20px;height:20px}
+#app[data-page="world"] .hud-meta{
+  display:flex;justify-content:space-between;align-items:center;
+  border:0;padding-top:0;gap:2px 8px;
+  color:#7D6E5A;font:400 11px/1.45 var(--f-ui);
+}
+#app[data-page="world"] .hdate{font:400 11px/1.45 var(--f-reading);white-space:nowrap;margin-left:auto}
+#app[data-page="world"] .hdate b{margin-left:3px}
+#app[data-page="world"] .hxp{height:3px;border-radius:0;background:#D7CBB7}
+#app[data-page="world"] .hxp i{border-radius:0}
+#app[data-page="world"] .hud-stats{border:0;padding:0;font-size:11px}
+#app[data-page="world"] .hud-stats summary{
+  font:400 11px/1.35 var(--f-ui);color:#8A7458;
+  min-height:18px;cursor:pointer;text-align:right;list-style:none;
+}
+#app[data-page="world"] .hud-stats .statrow{padding-top:6px}
+#app[data-page="world"] main{
+  width:100%;min-height:0;gap:4px;padding:0 0 12px;
+}
+#app[data-page="world"] .event-reader{
+  max-width:590px;width:100%;min-height:0;
+  padding:9px clamp(4px,2.5vw,16px) 14px;
+  gap:0;
+}
+#app[data-page="world"] .event-reader .story-heading{
+  padding:0 0 12px;text-align:left;
+}
+#app[data-page="world"] .event-reader .story-chapter{
+  font:400 11px/1.4 var(--f-ui);letter-spacing:.045em;
+  color:#8B785E;margin-bottom:8px;
+}
+#app[data-page="world"] .event-reader h2{
+  font:500 clamp(19px,5vw,21px)/1.5 var(--f-reading);
+  letter-spacing:.01em;color:#3D352B;word-break:break-word;
+}
+#app[data-page="world"] .event-reader .story-prose{
+  max-width:38em;display:flex;flex-direction:column;gap:9px;
+  font:400 clamp(17px,4.45vw,18px)/1.78 var(--f-reading);
+  letter-spacing:0;color:#332F29;
+}
+#app[data-page="world"] .event-reader .reader-line{
+  position:relative;margin:0;
+  font:inherit;line-height:1.78;letter-spacing:0;
+  white-space:pre-line;overflow-wrap:anywhere;
+  color:#332F29;scroll-margin-bottom:120px;
+}
+.reader-screenreader{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;
+}
+.reader-visible{white-space:pre-line}
+#app[data-page="world"] .event-reader .reader-choice{
+  padding:6px 5px 5px 22px;margin:5px 0 0;
+  color:#7C5B3D;font-size:16px;line-height:1.7;
+}
+#app[data-page="world"] .event-reader .reader-choice::before{
+  content:"◆";position:absolute;left:3px;top:8px;
+  color:#A54136;font:12px/1.7 var(--f-ui);
+}
+#app[data-page="world"] .event-reader .reader-result{
+  border-left:2px solid #BC9C71;
+  padding:3px 0 3px 12px;margin:6px 0 0;
+}
+#app[data-page="world"] .reader-skip{
+  display:none;align-self:flex-end;background:transparent;border:0;
+  font:400 12px/1.5 var(--f-ui);color:#856B4F;
+  padding:6px 0;min-height:38px;
+}
+#app.story-typing[data-page="world"] .reader-skip{display:block}
+#app.story-typing[data-page="world"] .event-reader .story-choice-block{
+  visibility:hidden;pointer-events:none;
+}
+#app[data-page="world"] .event-reader .story-choice-block{
+  margin-top:0;padding-top:clamp(18px,3vh,25px);
+}
+#app[data-page="world"] .event-reader .story-question{
+  color:#94806B;font:400 12px/1.5 var(--f-reading);margin-bottom:5px;
+}
+#app[data-page="world"] .event-reader .story-options .btn.story-option{
+  min-height:52px;border-bottom:1px solid #DDD3C2;
+  padding:9px 5px;color:#3D362E;background:transparent;
+  font:400 clamp(16px,4.3vw,17.5px)/1.6 var(--f-reading);
+  letter-spacing:0;box-shadow:none;border-radius:0;
+}
+#app[data-page="world"] .event-reader .story-options .btn.story-option::before{
+  font:12px/1.6 var(--f-ui);color:#A54136;
+}
+#app[data-page="world"] .event-reader .story-options .btn.story-option::after{
+  font:19px/1 var(--f-ui);color:#9E8C70;
+}
+#app[data-page="world"] .event-reader .choice-kind{
+  border:0;padding:0;min-width:2.2em;
+  font:400 11px/1.5 var(--f-ui);color:#776C5A;
+}
+#app[data-page="world"] .event-reader .choice-content{font:inherit}
+#app[data-page="world"] .reader-media{
+  border-radius:1px;border-color:#CDBDA6;box-shadow:none;
+  margin-bottom:12px;
+}
+#app[data-page="world"] .bnav.live{
+  margin-top:auto;border:0;border-top:1px solid #B8A98F;
+  background:rgba(244,239,228,.98);border-radius:0;
+  box-shadow:none;padding:5px 5px calc(5px + env(safe-area-inset-bottom));
+}
+#app[data-page="world"] .bnav button{min-height:47px;gap:5px;font:500 12px/1.4 var(--f-ui)}
+#app[data-page="world"] .bnav button .ic{width:18px;height:18px}
+#app[data-page="world"] .bnav button.on{background:transparent;color:var(--seal)}
+@media(max-width:360px){
+  #app[data-page="world"]{padding-left:10px;padding-right:10px}
+  #app[data-page="world"] .hud-head{grid-template-columns:44px minmax(0,1fr) 32px;gap:6px}
+  #app[data-page="world"] .hport{width:44px;height:51px}
+  #app[data-page="world"] .hud-life svg{width:14px;height:14px}
+  #app[data-page="world"] .hud-life{gap:1px 6px}
+  #app[data-page="world"] .event-reader .story-prose{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  #app[data-page="world"] .event-reader .reader-line{animation:none}
+}
