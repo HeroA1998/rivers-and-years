@@ -52,9 +52,10 @@
   content:"";display:block;width:calc(100% + 48px);height:clamp(32px,9.6vw,49px);
   margin:0 0 15px -24px;background:url("../assets/ui/v8/ornament.webp") center/100% 100% no-repeat;
 }
+/* 僅保留分段頁碼，不顯示原有底部山水圖。 */
 #app[data-page="world"] .reader-folio{
-  background:url("../assets/ui/v8/mountain.webp") center top/100% 72px no-repeat;
-  padding-top:72px;
+  background:none;
+  padding-top:0;
 }
 #app[data-page="world"] .bnav.illustrated-nav{
   background:#28443C url("../assets/ui/v8/footer.webp") center/100% 100% no-repeat;
