@@ -22,8 +22,10 @@ function check(stat, dc) {
   return { roll, mod, total, dc, stat, crit: roll === 20, fumble: roll === 1, ok: roll === 20 || (roll !== 1 && total >= dc) };
 }
 const dieHtml = (n, crit, fumble) => `<b class="die roll${crit ? ' crit' : fumble ? ' fumble' : ''}">${n}</b>`;
-const rollLine = c => `<span class="rollline">${dieHtml(c.roll, c.crit, c.fumble)} ${c.stat ? `${STAT_N[c.stat]}${c.mod >= 0 ? '+' : ''}${c.mod}` : ''} ＝ ${c.total}　<em class="${c.ok ? 'win' : 'lose'}">${c.crit ? '大成功' : c.fumble ? '大失手' : c.ok ? '成功' : '失敗'}</em></span><br>`;
-const reqLine = o => { if (!o.stat) return o.fight ? '〔動手〕' : ''; const od = checkOdds(o.stat, o.dc); return `〔成功 ${od.pct}%・${STAT_N[o.stat]}${od.mod >= 0 ? '+' : ''}${od.mod}〕`; };
+const rollLine = c => `<span class="rollline">${dieHtml(c.roll, c.crit, c.fumble)} ${c.stat ? `${STAT_N[c.stat]}${pctText(c.mod)}` : ''}　<em class="${c.ok ? 'win' : 'lose'}">${c.crit ? '大成功' : c.fumble ? '大失手' : c.ok ? '成功' : '失敗'}</em></span><br>`;
+// 能力加成換算成百分比：d20 每點 = 5%
+const pctText = mod => `${mod >= 0 ? '+' : ''}${mod * 5}%`;
+const reqLine = o => { if (!o.stat) return o.fight ? '〔動手〕' : ''; const od = checkOdds(o.stat, o.dc); return `〔成功 ${od.pct}%・${STAT_N[o.stat]}${pctText(od.mod)}〕`; };
 
 /* ---------- 事件牌語法 ---------- */
 // O：檢定選項（成功 ok／失敗 no，各為 [文字, 獲得, 額外函式]）；P：無檢定；F：戰鬥。外面再包 $g／$e／$n 標明正派、反派、無視
