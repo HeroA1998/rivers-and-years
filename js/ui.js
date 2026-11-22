@@ -556,16 +556,18 @@ const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
 /* 使用已審核的原創概念圖裁切肖像。女性玩家顯示原畫；
    男性玩家先保留姓名紋章，不將女性頭像或其他 NPC 冒認為主角。 */
+/* 主角男女使用獨立繪製的高清肖像，不再顯示姓名字牌。 */
 function playerAvatar(dim = false) {
-  const portrait = S.gender === '女'
-    ? '<span class="approved-portrait" role="img" aria-label="女性主角原創武俠肖像"></span>'
-    : '<span class="avatar-monogram" aria-hidden="true">' +
-        esc(Array.from(S.name || '俠')[0] || '俠') + '</span>';
-  const inner = portrait;
-  return dim ? '<span class="hport" aria-hidden="true">' + inner + '</span>' :
-    '<button type="button" class="hport" aria-label="查看人物資料"' +
+  const female = S.gender === '女';
+  const image = '<img class="hero-portrait" src="assets/ui/v12/' +
+    (female ? 'hero_female.webp' : 'hero_male.webp') +
+    '" alt="" loading="eager" decoding="async">';
+  const label = (female ? '女性' : '男性') + '主角肖像，查看人物資料';
+  return dim
+    ? '<span class="hport" aria-hidden="true">' + image + '</span>'
+    : '<button type="button" class="hport" aria-label="' + label + '"' +
       h(() => { UI.tab = 'me'; UI.sub = 'status'; render(); window.scrollTo(0, 0); }) +
-      '>' + inner + '</button>';
+      '>' + image + '</button>';
 }
 function gameHud(dim) {
   const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +

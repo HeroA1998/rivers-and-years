@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const out='artifacts/ui-regression';
 mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-const result={time:new Date().toISOString(),screens:[],checks:[],errors:[],version:'v8'};
+const result={time:new Date().toISOString(),screens:[],checks:[],errors:[],version:'v12'};
 function check(name,ok,detail={}){result.checks.push({name,pass:!!ok,...detail});if(!ok)result.errors.push(name)}
 async function snapshot(page,name){
  await page.screenshot({path:out+'/'+name+'.png',fullPage:false,animations:'disabled'});
@@ -57,6 +57,35 @@ for(const dims of [[320,700],[390,844],[430,932]]){
  const initial=await snapshot(page,'world_'+width+'x'+height);
  check(String(width)+' enlarged portrait',!!initial.portrait&&initial.portrait.height>=105,{portrait:initial.portrait});
  check(String(width)+' complete six stats',await page.locator('#app[data-page="world"] .mini-stat').count()===6);
+ check(String(width)+' correct female portrait',await page.locator('.hport img.hero-portrait[src*="hero_female.webp"]').count()===1);
+ const imageCheck=await page.evaluate(async()=>{
+   const image=document.querySelector('.hero-portrait');
+   const portraits={loaded:!!image&&image.complete&&image.naturalWidth>=128,source:image?.getAttribute('src')};
+   const icons=[...document.querySelectorAll('.hud-stats-mini .mini-stat-mark')];
+   const paths=icons.map(e=>getComputedStyle(e).backgroundImage);
+   const assets=await Promise.all(paths.map(async url=>{
+     const found=url.match(/url\(["']?(.*?)["']?\)/);
+     if(!found)return {ok:false,url};
+     const response=await fetch(found[1],{cache:'no-store'});
+     return {ok:response.ok,asset:found[1],status:response.status};
+   }));
+   const bold=getComputedStyle(document.querySelector('.reader-line')).fontWeight;
+   return {portraits,icons:icons.length,paths,assets,bold};
+ });
+ check(String(width)+' portrait image loaded',imageCheck.portraits.loaded,imageCheck.portraits);
+ check(String(width)+' new complete stat emblems',
+  imageCheck.icons===6&&imageCheck.assets.every(x=>x.ok)&&
+  imageCheck.paths.every(x=>x.includes('/v12/stat_')),{assets:imageCheck.assets});
+ check(String(width)+' story font weight >= 600',+imageCheck.bold>=600,{weight:imageCheck.bold});
+ if(width===390){
+   await page.evaluate(()=>{S.gender='男';render();});
+   const male=page.locator('.hport img.hero-portrait[src*="hero_male.webp"]');
+   check('390 male portrait used',await male.count()===1);
+   check('390 male image loaded',await male.evaluate(el=>el.complete&&el.naturalWidth>=128));
+   await page.screenshot({path:out+'/world_male_390x844.png',fullPage:false,animations:'disabled'});
+   await page.evaluate(()=>{S.gender='女';render();});
+   await reveal(page);
+ }
  const fit=await page.evaluate(()=>{
   const root=document.querySelector('.hud-core').getBoundingClientRect();
   const children=['.hport','.hud-identity','.hud-stats-mini','.hgear'];
@@ -110,9 +139,24 @@ for(const dims of [[320,700],[390,844],[430,932]]){
   await cont.first().click();await reveal(page);
   check(String(width)+' continuation',await page.locator('#app[data-page="world"] .bhud').count()>0);
  }
+ const worldGeometry=await page.evaluate(()=>{
+   const app=document.querySelector('#app').getBoundingClientRect();
+   const hud=document.querySelector('.bhud').getBoundingClientRect();
+   return {appLeft:app.left,appWidth:app.width,hudLeft:hud.left,hudWidth:hud.width};
+ });
  for(const tab of ['人物','武功','人脈','行囊']){
   await page.locator('.illustrated-nav button[aria-label="'+tab+'"]').click();
   check(String(width)+' nav '+tab,await page.locator('#main-content').count()===1);
+  const g=await page.evaluate(()=>{
+    const app=document.querySelector('#app').getBoundingClientRect();
+    const hud=document.querySelector('.bhud').getBoundingClientRect();
+    return {appLeft:app.left,appWidth:app.width,hudLeft:hud.left,hudWidth:hud.width};
+  });
+  check(String(width)+' '+tab+' same page and HUD width',
+    Math.abs(g.appWidth-worldGeometry.appWidth)<=1 &&
+    Math.abs(g.hudWidth-worldGeometry.hudWidth)<=1 &&
+    Math.abs(g.appLeft-worldGeometry.appLeft)<=1 &&
+    Math.abs(g.hudLeft-worldGeometry.hudLeft)<=1,{worldGeometry,g});
   if(width===390&&(tab==='人物'||tab==='行囊'))
    await page.screenshot({path:out+'/tab_'+tab+'_'+width+'x'+height+'.png',fullPage:false,animations:'disabled'});
  }
