@@ -723,3 +723,70 @@ html,body{background:#D7C2A1;color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   #app[data-page="world"] .bnav .nav-art{transition:none}
 }
+
+
+/* Secondary tabs preserve the same visual identity without forcing
+   the narrative-only fixed viewport on status, skills or inventory. */
+#app[data-page="me"],#app[data-page="bag"]{
+  background:linear-gradient(135deg,#F7EAD4,#EAD3B0);
+}
+#app[data-page="me"] .wuxia-masthead,
+#app[data-page="bag"] .wuxia-masthead{
+  min-height:58px;height:58px;margin:-16px -16px 8px;padding:7px 16px;
+  background:linear-gradient(160deg,#394F48,#203E39 65%,#6C6750);
+  border-bottom:2px solid #BD9555;color:#F9DCA5;
+}
+#app[data-page="me"] .masthead-seal,
+#app[data-page="bag"] .masthead-seal{
+  color:#F6D898;font:600 25px/1.3 var(--f-reading);letter-spacing:.12em;
+}
+#app[data-page="me"] .bhud,
+#app[data-page="bag"] .bhud{
+  padding:9px;background:linear-gradient(125deg,#F7EAD3,#E8D2AF);
+  border:1px solid #C5A474;border-radius:3px;box-shadow:none;
+}
+#app[data-page="me"] .bnav.illustrated-nav,
+#app[data-page="bag"] .bnav.illustrated-nav{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;
+  background:linear-gradient(#294B42,#203C36);border-radius:0;
+  border-top:2px solid #BF9859;padding:8px 3px calc(8px + env(safe-area-inset-bottom));
+}
+#app[data-page="me"] .bnav .nav-tab,
+#app[data-page="bag"] .bnav .nav-tab{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  min-width:0;min-height:63px;gap:4px;color:#F4DCAB;background:transparent;border:0;
+}
+#app[data-page="me"] .bnav .nav-art,
+#app[data-page="bag"] .bnav .nav-art{
+  display:block;width:36px;height:36px;background-image:url("../assets/ui/approved-wuxia-atlas.svg");
+  background-size:216px 116px;background-repeat:no-repeat;image-rendering:auto;
+}
+#app[data-page="me"] .nav-art-0,#app[data-page="bag"] .nav-art-0{background-position:0 -80px}
+#app[data-page="me"] .nav-art-1,#app[data-page="bag"] .nav-art-1{background-position:-36px -80px}
+#app[data-page="me"] .nav-art-2,#app[data-page="bag"] .nav-art-2{background-position:-72px -80px}
+#app[data-page="me"] .nav-art-3,#app[data-page="bag"] .nav-art-3{background-position:-108px -80px}
+#app[data-page="me"] .nav-art-4,#app[data-page="bag"] .nav-art-4{background-position:-144px -80px}
+#app[data-page="me"] .nav-art-5,#app[data-page="bag"] .nav-art-5{background-position:-180px -80px}
+#app[data-page="me"] .nav-label,#app[data-page="bag"] .nav-label{
+  font:500 10px var(--f-reading);color:#F6E3BE;
+}
+#app[data-page="me"] .nav-tab.on,#app[data-page="bag"] .nav-tab.on{
+  color:#FBE7B4;filter:drop-shadow(0 0 4px #C4A45D);
+}
+/* Keep game-over, menus and dice outside the reading-viewport constraint. */
+#app[data-page="battle"]{height:auto;min-height:100dvh;overflow:visible}
+@media(orientation:landscape) and (max-height:500px){
+  #app[data-page="world"] .wuxia-masthead{height:37px;min-height:37px}
+  #app[data-page="world"] .bhud{padding-top:4px;padding-bottom:4px}
+  #app[data-page="world"] .hud-core{grid-template-columns:50px minmax(0,1fr) 117px 25px}
+  #app[data-page="world"] .hport{width:50px;height:50px}
+  #app[data-page="world"] .approved-portrait{transform:scale(.625);transform-origin:top left}
+  #app[data-page="world"] .bnav.illustrated-nav{height:65px;min-height:65px;padding-top:3px}
+  #app[data-page="world"] .bnav .nav-art{width:30px;height:30px;background-size:180px 97px}
+  #app[data-page="world"] .bnav .nav-art-0{background-position:0 -67px}
+  #app[data-page="world"] .bnav .nav-art-1{background-position:-30px -67px}
+  #app[data-page="world"] .bnav .nav-art-2{background-position:-60px -67px}
+  #app[data-page="world"] .bnav .nav-art-3{background-position:-90px -67px}
+  #app[data-page="world"] .bnav .nav-art-4{background-position:-120px -67px}
+  #app[data-page="world"] .bnav .nav-art-5{background-position:-150px -67px}
+}
