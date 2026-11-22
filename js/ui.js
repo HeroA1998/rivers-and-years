@@ -36,7 +36,15 @@ function render() {
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
-  activateStoryAnimation(root);
+  stopStoryAnimation();
+  readerPager?.observer?.disconnect();
+  readerPager = null;
+  root.classList.remove('story-typing');
+  const stage = root.querySelector('.event-reader');
+  if (stage && UI.story) {
+    readerPager = new ReaderPager(stage, UI.story);
+    readerPager.layout();
+  }
 }
 
 const SCREENS = {
@@ -412,72 +420,317 @@ MENUS.shop = () => {
 };
 
 
-/* ---------- 單一故事閱讀區：事件、結果、下一章直接銜接 ---------- */
-/* 漸進顯示故事文字；逐段進度只存在 UI，重繪後可繼續播放。 */
+/* ---------- 單屏故事閱讀：只記錄展示位置，不改動事件或存檔 ---------- */
+const readerProgress = new WeakMap();
+let readerPager = null;
+let readerFontVersion = 0;
 let storyFrame = 0;
+const compareReaderPosition = (a, b) => a.line - b.line || a.offset - b.offset;
+
+function readerLine(line) {
+  const paragraph = document.createElement('p');
+  paragraph.className = 'reader-line reader-' + line.kind;
+  if (line.dialogue) paragraph.classList.add('reader-dialogue');
+  return paragraph;
+}
+
+class ReaderPager {
+  constructor(stage, story) {
+    this.stage = stage;
+    this.story = story;
+    this.prose = stage.querySelector('.story-prose');
+    this.options = stage.querySelector('.story-options');
+    this.folio = stage.querySelector('.reader-folio span');
+    this.templates = stage.querySelectorAll('template');
+    this.controls = [...this.templates[0].content.children];
+    this.next = this.templates[1].innerHTML;
+    this.state = readerProgress.get(story);
+    if (!this.state) {
+      this.state = { anchor: { line: 0, offset: 0 }, breaks: [0], count: 0, revealed: [] };
+      readerProgress.set(story, this.state);
+    } else if (story.lines.length > this.state.count) {
+      // 新的原作段落、選擇與結果從新頁接上，保留先前讀過的內容。
+      const line = this.state.count;
+      if (line > this.state.breaks.at(-1)) this.state.breaks.push(line);
+      this.state.anchor = { line, offset: 0 };
+    }
+    this.state.count = story.lines.length;
+    this.lines = story.lines.map(line => {
+      const text = line.text.trimStart();
+      const dialogue = line.kind === 'prose' &&
+        (/^「/.test(text) || /^(?:[^\s，。！？；：]{1,12})(?:道|問|說|答|喊|喝|笑道|低聲道|冷笑道)\s*[:：]?\s*「/.test(text));
+      return { kind: line.kind, dialogue, letters: Array.from(line.text) };
+    });
+
+    this.measure = document.createElement('div');
+    this.measure.className = 'story-prose reader-measure';
+    this.measure.setAttribute('aria-hidden', 'true');
+    this.probe = readerLine({ kind: 'prose' });
+    const probeText = document.createElement('span');
+    probeText.className = 'reader-visible';
+    probeText.textContent = '江湖';
+    this.probe.append(probeText);
+    this.probe.style.position = 'absolute';
+    this.measure.append(this.probe);
+    stage.append(this.measure);
+    this.observer = new ResizeObserver(() => this.layout());
+    this.observer.observe(stage);
+    this.observer.observe(this.prose);
+    this.observer.observe(this.probe);
+  }
+
+  optionNav(previous, next) {
+    return '<div class="reader-option-nav">' +
+      (previous ? this.templates[2].innerHTML : '') +
+      (next ? this.templates[3].innerHTML : '') + '</div>';
+  }
+
+  fit(from, stop, height, lines = this.lines) {
+    const parts = [];
+    let { line, offset } = from;
+    const top = this.measure.getBoundingClientRect().top;
+    const fits = paragraph => paragraph.getBoundingClientRect().bottom - top <= height;
+    while (compareReaderPosition({ line, offset }, stop) < 0) {
+      const source = lines[line];
+      const paragraph = readerLine(source);
+      this.measure.append(paragraph);
+      const visible = document.createElement('span');
+      visible.className = 'reader-visible';
+      paragraph.append(visible);
+      const put = end => { visible.textContent = source.letters.slice(offset, end).join(''); };
+      let end = line === stop.line ? stop.offset : source.letters.length;
+      put(end);
+      if (!fits(paragraph)) {
+        let low = offset, high = end;
+        while (low + 1 < high) {
+          const mid = Math.floor((low + high) / 2);
+          put(mid);
+          if (fits(paragraph)) low = mid;
+          else high = mid;
+        }
+        end = low;
+      }
+      if (end > offset) parts.push({ line, start: offset, end });
+      if (end < source.letters.length) {
+        offset = end;
+        break;
+      }
+      line++;
+      offset = 0;
+    }
+    this.measure.replaceChildren(this.probe);
+    return { parts, end: { line, offset } };
+  }
+
+  layout() {
+    if (!this.stage.isConnected) return;
+    const key = [this.stage.clientWidth, this.stage.clientHeight, this.prose.clientWidth,
+      this.stage.querySelector('.story-heading').offsetHeight,
+      this.stage.querySelector('.reader-character')?.offsetHeight,
+      this.probe.getBoundingClientRect().height, document.fonts?.status, readerFontVersion].join('/');
+    if (key === this.layoutKey) return;
+    this.layoutKey = key;
+    this.measure.style.width = this.prose.getBoundingClientRect().width + 'px';
+    const capacity = html => {
+      this.options.innerHTML = html;
+      return this.prose.getBoundingClientRect().height;
+    };
+    const terminal = this.templates[0].innerHTML;
+    const nextHeight = capacity(this.next);
+    const lastHeight = capacity(terminal);
+    const hasChoices = this.controls.some(button => button.matches('.event-choice'));
+    const splitChoices = hasChoices && lastHeight < this.probe.offsetHeight;
+    const pages = [];
+    const count = this.lines.length;
+
+    const anchor = this.state.anchor;
+    const starts = this.state.breaks.map(line => ({ line, offset: 0 }));
+    if (anchor.line < count && !starts.some(start => compareReaderPosition(start, anchor) === 0)) {
+      // Keep the exact unread boundary through font changes, rotation and tab switches.
+      starts.push(anchor);
+      starts.sort(compareReaderPosition);
+    }
+    const textEnd = { line: count, offset: 0 };
+    for (const [index, start] of starts.entries()) {
+      const stop = starts[index + 1] || textEnd;
+      let cursor = start;
+      do {
+        let page = this.fit(cursor, stop, nextHeight);
+        let controls = this.next;
+        if (compareReaderPosition(page.end, textEnd) === 0 && !splitChoices) {
+          const last = this.fit(cursor, stop, lastHeight);
+          if (compareReaderPosition(last.end, stop) === 0) {
+            page = last;
+            controls = terminal;
+          }
+        }
+        if (compareReaderPosition(page.end, cursor) === 0 && compareReaderPosition(cursor, stop) < 0) {
+          // Compact viewports still advance by one code point if a styled line exceeds the budget.
+          const end = cursor.offset + 1;
+          page = { parts: [{ line: cursor.line, start: cursor.offset, end }],
+            end: end === this.lines[cursor.line].letters.length
+              ? { line: cursor.line + 1, offset: 0 } : { line: cursor.line, offset: end } };
+        }
+        pages.push({ ...page, cursor, controls });
+        cursor = page.end;
+      } while (compareReaderPosition(cursor, stop) < 0);
+    }
+
+    if (splitChoices) {
+      for (let i = 0; i < this.controls.length;) {
+        let end = i + 1;
+        const group = end => this.controls.slice(i, end).map(button => button.outerHTML).join('') +
+          this.optionNav(i > 0, end < this.controls.length);
+        while (end < this.controls.length && capacity(group(end + 1)) > 0) end++;
+        if (capacity(group(end)) > 0) {
+          pages.push({ parts: [], cursor: { line: count, offset: i },
+            end: { line: count, offset: end }, controls: group(end) });
+        } else {
+          this.pageLongChoice(pages, i, capacity);
+        }
+        i = end;
+      }
+    } else if (pages.at(-1).controls !== terminal) {
+      const cursor = { line: count, offset: 0 };
+      pages.push({ parts: [], cursor, end: cursor, controls: terminal });
+    }
+
+    this.pageParts = pages;
+    this.totalPages = pages.length;
+    this.pageIndex = pages.findIndex(page => compareReaderPosition(page.end, anchor) > 0);
+    if (this.pageIndex === -1) this.pageIndex = pages.length - 1;
+    this.display();
+  }
+
+  pageLongChoice(pages, index, capacity) {
+    const button = this.controls[index].cloneNode(true);
+    const content = button.querySelector('.choice-content');
+    const letters = Array.from(button.dataset.label + (content.querySelector('small')?.textContent || ''));
+    content.textContent = '選擇此項';
+    button.setAttribute('aria-label', button.dataset.label);
+    const stop = { line: 1, offset: 0 };
+    let cursor = { line: 0, offset: 0 };
+    const lines = [{ kind: 'prose', letters }];
+    do {
+      const terminal = button.outerHTML + this.optionNav(cursor.offset > 0 || index > 0,
+        index + 1 < this.controls.length);
+      const last = this.fit(cursor, stop, capacity(terminal), lines);
+      const done = last.end.line === 1;
+      const controls = done ? terminal : this.optionNav(cursor.offset > 0 || index > 0, true);
+      const page = done ? last : this.fit(cursor, stop, capacity(controls), lines);
+      const end = done ? letters.length : Math.max(cursor.offset + 1,
+        Math.min(letters.length - 1, page.parts[0]?.end || 0));
+      pages.push({ parts: [], detail: letters.slice(cursor.offset, end).join(''), controls,
+        cursor: { line: this.lines.length, offset: index + cursor.offset / (letters.length + 1) },
+        end: { line: this.lines.length, offset: done ? index + 1 : index + end / (letters.length + 1) } });
+      cursor = { line: 0, offset: end };
+    } while (cursor.offset < letters.length);
+  }
+
+  display() {
+    const page = this.pageParts[this.pageIndex];
+    this.activePart = page.parts.map(part => {
+      const source = this.lines[part.line];
+      const node = readerLine(source);
+      node.dataset.lineIndex = part.line;
+      const accessible = document.createElement('span');
+      accessible.className = 'reader-screenreader';
+      const visible = document.createElement('span');
+      visible.className = 'reader-visible';
+      visible.setAttribute('aria-hidden', 'true');
+      const letters = source.letters.slice(part.start, part.end);
+      accessible.textContent = letters.join('');
+      node.append(accessible, visible);
+      return { ...part, node, visible, letters };
+    });
+    this.prose.replaceChildren(...this.activePart.map(part => part.node));
+    if (page.detail) {
+      const detail = readerLine({ kind: 'prose' });
+      detail.classList.add('reader-option-detail');
+      detail.textContent = page.detail;
+      this.prose.append(detail);
+    }
+    this.options.innerHTML = page.controls;
+    const number = this.pageIndex + 1;
+    this.folio.textContent = `${number} / ${this.totalPages}`;
+    this.folio.parentElement.setAttribute('aria-label', `第 ${number} 頁，共 ${this.totalPages} 頁`);
+    activateStoryAnimation(document.getElementById('app'));
+  }
+
+  turn(step) {
+    const index = this.pageIndex + step;
+    if (index < 0 || index >= this.totalPages) return;
+    this.pageIndex = index;
+    this.state.anchor = this.pageParts[index].cursor;
+    this.display();
+    const focus = this.prose.childElementCount ? this.prose : this.options.querySelector('button:not(:disabled)');
+    focus?.focus({ preventScroll: true });
+  }
+}
+
 function stopStoryAnimation() {
   if (storyFrame) cancelAnimationFrame(storyFrame);
   storyFrame = 0;
 }
+
 function finishStoryAnimation() {
   stopStoryAnimation();
-  const state = UI.story;
-  if (!state || !state.lines.length) return;
-  state.revealed = state.lines.length;
-  state.chars = 0;
-  const root = document.getElementById('app');
-  const node = root.querySelector('.reader-line.is-typing .reader-visible');
-  if (node) node.textContent = state.lines[state.lines.length - 1].text;
-  const line = root.querySelector('.reader-line.is-typing');
-  if (line) line.classList.remove('is-typing');
-  root.classList.remove('story-typing');
+  if (readerPager) {
+    for (const part of readerPager.activePart) {
+      const seen = readerPager.state.revealed;
+      seen[part.line] = Math.max(seen[part.line] || 0, part.end);
+      part.visible.textContent = part.letters.join('');
+      part.node.classList.remove('is-typing');
+    }
+  }
+  document.getElementById('app').classList.remove('story-typing');
 }
+
 function activateStoryAnimation(root) {
   stopStoryAnimation();
   root.classList.remove('story-typing');
-  if (UI.screen !== 'game' || UI.tab !== 'world' || !UI.ov || UI.ov.k !== 'event') return;
-  const state = UI.story;
-  if (!state || !state.lines.length || state.revealed >= state.lines.length) return;
-  const line = root.querySelector('.reader-line.is-typing');
-  const span = line && line.querySelector('.reader-visible');
-  if (!span) return;
-  const letters = Array.from(state.lines[state.lines.length - 1].text);
-  let shown = Math.max(0, Math.min(state.chars || 0, letters.length));
-  span.textContent = letters.slice(0, shown).join('');
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const pager = readerPager;
+  if (!pager) return;
+  const seen = pager.state.revealed;
+  const pending = [];
+  for (const part of pager.activePart) {
+    const shown = Math.max(0, Math.min(part.letters.length, (seen[part.line] || 0) - part.start));
+    part.visible.textContent = part.letters.slice(0, shown).join('');
+    if (shown < part.letters.length) {
+      part.node.classList.add('is-typing');
+      pending.push({ part, shown });
+    }
+  }
+  if (!pending.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     finishStoryAnimation();
     return;
   }
   root.classList.add('story-typing');
-  if (state.lines.length > 1 && line.scrollIntoView) line.scrollIntoView({ block: 'nearest' });
-  const begun = performance.now(), offset = shown;
+  const begun = performance.now();
   const tick = now => {
-    if (UI.story !== state || !line.isConnected) { storyFrame = 0; return; }
-    shown = Math.min(letters.length, offset + Math.floor((now - begun) / 23));
-    state.chars = shown;
-    span.textContent = letters.slice(0, shown).join('');
-    if (shown >= letters.length) { finishStoryAnimation(); return; }
-    storyFrame = requestAnimationFrame(tick);
+    let budget = Math.floor((now - begun) / 23);
+    for (const { part, shown } of pending) {
+      const available = part.letters.length - shown;
+      const length = shown + Math.min(available, Math.max(0, budget));
+      budget -= available;
+      seen[part.line] = Math.max(seen[part.line] || 0, part.start + length);
+      part.visible.textContent = part.letters.slice(0, length).join('');
+      part.node.classList.toggle('is-typing', length < part.letters.length);
+    }
+    if (budget >= 0) finishStoryAnimation();
+    else storyFrame = requestAnimationFrame(tick);
   };
   storyFrame = requestAnimationFrame(tick);
 }
 
 function eventReader(o) {
   const pendingPage = !o.result && o.pages && o.pi < o.pages.length - 1;
-  const state = UI.story || {
-    lines: [{ kind: 'prose', text: String(o.result || (o.pages ? o.pages[o.pi] : o.text) || '') }],
-    revealed: 1, chars: 0
-  };
-  const lines = state.lines;
-  const typing = state.revealed < lines.length;
   const label = esc(o.type || '江湖');
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
-  // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
-  const media = o.who && FACES.includes(o.who)
-    ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>`
-    : o.big && o.art
-      ? `<div class="reader-media reader-landscape">${art(o.art, o.title)}</div>`
-      : '';
+  const character = o.who && FACES.includes(o.who)
+    ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>` : '';
+  const scenery = !character && o.big && o.art
+    ? `<div class="reader-scenery" aria-hidden="true">${art(o.art, o.title)}</div>` : '';
   let controls;
   if (o.result) {
     controls = B('繼續', closeEvent, 'story-option');
@@ -491,7 +744,7 @@ function eventReader(o) {
     controls = B('繼續', closeEvent, 'story-option');
   } else {
     controls = o.choices.map((c, i) =>
-      `<button type="button" class="btn story-option event-choice side-${c.s || 'n'}"
+      `<button type="button" class="btn story-option event-choice side-${c.s || 'n'}" data-label="${esc(c.t)}"
         ${c.dis ? ' disabled' : h(() => choose(i))}>
         ${c.plain ? '' : `<span class="choice-kind">${SIDE_LABEL[c.s] || '選擇'}</span>`}
         <span class="choice-content">${esc(c.t)}
@@ -499,31 +752,27 @@ function eventReader(o) {
         </span>
       </button>`).join('');
   }
-  // 不在 p 與 span 之間插入 HTML 模板換行：pre-line 會把排版用換行
-  // 當成故事內容，造成正文前多出兩行空白。
-  // Speaker-led dialogue receives a discreet visual cue; typewriter markup stays
-  // identical and no narrative text is rewritten or removed.
-  const transcript = lines.map((line, i) => {
-    const text = String(line.text || '').trimStart();
-    const dialogue = line.kind === 'prose' &&
-      (/^「/.test(text) || /^(?:[^\s，。！？；：]{1,12})(?:道|問|說|答|喊|喝|笑道|低聲道|冷笑道)\s*[:：]?\s*「/.test(text));
-    return `<p class="reader-line reader-${line.kind}${dialogue ? ' reader-dialogue' : ''}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${esc(line.text)}</span><span class="reader-visible" aria-hidden="true">${esc(line.text)}</span></p>`;
-  }).join('');
+  const next = B('繼續閱讀', () => readerPager.turn(1), 'story-option reader-next');
+  const previous = B('上一頁選項', () => readerPager.turn(-1));
+  const moreChoices = B('下一頁選項', () => readerPager.turn(1));
   return `<article class="story-stage event-reader" aria-label="江湖事件">
+    ${scenery}
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
       <h2>〈${esc(String(o.title || '江湖紀事').replace(/[〈〉]/g, ''))}〉</h2>
     </div>
-    ${media}
-    <div class="story-prose" aria-label="當前故事">${transcript}</div>
-    <button type="button" class="reader-skip" data-story-skip>顯示全文</button>
-    <div class="reader-folio" aria-label="本事件段落 ${lines.length}"><span>${lines.length}</span></div>
-    <div class="story-choice-block">
-      <div class="story-divider" aria-hidden="true"><span>❀</span></div>
-      <div class="story-options" role="group" aria-label="故事選擇與繼續">
-        ${controls}
-      </div>
+    ${character}
+    <div class="story-prose" aria-label="當前故事" tabindex="-1"></div>
+    <div class="reader-folio">
+      <span></span><button type="button" class="reader-skip" data-story-skip>顯示全文</button>
     </div>
+    <div class="story-choice-block">
+      <div class="story-options" role="group" aria-label="故事選擇與繼續"></div>
+    </div>
+    <template>${controls.trim()}</template>
+    <template>${next}</template>
+    <template>${previous}</template>
+    <template>${moreChoices}</template>
   </article>`;
 }
 
@@ -760,6 +1009,11 @@ document.addEventListener('click', ev => {
   if (fn) fn();
 });
 document.addEventListener('input', ev => { if (ev.target.id === 'nm' && UI.create) UI.create.name = ev.target.value; });
+if (document.fonts) {
+  const reflowStory = () => { readerFontVersion++; readerPager?.layout(); };
+  document.fonts.ready.then(reflowStory);
+  document.fonts.addEventListener('loadingdone', reflowStory);
+}
 try {
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   if (mq.addEventListener) mq.addEventListener('change', () => render());
