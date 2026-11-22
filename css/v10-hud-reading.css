@@ -127,6 +127,7 @@
     gap:5px 8px;
   }
   #app[data-page="world"] .hport{grid-area:portrait;width:88px;height:124px}
+  #app[data-page="world"] .hport{align-self:start}
   #app[data-page="world"] .approved-portrait{transform:none}
   #app[data-page="world"] .hud-identity{grid-area:identity;gap:4px}
   #app[data-page="world"] .hud-stats-mini{
@@ -159,3 +160,96 @@
   #app[data-page="world"] .mini-stat{height:31px}
   #app[data-page="world"] .mini-stat-mark{width:22px;height:22px}
 }
+
+
+/* Shared jade name plaque on non-story menus, so the identity stays consistent. */
+#app:is([data-page="me"],[data-page="bag"]) .hud-name-row{
+  display:flex;align-items:center;gap:7px;min-width:0;
+}
+#app:is([data-page="me"],[data-page="bag"]) .hud-name-row .hname{
+  flex:0 1 auto;min-width:0;margin:0;
+  padding:4px 9px;border:1px solid #d2ad6e;border-radius:2px;
+  background:linear-gradient(145deg,#2c584a,#274539);
+  box-shadow:inset 0 0 0 1px #577b68;
+  color:#f9e5bb;font:600 17px/1.3 var(--f-reading);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app:is([data-page="me"],[data-page="bag"]) .hud-level{
+  color:#865f37;font:500 12px/1 var(--f-ui);
+}
+
+/* The battle view has its own page scope. Reuse the real portrait and readable
+   vital icons, but do not force six detailed attributes into a compact fight HUD. */
+#app[data-page="battle"] .bhud.dim{
+  box-sizing:border-box;
+  padding:8px 10px 9px;gap:5px;
+  border:1px solid #c8a576;border-radius:12px;
+  background:linear-gradient(135deg,#f9edda,#edddbf);
+}
+#app[data-page="battle"] .bhud .hud-core{
+  display:grid;grid-template-columns:61px minmax(0,1fr);
+  align-items:center;gap:9px;
+}
+#app[data-page="battle"] .bhud .hport{
+  display:block;width:61px;height:70px;
+  overflow:hidden;flex:none;
+  padding:0;border:1px solid #c39b60;border-radius:3px;
+  background:#e6d1af;
+}
+#app[data-page="battle"] .bhud .approved-portrait{
+  display:block;width:100%;height:100%;
+  background:url("../assets/ui/v8/portrait.webp") center/cover no-repeat;
+}
+#app[data-page="battle"] .bhud .avatar-monogram{
+  display:grid;place-items:center;width:100%;height:100%;
+  background:#2b5146;color:#f4dfb8;font:600 27px var(--f-reading);
+}
+#app[data-page="battle"] .hud-identity{
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+}
+#app[data-page="battle"] .hud-name-row{
+  display:flex;align-items:center;gap:7px;min-width:0;
+}
+#app[data-page="battle"] .hud-name-row .hname{
+  font:600 17px/1.2 var(--f-reading);color:#3c2b20;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#app[data-page="battle"] .hud-level{
+  font:500 11px var(--f-ui);color:#8c663b;
+}
+#app[data-page="battle"] .hfame{
+  font:400 11px/1.1 var(--f-reading);color:#826747;
+}
+#app[data-page="battle"] .hud-life{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;
+  font:400 12px/1.2 var(--f-ui);
+}
+#app[data-page="battle"] .hud-life>span{
+  display:inline-flex;align-items:center;gap:4px;
+}
+#app[data-page="battle"] .vital-label{
+  color:#815b3b;font:500 11px var(--f-reading);
+}
+#app[data-page="battle"] .hud-life .ico{
+  display:inline-flex;gap:1px;align-items:center;flex-wrap:nowrap;
+}
+#app[data-page="battle"] .hud-life .ico svg{
+  width:17px;height:17px;flex:none;
+}
+#app[data-page="battle"] .hud-life svg.heart{background:url("../assets/ui/v8/redheart.webp") center/contain no-repeat}
+#app[data-page="battle"] .hud-life svg.orb{background:url("../assets/ui/v8/greenheart.webp") center/contain no-repeat}
+#app[data-page="battle"] .hud-life svg.heart *,
+#app[data-page="battle"] .hud-life svg.orb *{opacity:0}
+#app[data-page="battle"] .hud-life svg.off{opacity:.38}
+#app[data-page="battle"] .hud-stats-mini,
+#app[data-page="battle"] .hgear{display:none!important}
+#app[data-page="battle"] .hud-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;color:#7d6245;
+  font:400 11px/1.35 var(--f-reading);
+}
+#app[data-page="battle"] .hxp{
+  height:5px;background:#e1d1b1;border:1px solid #b49362;
+  border-radius:5px;overflow:hidden;
+}
+#app[data-page="battle"] .hxp i{height:100%;display:block;background:#4b9f82}
