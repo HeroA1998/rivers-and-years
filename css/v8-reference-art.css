@@ -38,8 +38,18 @@
 }
 #app[data-page="world"] .bnav.illustrated-nav::before{display:none}
 #app[data-page="world"] .bnav .nav-art{opacity:0}
-#app[data-page="world"] .bnav .nav-label{color:#FFE7B6;text-shadow:0 1px 3px #203229}
-#app[data-page="world"] .bnav .nav-tab.on .nav-label{color:#FFF0BD}
+/* Overlay labels at the bottom of the approved pictorial footer instead of
+   placing Chinese text across the painted objects. */
+#app[data-page="world"] .bnav.illustrated-nav .nav-tab{position:relative}
+#app[data-page="world"] .bnav .nav-label{
+  position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  padding:2px 3px;white-space:nowrap;border-radius:3px;
+  color:#FFE8B9;background:rgba(22,55,48,.78);
+  font:500 11px/1.15 var(--f-reading);text-shadow:0 1px 3px #203229;
+}
+#app[data-page="world"] .bnav .nav-tab.on .nav-label{
+  color:#FFF0BD;box-shadow:0 1px 0 #DAB275;
+}
 @media(max-width:375px){
   #app[data-page="world"] .story-heading::before{width:calc(100% + 28px);margin-left:-14px}
   #app[data-page="world"] .hud-life .ico svg{width:17px;height:17px}
