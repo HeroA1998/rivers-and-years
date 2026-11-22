@@ -301,28 +301,50 @@ function goTown() {
 const artShop = s => Object.keys(ITEMS).filter(id => ITEMS[id].kind === 'manual' && !knows(ITEMS[id].skill));
 // 回城：買藥、買裝備、客棧休息，三個都要花錢，沒有正邪之分（選項不標示陣營）
 const $p = o => Object.assign(o, { s: 'n', plain: true });
-// 買裝備：付得起的最貴一件；都付不起就給最便宜的（按鈕會顯示需要的銀兩）
-function townGear(s) {
-  const cands = Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))
-    .sort((x, y) => ITEMS[x].price - ITEMS[y].price);
-  if (!cands.length) return null;
-  const aff = cands.filter(id => ITEMS[id].price <= s.silver);
-  return aff.length ? aff[aff.length - 1] : cands[0];
+/* ---------- 回城：商人、客棧、離開 ----------
+   商人可以買、可以賣。貨品每次回城重新隨機，每件只能買一次；賣東西按原價的一半收。 */
+const sellPrice = id => Math.max(1, Math.round(ITEMS[id].price * 0.5));
+const gearUsed = id => S.weapon === id || S.armor === id || S.acc === id;
+const shuf = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+function townStock(s) {
+  const med = ['jinchuang', 'jinchuang', 'huiqi'];
+  if (chance(25)) med.push('dahuan');
+  const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 3);
+  const arts = shuf(artShop(s).filter(id => ITEMS[id].price)).slice(0, 2);
+  return [...med, ...gear, ...arts].map(id => ({ id, sold: false }));
 }
 function townMedCard(s) {
   goTown();
-  const n = Math.max(1, Math.min(3, Math.floor(s.silver / 30))), cost = 30 * n, qiToo = s.silver - cost >= 40;
-  const hurtNow = s.life < lifeMax();
-  const gid = townGear(s), gp = gid ? ITEMS[gid].price : 0;
-  const restCost = Math.min(s.silver, 10);
-  return { title: '回城', art: 'city', text: `你回到${LOCS[s.loc].n}，${hurtNow ? `身上的傷還沒好利索（氣血 ${s.life}/${lifeMax()}），` : ''}先在街上轉了一圈。\n\n你身上有 ${s.silver} 兩，金創藥 ${s.inv.jinchuang || 0} 份。`,
+  s.town = { stock: townStock(s) };                       // 新的一趟回城，貨品重新上架
+  return townCard(s);
+}
+function townCard(s) {
+  const hurtNow = s.life < lifeMax(), restCost = Math.min(s.silver, 10);
+  return { title: '回城', art: 'city', text: `你回到${LOCS[s.loc].n}，${hurtNow ? `身上的傷還沒好利索（氣血 ${s.life}/${lifeMax()}），` : ''}先在街上轉了一圈。\n\n你身上有 ${s.silver} 兩。`,
     opts: [
-      $p(P(`買藥：金創藥 ×${n}${qiToo ? '、回氣散 ×1' : ''}（${cost + (qiToo ? 40 : 0)} 兩）`, ['你付了銀子，掌櫃把藥包好遞過來。', { silver: -(cost + (qiToo ? 40 : 0)) }, () => addItem('jinchuang', n) + (qiToo ? addItem('huiqi') : '')], { req: money(30), reqT: '需 30 兩' })),
-      $p(gid ? P(`買裝備：${ITEMS[gid].n}（${gp} 兩）`, [`你付了銀子，把${ITEMS[gid].n}收進行囊。`, { silver: -gp }, () => { addItem(gid); return autoGear(gid); }], { req: money(gp), reqT: `需 ${gp} 兩` })
-        : P('買裝備：鋪子裡暫時沒有能買的', ['你在鋪子裡轉了一圈，沒有合意的。'], { dis: true })),
-      $p(P(`客棧休息一夜（${restCost} 兩）`, ['你要了間客房，睡了個踏實覺，氣血與內息都回復了一些。', { silver: -restCost }, () => gain({ hp: 1 }) + gainQi(1)], { req: money(Math.max(1, restCost)), reqT: '需 10 兩' }))
+      $p({ t: '商人（買東西、賣東西）', shop: true }),
+      $p(P(`客棧休息一夜（${restCost} 兩）`, ['你要了間客房，睡了個踏實覺，氣血與內息都回復了一些。', { silver: -restCost }, () => gain({ hp: 1 }) + gainQi(1)], { req: money(Math.max(1, restCost)), reqT: '需 10 兩' })),
+      $p(P('離開', ['你沒再多逛，轉身離開了。']))
     ] };
 }
+function shopBuy(i) {
+  const e = S.town && S.town.stock[i];
+  if (!e || e.sold) return;
+  const it = ITEMS[e.id];
+  if (S.silver < it.price) return toastRender('銀兩不夠');
+  S.silver -= it.price; e.sold = true;
+  const msg = it.kind === 'manual' ? learn(it.skill) : (addItem(e.id), autoGear(e.id));
+  toastRender(`買下${it.n}${msg ? ' ' + msg.replace(/<[^>]*>/g, '') : ''}`);
+}
+function shopSell(id) {
+  if (!has(id) || !ITEMS[id].price || (gearUsed(id) && S.inv[id] === 1)) return;
+  const p = sellPrice(id);
+  S.inv[id]--; if (!S.inv[id]) delete S.inv[id];
+  S.silver += p;
+  toastRender(`賣出${ITEMS[id].n}，得 ${p} 兩`);
+}
+function openShop() { UI.ov = { k: 'menu', m: 'shop', tab: 'buy' }; render(); }
+function closeShop() { save(); showEvent(cardEvent(townCard(S))); }   // 離開商人，回到回城的三個選項
 function townArtCard(s) {
   goTown();
   const id = pick(artShop(s)), it = ITEMS[id], sk = SKILLS[it.skill];
@@ -430,6 +452,7 @@ function cardEvent(card) {
     choices: card.opts.map(o => ({ s: o.s, plain: o.plain, t: `${o.t}${reqLine(o) ? '　' + reqLine(o) : ''}`, req: o.req, reqT: o.reqT, qi: o.qi != null ? o.qi : (o.fight ? 0 : (['agi', 'str', 'con'].includes(o.stat) && o.dc >= 12) || QI_KEY.test(o.t) ? 1 : 0), go: () => resolveOpt(o) })) };
 }
 function resolveOpt(o) {
+  if (o.shop) return { shop: true };
   if (o.days) advanceSteps(o.days);
   if (o.fight) {
     S.flags.sinceFight = 0;

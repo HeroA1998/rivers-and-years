@@ -338,6 +338,7 @@ function choose(i) {
   handleResult((r || '') + gainExp((c.s === 'n' ? 4 : 10) * (o.big ? 1.6 : 1)));
 }
 function handleResult(r) {
+  if (r && typeof r === 'object' && r.shop) return openShop();
   if (r && typeof r === 'object' && r.battle) return startBattle(r);
   if (r && typeof r === 'object' && r.end) return retire(r.end);
   const ov = UI.ov && UI.ov.k === 'event' ? UI.ov : (UI.ov = { k: 'event', type: '江湖', title: '', text: '' });

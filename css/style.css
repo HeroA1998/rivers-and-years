@@ -902,3 +902,8 @@ main > .desc, main > .empty, .group > .desc, .group > .empty, main > p { color: 
 .bhud .hdate { grid-column: 3; grid-row: 3; justify-self: end; align-self: center; }
 .hname { font-size: 14px; padding: 2px 5px; }
 .hs { min-width: 44px; padding: 2px 4px; gap: 3px; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.card.sold { opacity: .5; }
+.row-card { justify-content: flex-start !important; gap: 12px; }
+.row-card > div { flex: 1; min-width: 0; text-align: left; }
+.row-card > .btn, .row-card > .itemic { flex: none; }

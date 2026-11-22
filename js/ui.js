@@ -249,7 +249,7 @@ const REF = {
       <h4>能力值與等級</h4><p>能力值只會因為升級配點、故事中的遭遇，以及裝備改變。事件與戰鬥給閱歷，升一級得三點屬性點數，由你自己分配。</p>
       <h4>武功即裝備</h4><p>最多裝備五門武功。攻擊類提供招式與攻擊力；內功決定氣血內力與內力屬性；身法提高閃避；輔助類不出招，只給看破、減傷、反震、回血等效果。每門裝備中的武功還會依類別加能力值。只有裝備中的武功會在實戰中長進。</p>
       <h4>戰鬥</h4><p>全自動戰鬥。開打前先擲 d20 決定這一戰的戰力：<b>10 點＝100% 戰力</b>，點數越高越強、越低越弱（戰力＝點數 ÷ 10，擲 5 點只有 50%）；<b>擲出 20 無敵</b>，對手傷不了你。也可以「跳過投擲」，直接以 10 點計。之後雙方自動對打，主角會偶爾使出絕招（耗內力），一直打到一方血量歸零。每場新戰鬥開始都是滿血，輸了扣一顆命，打不過可以投降。</p>
-      <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。路上偶爾會回城一趟，買金創藥、回氣散，或是一本武功秘笈。</p>
+      <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。路上偶爾會回城一趟：可以找商人買賣東西（貨品每趟重新隨機、每件限買一次）、住客棧休息，或直接離開。</p>
       <h4>年代</h4><p>目前只開放射鵰篇（1222 起）；神鵰篇、倚天篇暫時封印。</p>
       <h4>陣營</h4><p>師父在事件中示範武功時，陣營相同的人可以一同學，其他人只能旁觀或冒險偷學。正道：全真、少林、丐幫；邪道：鐵掌幫。</p>
       <h4>傳承</h4><p>歸隱或壽終後可以選一門武功傳給下一代。存檔存在這支手機的瀏覽器裡。</p>
@@ -269,12 +269,35 @@ const MENU_EXTRA = {
   },
 };
 Object.assign(MENUS, MENU_EXTRA);
+// 商人：買（本次貨品，每件限買一次）／賣（行囊裡有價錢的東西，原價一半）
+MENUS.shop = () => {
+  const o = UI.ov, tab = o.tab === 'sell' ? 'sell' : 'buy';
+  const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
+  const dsc = it => [it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `武功「${SKILLS[it.skill].n}」的秘笈，買下就學會` : ''), stx(it)].filter(Boolean).join('・');
+  const seg = `<div class="seg two">${[['buy', '買'], ['sell', '賣']].map(x => `<button type="button" class="${tab === x[0] ? 'on' : ''}"${h(() => { o.tab = x[0]; render(); })}>${x[1]}</button>`).join('')}</div>`;
+  const purse = `<p class="desc">身上銀兩 <b class="price">${S.silver}</b></p>`;
+  let list;
+  if (tab === 'buy') {
+    const stock = (S.town && S.town.stock) || [];
+    list = stock.length ? stock.map((e, i) => {
+      const it = ITEMS[e.id];
+      return `<article class="card row-card${e.sold ? ' sold' : ''}"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b>${it.kind === 'manual' ? ' <span class="tag gold">武功</span>' : ''}<p>${dsc(it)}</p><p class="price">${it.price} 兩</p></div>${B(e.sold ? '已售' : '購買', () => shopBuy(i), 'mini', e.sold || S.silver < it.price)}</article>`;
+    }).join('') : '<p class="empty">貨架空了。</p>';
+  } else {
+    const ids = Object.keys(S.inv).filter(id => ITEMS[id] && ITEMS[id].price);
+    list = ids.length ? ids.map(id => {
+      const it = ITEMS[id], used = gearUsed(id) && S.inv[id] === 1;
+      return `<article class="card row-card"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]}${used ? ' <span class="tag jade">使用中</span>' : ''}<p>${dsc(it)}</p><p class="price">收購 ${sellPrice(id)} 兩</p></div>${B('賣出', () => shopSell(id), 'mini', used)}</article>`;
+    }).join('') : '<p class="empty">行囊裡沒有可賣的東西。</p>';
+  }
+  return ['商人', seg + purse + list];
+};
 
 function overlay() {
   const o = UI.ov;
   if (o.k === 'menu') {
     const [title, body] = MENUS[o.m]();
-    return `<div class="veil"><div class="sheet"><div class="sheet-h"><h2>${title}</h2>${B('關閉', closeMenu, 'mini')}</div>${body}</div></div>`;
+    return `<div class="veil"><div class="sheet"><div class="sheet-h"><h2>${title}</h2>${B(o.m === 'shop' ? '離開' : '關閉', o.m === 'shop' ? closeShop : closeMenu, 'mini')}</div>${body}</div></div>`;
   }
   if (o.k === 'event') {
     return `<div class="veil"><div class="sheet event">
