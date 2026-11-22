@@ -77,11 +77,40 @@ for(const dims of [[320,700],[390,844],[430,932]]){
  for(const tab of ['人物','武功','人脈','行囊']){
   await page.locator('.illustrated-nav button[aria-label="'+tab+'"]').click();
   check(String(width)+' nav '+tab,await page.locator('#main-content').count()===1);
+  if(width===390&&(tab==='人物'||tab==='行囊'))
+   await page.screenshot({path:out+'/tab_'+tab+'_'+width+'x'+height+'.png',fullPage:false,animations:'disabled'});
  }
  await page.locator('.illustrated-nav button[aria-label="江湖"]').click();
  await reveal(page);
  await page.locator('.illustrated-nav button[aria-label="設定"]').click();
  check(String(width)+' settings panel',await page.locator('.sheet').count()>0);
+ await page.locator('.sheet-h button').filter({hasText:'關閉'}).click();
+ check(String(width)+' settings closes',await page.locator('.sheet').count()===0);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForSelector('#app .title-screen');
+ const resume=page.getByRole('button',{name:/繼續前緣/});
+ check(String(width)+' save retained',await resume.count()>0);
+ if(await resume.count()){
+  await resume.click();
+  await page.waitForSelector('#app[data-page="world"] .bhud',{timeout:15000});
+  await reveal(page);
+  check(String(width)+' saved game resumed',await page.locator('.event-reader').count()>0);
+ }
+ if(width===390){
+   await page.evaluate(()=>{
+     showEvent({type:'江湖',title:'山路試招',text:'前方有個山賊擋住去路。',choices:[
+       {s:'g',t:'挺身應戰',go:()=>({title:'山路對決',intro:'山賊擺開架勢。',battle:foe('山賊',2,0.15,'thug')})}
+     ]});
+   });
+   await reveal(page);
+   await page.locator('.event-choice:not([disabled])').first().click();
+   check('390 battle opens',await page.locator('#app[data-page="battle"] .bveil').count()>0);
+   await page.screenshot({path:out+'/battle_390x844.png',fullPage:false,animations:'disabled'});
+   const skip=page.getByRole('button',{name:/跳過投擲/});
+   check('390 dice offers roll/skip',await skip.count()>0);
+   if(await skip.count())await skip.click();
+   check('390 combat retains HUD',await page.locator('.bveil .bhud').count()>0);
+ }
  await ctx.close();
 }
 writeFileSync(out+'/report.json',JSON.stringify(result,null,2));
