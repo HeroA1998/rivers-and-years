@@ -30,6 +30,7 @@ function render() {
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
+  activateStoryAnimation(root);
 }
 
 const SCREENS = {
@@ -336,9 +337,63 @@ MENUS.shop = () => {
 
 
 /* ---------- 單一故事閱讀區：事件、結果、下一章直接銜接 ---------- */
+/* 漸進顯示故事文字；逐段進度只存在 UI，重繪後可繼續播放。 */
+let storyFrame = 0;
+function stopStoryAnimation() {
+  if (storyFrame) cancelAnimationFrame(storyFrame);
+  storyFrame = 0;
+}
+function finishStoryAnimation() {
+  stopStoryAnimation();
+  const state = UI.story;
+  if (!state || !state.lines.length) return;
+  state.revealed = state.lines.length;
+  state.chars = 0;
+  const root = document.getElementById('app');
+  const node = root.querySelector('.reader-line.is-typing .reader-visible');
+  if (node) node.textContent = state.lines[state.lines.length - 1].text;
+  const line = root.querySelector('.reader-line.is-typing');
+  if (line) line.classList.remove('is-typing');
+  root.classList.remove('story-typing');
+}
+function activateStoryAnimation(root) {
+  stopStoryAnimation();
+  root.classList.remove('story-typing');
+  if (UI.screen !== 'game' || UI.tab !== 'world' || !UI.ov || UI.ov.k !== 'event') return;
+  const state = UI.story;
+  if (!state || !state.lines.length || state.revealed >= state.lines.length) return;
+  const line = root.querySelector('.reader-line.is-typing');
+  const span = line && line.querySelector('.reader-visible');
+  if (!span) return;
+  const letters = Array.from(state.lines[state.lines.length - 1].text);
+  let shown = Math.max(0, Math.min(state.chars || 0, letters.length));
+  span.textContent = letters.slice(0, shown).join('');
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finishStoryAnimation();
+    return;
+  }
+  root.classList.add('story-typing');
+  if (state.lines.length > 1 && line.scrollIntoView) line.scrollIntoView({ block: 'nearest' });
+  const begun = performance.now(), offset = shown;
+  const tick = now => {
+    if (UI.story !== state || !line.isConnected) { storyFrame = 0; return; }
+    shown = Math.min(letters.length, offset + Math.floor((now - begun) / 23));
+    state.chars = shown;
+    span.textContent = letters.slice(0, shown).join('');
+    if (shown >= letters.length) { finishStoryAnimation(); return; }
+    storyFrame = requestAnimationFrame(tick);
+  };
+  storyFrame = requestAnimationFrame(tick);
+}
+
 function eventReader(o) {
   const pendingPage = !o.result && o.pages && o.pi < o.pages.length - 1;
-  const storyText = o.result || (o.pages ? o.pages[o.pi] : o.text) || '';
+  const state = UI.story || {
+    lines: [{ kind: 'prose', text: String(o.result || (o.pages ? o.pages[o.pi] : o.text) || '') }],
+    revealed: 1, chars: 0
+  };
+  const lines = state.lines;
+  const typing = state.revealed < lines.length;
   const label = esc(o.type || '江湖');
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
   // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
@@ -353,8 +408,8 @@ function eventReader(o) {
   } else if (pendingPage) {
     controls = B('繼續', () => {
       o.pi++;
+      storyAppend('prose', o.pages[o.pi]);
       render();
-      window.scrollTo(0, 0);
     }, 'story-option');
   } else if (!o.choices || !o.choices.length) {
     controls = B('繼續', closeEvent, 'story-option');
@@ -369,14 +424,20 @@ function eventReader(o) {
       </button>`).join('');
   }
   const prompt = o.result || pendingPage || !o.choices || !o.choices.length
-    ? '故事仍在繼續' : '你會如何抉擇？';
+    ? '接下來' : '你會如何抉擇？';
+  const transcript = lines.map((line, i) =>
+    `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}">
+      <span class="reader-screenreader">${esc(line.text)}</span>
+      <span class="reader-visible" aria-hidden="true">${esc(line.text)}</span>
+    </p>`).join('');
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
       <h2>${esc(o.title || '江湖紀事')}</h2>
     </div>
     ${media}
-    <div class="story-prose"><p class="reader-text">${esc(storyText)}</p></div>
+    <div class="story-prose" aria-label="當前故事">${transcript}</div>
+    <button type="button" class="reader-skip" data-story-skip>點按顯示全文</button>
     <div class="story-choice-block">
       <p class="story-question">${prompt}</p>
       <div class="story-options" role="group" aria-label="故事選擇與繼續">
@@ -562,6 +623,9 @@ function battleView(o) {
 
 /* ---------- 啟動 ---------- */
 document.addEventListener('click', ev => {
+  if (ev.target.closest('[data-story-skip], .reader-line.is-typing')) {
+    finishStoryAnimation(); return;
+  }
   const b = ev.target.closest('[data-h]');
   if (!b || b.disabled) return;
   const fn = H[+b.dataset.h];
