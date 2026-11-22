@@ -729,8 +729,7 @@ function eventReader(o) {
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
   const character = o.who && FACES.includes(o.who)
     ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>` : '';
-  const scenery = !character && o.big && o.art
-    ? `<div class="reader-scenery" aria-hidden="true">${art(o.art, o.title)}</div>` : '';
+  // 玩家不需要兩幅山水；保留登場人物肖像與文字閱讀，不再生成場景背景。
   let controls;
   if (o.result) {
     controls = B('繼續', closeEvent, 'story-option');
@@ -756,7 +755,6 @@ function eventReader(o) {
   const previous = B('上一頁選項', () => readerPager.turn(-1));
   const moreChoices = B('下一頁選項', () => readerPager.turn(1));
   return `<article class="story-stage event-reader" aria-label="江湖事件">
-    ${scenery}
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
       <h2>〈${esc(String(o.title || '江湖紀事').replace(/[〈〉]/g, ''))}〉</h2>
