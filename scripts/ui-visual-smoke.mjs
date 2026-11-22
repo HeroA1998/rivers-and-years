@@ -176,7 +176,7 @@ async function verifyScenery(page, width) {
     const border = getComputedStyle(main).borderImageSource;
     const urls = [header,border];
     const fetched = await Promise.all(urls.map(async url => {
-      const match=url.match(/url\\(["']?(.*?)["']?\\)/);
+      const match=url.match(/url\(["']?(.*?)["']?\)/);
       if(!match)return false;
       const response=await fetch(match[1]);
       return response.ok;
