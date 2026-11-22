@@ -47,7 +47,7 @@ const SCREENS = {
     const c = UI.create, st = c.stats;
     return `<div class="create">
       <h2>${c.legacy ? `第${cnNum(c.legacy.gen + 1)}代傳人` : '初入江湖'}</h2>
-      ${c.legacy ? `<p class="note">承襲自${esc(c.legacy.from)}：${SKILLS[c.legacy.skill.id].n}第${cnNum(c.legacy.skill.lv)}層、銀兩 ${c.legacy.silver}${c.legacy.weapon ? '、' + ITEMS[c.legacy.weapon].n : ''}${c.legacy.blood ? '、血脈天賦（悟性根骨各+1）' : ''}</p>` : ''}
+      ${c.legacy ? `<p class="note">承襲自${esc(c.legacy.from)}：${c.legacy.skill ? `${SKILLS[c.legacy.skill.id].n}第${cnNum(c.legacy.skill.lv)}層、` : ''}銀兩 ${c.legacy.silver}${c.legacy.weapon ? '、' + ITEMS[c.legacy.weapon].n : ''}${c.legacy.blood ? '、血脈天賦（悟性根骨各+1）' : ''}</p>` : ''}
       <div class="field">年代</div>
       <div class="col">${eraOptions(c).map(x => x.sealed
         ? `<button type="button" class="opt sealed" disabled><b>${x.n}<i>封印中</i></b><span>暫時不開放，先專心走完射鵰篇。</span></button>`
@@ -82,10 +82,11 @@ const SCREENS = {
         <div><span>聲望</span><b>${S.fame}</b></div><div><span>勝場</span><b>${S.wins}</b></div><div><span>江湖評價</span><b>${e.score}</b></div>
         <div><span>門派</span><b>${S.sect ? SECTS[S.sect].n : '無門無派'}</b></div><div><span>伴侶</span><b>${S.spouse ? NPCS[S.spouse].n : '孑然一身'}</b></div><div><span>心性</span><b>${moralName()}</b></div>
       </div>
-      <h3>傳承</h3>
+      ${e.reason === '戰死' ? '' : `<h3>傳承</h3>
       <p class="note">${heir ? `你的${heir}將繼承一門武功（層數減半）、三成積蓄與隨身兵刃。` : '你沒有傳人。多年後，一個有緣的後輩拾得你的遺冊（層數僅餘三成、積蓄一成）。'}選擇要傳下去的武功：</p>
       <div class="col">${e.best.map(id => `<button type="button" class="opt ${e.pick === id ? 'on' : ''}"${h(() => { e.pick = id; render(); })}><b>${SKILLS[id].n}</b><span>${TIER_N[SKILLS[id].tier]}${TYPE_N[SKILLS[id].type]}・第${cnNum(S.skills[id].lv)}層</span></button>`).join('')}</div>
-      <div class="col">${B('薪火相傳，開啟下一代', inherit, 'primary big')}${B('回到標題', () => { S = null; UI = { screen: 'title', ov: null }; render(); }, 'big')}</div>
+      <div class="col">${B('薪火相傳，開啟下一代', inherit, 'primary big')}</div>`}
+      <div class="col">${B('回到標題', () => { S = null; UI = { screen: 'title', ov: null }; render(); }, e.reason === '戰死' ? 'primary big' : 'big')}</div>
     </div>`;
   },
 };

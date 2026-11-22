@@ -652,7 +652,7 @@ function inherit() {
   const heir = S.child ? `${S.name}之子女` : S.disciple ? `${S.name}的弟子${S.disciple.n}` : null;
   const legacy = {
     gen: S.gen, from: S.name, blood: !!S.child, year: ad() + 1 > SEAL_YEAR ? ERAS[0].y : ad() + 1, reset: ad() + 1 > SEAL_YEAR,
-    skill: { id: e.pick, lv: Math.max(1, Math.ceil(S.skills[e.pick].lv * (heir ? 0.5 : 0.3))) },
+    skill: e.pick && S.skills[e.pick] ? { id: e.pick, lv: Math.max(1, Math.ceil(S.skills[e.pick].lv * (heir ? 0.5 : 0.3))) } : null,
     silver: Math.round(S.silver * (heir ? 0.3 : 0.1)), weapon: heir ? S.weapon : null,
   };
   UI = { screen: 'create', ov: null, create: { name: '', gender: '男', origin: 0, stats: rollStats(), legacy, year: legacy.year } };
