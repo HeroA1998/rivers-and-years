@@ -258,9 +258,18 @@ const TABS = {
 };
 
 /* ---------- 浮層 ---------- */
-function openMenu(m, arg) { UI.ov = { k: 'menu', m, arg }; render(); }
+function openMenu(m, arg) {
+  // 設定／參考資料面板在故事中打開時，不可丟失進行中的事件。
+  if (UI.ov && UI.ov.k === 'event') UI.returnOv = UI.ov;
+  UI.ov = { k: 'menu', m, arg };
+  render();
+}
 function confirmBox(title, text, yes) { UI.ov = { k: 'menu', m: 'confirm', title, text, yes }; render(); }
-const closeMenu = () => { UI.ov = null; save(); render(); };
+const closeMenu = () => {
+  UI.ov = UI.returnOv || null;
+  UI.returnOv = null;
+  save(); render();
+};
 
 const CRED_HTML = () => {
   const list = Object.keys(ART).map(k => `<li><a href="${ART[k].u}" target="_blank" rel="noopener">${esc(ART[k].t)}</a><span>${esc(ART[k].by)}</span></li>`).join('');
