@@ -24,7 +24,7 @@ A separate static HTML/CSS mock with these local art crops was rendered in headl
 - 390×844 — body stays within 844px; navigation begins at y=743px.
 - 430×932 — body stays within 932px; navigation begins at y=831px.
 
-Those screenshots show the **art-directed static mock with the previous top title**, not the actual deployed game. New screenshots without the masthead are required. Do not treat them as a live game screenshot or as proof that binary assets were committed.
+Additional **no-title** static previews have now been rendered at 320×700, 390×844 and 430×932; all have zero masthead elements, no body overflow, the HUD at y=0 and navigation fixed at y=599 / 743 / 831 respectively. A long-story overflow test confirmed that only the middle story scrolls. These are still STATIC PREVIEWS, not actual game screenshots. Do not treat them as a live game screenshot or as proof that binary assets were committed.
 
 ## Remaining must-pass gates before merge
 - [ ] Commit all non-embedded, original screenshot-derived art crops under `assets/ui/v8/` (or higher-quality newly generated replacement masters), and point actual UI CSS to those local files.
