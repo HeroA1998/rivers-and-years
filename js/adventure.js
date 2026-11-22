@@ -8,14 +8,22 @@ const half = () => {};                  // 戰鬥打輸扣命已在 endBattle �
 // 檢定加值：能力調整值（每 2 點差 1）；難度隨等級慢慢提高
 const statMod = k => Math.floor((S.stats[k] - 5) / 2);
 const dcOf = dc => dc + Math.floor(((S.lv || 1) - 1) / 4);
+// 檢定機率：以 d20 逐點算成功率（20 必成、1 必敗），加成為能力調整值＋裝備詞條
+const checkMod = stat => stat ? statMod(stat) + gearChk(stat) : 0;
+function checkOdds(stat, dc) {
+  const mod = checkMod(stat), need = dcOf(dc);
+  let ok = 0;
+  for (let r = 1; r <= 20; r++) if (r === 20 || (r !== 1 && r + mod >= need)) ok++;
+  return { pct: Math.round(ok / 20 * 100), mod };
+}
 function check(stat, dc) {
   dc = dcOf(dc);
-  const roll = d20(), mod = stat ? statMod(stat) + gearChk(stat) : 0, total = roll + mod;   // 裝備詞條可加檢定
+  const roll = d20(), mod = checkMod(stat), total = roll + mod;   // 裝備詞條可加檢定
   return { roll, mod, total, dc, stat, crit: roll === 20, fumble: roll === 1, ok: roll === 20 || (roll !== 1 && total >= dc) };
 }
 const dieHtml = (n, crit, fumble) => `<b class="die roll${crit ? ' crit' : fumble ? ' fumble' : ''}">${n}</b>`;
-const rollLine = c => `<span class="rollline">${dieHtml(c.roll, c.crit, c.fumble)} ${c.stat ? `${STAT_N[c.stat]}${c.mod >= 0 ? '+' : ''}${c.mod}` : ''} ＝ ${c.total}／難度 ${c.dc}　<em class="${c.ok ? 'win' : 'lose'}">${c.crit ? '大成功' : c.fumble ? '大失手' : c.ok ? '成功' : '失敗'}</em></span><br>`;
-const reqLine = o => o.stat ? `〔${STAT_N[o.stat]}檢定・難度 ${dcOf(o.dc)}〕` : o.fight ? '〔動手〕' : '';
+const rollLine = c => `<span class="rollline">${dieHtml(c.roll, c.crit, c.fumble)} ${c.stat ? `${STAT_N[c.stat]}${c.mod >= 0 ? '+' : ''}${c.mod}` : ''} ＝ ${c.total}　<em class="${c.ok ? 'win' : 'lose'}">${c.crit ? '大成功' : c.fumble ? '大失手' : c.ok ? '成功' : '失敗'}</em></span><br>`;
+const reqLine = o => { if (!o.stat) return o.fight ? '〔動手〕' : ''; const od = checkOdds(o.stat, o.dc); return `〔成功 ${od.pct}%・${STAT_N[o.stat]}${od.mod >= 0 ? '+' : ''}${od.mod}〕`; };
 
 /* ---------- 事件牌語法 ---------- */
 // O：檢定選項（成功 ok／失敗 no，各為 [文字, 獲得, 額外函式]）；P：無檢定；F：戰鬥。外面再包 $g／$e／$n 標明正派、反派、無視
