@@ -64,7 +64,7 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    const icons=[...document.querySelectorAll('.hud-stats-mini .mini-stat-mark')];
    const paths=icons.map(e=>getComputedStyle(e).backgroundImage);
    const assets=await Promise.all(paths.map(async url=>{
-     const found=url.match(/url\\(["']?(.*?)["']?\\)/);
+     const found=url.match(/url\(["']?(.*?)["']?\)/);
      if(!found)return {ok:false,url};
      const response=await fetch(found[1],{cache:'no-store'});
      return {ok:response.ok,asset:found[1],status:response.status};
