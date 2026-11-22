@@ -65,9 +65,17 @@ const SCREENS = {
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
     return `${gameHud(false)}
-      <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
-      <div class="chips2"><span><img class="pxi" src="${pxIcon('coin', '#C9A24A', 12)}" alt="">銀兩 <b>${S.silver}</b></span><span><img class="pxi" src="${pxIcon('star', '#C9A24A', 12)}" alt="">聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
-      <main>${TABS[UI.tab]()}</main>
+      <section class="scene-wrap" aria-label="目前所在地">
+        <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
+        <div class="scene-caption"><strong>${L.n}</strong><span>${L.d}</span></div>
+      </section>
+      <div class="chips2" aria-label="江湖資源">
+        <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
+        <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
+        <span>${esc(moralName())}</span>
+        ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
+      </div>
+      <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
   },
   end() {
@@ -120,6 +128,8 @@ const IC = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.500 3.500-7 8-7s8 2.500 8 7"/>',
   bag: '<path d="M6 9h12l1 12H5z"/><path d="M9 9V7a3 3 0 016 0v2"/>',
   shield: '<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/>',
+  settings: '<path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M10 2h4l.6 2.5 2 1.1 2.4-.8 2 3.4-1.8 1.8v2l1.8 1.8-2 3.4-2.4-.8-2 1.1L14 22h-4l-.6-2.5-2-1.1-2.4.8-2-3.4L4.8 14v-2L3 10.2l2-3.4 2.4.8 2-1.1z"/>',
+  flag: '<path d="M5 21V4M5 5c5-3 9 3 14 0v10c-5 3-9-3-14 0z"/>',
 };
 const ico = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
 const artIcon = id => artRole(id) === 'sup' ? 'sup' : SKILLS[id].type;
@@ -148,12 +158,29 @@ const TABS = {
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
   world() {
-    const logs = S.log.slice(-6).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
+    const logs = S.log.slice(-6).reverse();
     const rum = histRumors(720);
-    const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>'}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
+    const hints = chainHints();
+    const urgent = rum.find(x => x.now);
     const ng = nextGoal();
-    const guide = `<section class="guide"><span class="tag jade">下一步</span><h3>${ng.title}</h3><p>${ng.desc}</p>${ng.note ? `<small>${ng.note}</small>` : ''}<div class="col">${ng.acts.map(a => B(a[0], a[1], 'primary big')).join('')}</div></section>`;
-    return guide + `<p class="desc">${LOCS[S.loc].d}</p>` + quest + `<ul class="log">${logs}</ul>`;
+    const guide = '<section class="guide"><span class="tag seal">下一步</span><h3>' + ng.title +
+      '</h3><p>' + ng.desc + '</p>' + (ng.note ? '<small>' + ng.note + '</small>' : '') +
+      '<div class="col">' + ng.acts.map(a => B(a[0], a[1], 'primary big')).join('') + '</div></section>';
+    const rumors = rum.map(x => '<small class="rum' + (x.now ? ' now' : '') +
+      '"><b>' + x.when + '・' + x.where + '</b>' + (x.now ? '　正在發生！' : '') +
+      '<span> ' + x.h.rumor + '</span></small>').join('');
+    const rumorPanel = '<details class="brief"><summary>江湖風聞</summary>' +
+      '<p class="brief-preview">' + (urgent ? '重要消息：' + urgent.h.rumor :
+        rum.length ? rum[0].h.rumor : '江湖暫無重大消息。') + '</p>' +
+      '<section class="quest"><h3>' + reign(ad()) + '（' + ad() + '年）</h3>' +
+      (rumors || '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>') +
+      hints.map(c => '<small class="side"><span class="tag jade">奇緣</span> ' + c.title +
+        '：' + c.hint + '</small>').join('') + '</section></details>';
+    const logPanel = '<details class="brief"><summary>旅途札記</summary><p class="brief-preview">' +
+      (logs.length ? logs[0].s : '旅程才剛開始') + '</p>' +
+      '<ul class="log">' + logs.map(l => '<li><time>' + l.t + '</time>' + l.s + '</li>').join('') +
+      '</ul></details>';
+    return guide + rumorPanel + logPanel;
   },
   status() {
     return `<section class="group"><h3>${esc(S.name)}・Lv ${S.lv}</h3>
@@ -181,21 +208,48 @@ const TABS = {
       return `<article class="card tier-${k.tier}${on ? ' equipped' : ''}"><div class="card-h"><span class="artic">${ico(artIcon(id), 'big')}</span><b>${k.n}</b><em class="stars">${stars(k.tier)}</em><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
         <div class="lvrow">第${cnNum(sk.lv)}層 ${sk.lv >= 10 ? '<em>圓滿</em>' : bar(sk.exp, xpNeed(sk.lv, k.tier), 'xp') + `<em>${sk.exp}/${xpNeed(sk.lv, k.tier)}</em>`}</div>
         <p class="props">${r === 'atk' ? `<span>攻擊力 <b>${artAtk(id)}</b></span>` : ''}<span>裝備加成 <b>${stat}</b></span>${fx ? `<span>效果 <b>${fx}</b></span>` : ''}</p>
-        <p>${k.d}</p><p class="moves">${detail}</p></article>`;
+        <details class="skill-details"><summary>查看招式與典故</summary><p>${k.d}</p><p class="moves">${detail}</p></details></article>`;
     }).join('');
   },
   bag() {
     const ids = Object.keys(S.inv);
-    const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
-    const desc = it => it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `可習得${SKILLS[it.skill].n}` : '');
-    const slot = (n, id, ic) => `<div>${ico(ic, 'gearic')}<span>${n}</span><b>${id ? ITEMS[id].n : '—'}</b><small>${id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備'}</small></div>`;
-    return `<section class="group"><h3>裝備</h3><div class="stats gear">${slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword')}${slot('護甲', S.armor, 'shield')}${slot('飾品', S.acc, 'ring')}</div><p class="desc">兵刃、護甲、飾品在路上的市集、鐵匠舖、貨郎那裡買得到，也可能在奇遇裡得到。</p></section>` +
-      (ids.length ? ids.map(id => {
-        const it = ITEMS[id];
-        const eqd = S.weapon === id || S.armor === id || S.acc === id;
-        const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
-        return `<article class="card row-card"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${[desc(it), stx(it)].filter(Boolean).join('・')}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
-      }).join('') : '<p class="empty">行囊空空如也。</p>');
+    const stx = it => Object.keys(it.st || {}).map(k => STAT_N[k] + '+' + it.st[k]).join('、');
+    const desc = it => it.d || (it.kind === 'weapon'
+      ? TYPE_N[it.wt] + '威力+' + it.atk + '（僅對同類武功有效）'
+      : it.kind === 'armor' ? '防禦+' + it.def : it.kind === 'acc' ? '飾品'
+      : it.kind === 'manual' ? '可習得' + SKILLS[it.skill].n : '');
+    const slot = (n, id, ic) => '<div>' + ico(ic, 'gearic') +
+      '<span>' + n + '</span><b>' + (id ? ITEMS[id].n : '—') + '</b><small>' +
+      (id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備') + '</small></div>';
+    const equipped = '<section class="group"><h3>隨身裝備</h3><div class="stats gear">' +
+      slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword') +
+      slot('護甲', S.armor, 'shield') + slot('飾品', S.acc, 'ring') + '</div></section>';
+    const groups = [
+      ['兵器與裝備', ['weapon', 'armor', 'acc']],
+      ['藥品與補給', ['med', 'tonic']],
+      ['武功秘笈', ['manual']],
+      ['其他物品', []]
+    ];
+    const content = groups.map(([title, kinds]) => {
+      const matching = ids.filter(id => {
+        const kind = ITEMS[id] && ITEMS[id].kind;
+        return kind && (kinds.length ? kinds.includes(kind) :
+          !groups.slice(0, 3).some(g => g[1].includes(kind)));
+      });
+      if (!matching.length) return '';
+      return '<section class="bag-section"><h3>' + title + '</h3>' +
+        matching.map(id => {
+          const it = ITEMS[id], eqd = S.weapon === id || S.armor === id || S.acc === id;
+          const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備',
+            armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
+          return '<article class="card row-card"><span class="itemic">' + ico(itemIcon(it), 'big') +
+            '</span><div><b>' + it.n + '</b> ×' + S.inv[id] +
+            (eqd ? ' <span class="tag jade">使用中</span>' : '') +
+            '<p>' + [desc(it), stx(it)].filter(Boolean).join('・') + '</p></div>' +
+            (lab ? B(lab, () => useItem(id), 'mini') : '') + '</article>';
+        }).join('') + '</section>';
+    }).join('');
+    return equipped + (ids.length ? content : '<p class="empty">行囊空空如也。</p>');
   },
   people() {
     const met = Object.keys(NPCS).filter(id => S.npcs[id] && S.npcs[id].met);
@@ -301,14 +355,37 @@ function overlay() {
     return `<div class="veil"><div class="sheet"><div class="sheet-h"><h2>${title}</h2>${B(o.m === 'shop' ? '離開' : '關閉', o.m === 'shop' ? closeShop : closeMenu, 'mini')}</div>${body}</div></div>`;
   }
   if (o.k === 'event') {
-    return `<div class="veil"><div class="sheet event">
-      <div class="scene">${art(o.art || (o.type === '戰鬥' ? 'fight' : o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road'), o.title)}${face(o.who, 'on-art')}</div>
-      <p class="tag ${TYPE_CLS[o.type] || 'grey'}">${o.type}事件</p><h2>${o.title}</h2>
-      ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
-        : o.pages && o.pi < o.pages.length - 1
-          ? `<p class="story">${o.pages[o.pi]}</p><div class="col">${B(`繼續　${o.pi + 1}/${o.pages.length}`, () => { o.pi++; render(); document.querySelector('.sheet').scrollTop = 0; }, 'primary big')}</div>`
-          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => `<button type="button" class="btn choice side-${c.s}${c.plain ? ' plain' : ''}"${c.dis ? ' disabled' : h(() => choose(i))}>${c.plain ? '' : `<i class="side">${SIDE_LABEL[c.s]}</i>`}<span>${c.t}${c.dis && c.reqT ? `<small>（${c.reqT}）</small>` : ''}</span></button>`).join('')}</div>`}
-    </div></div>`;
+    const illustration = o.art || (o.type === '戰鬥' ? 'fight' :
+      o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road');
+    let content;
+    if (o.result) {
+      content = '<p class="story">' + o.result + '</p><div class="col">' +
+        B('繼續', closeEvent, 'primary big') + '</div>';
+    } else if (o.pages && o.pi < o.pages.length - 1) {
+      content = '<p class="story">' + o.pages[o.pi] + '</p><div class="col">' +
+        B('繼續　' + (o.pi + 1) + '/' + o.pages.length, () => {
+          o.pi++; render(); document.querySelector('.sheet').scrollTop = 0;
+        }, 'primary big') + '</div>';
+    } else {
+      content = '<p class="story">' + (o.pages ? o.pages[o.pi] : o.text) +
+        '</p><p class="note">你打算如何應對？</p><div class="col">' +
+        o.choices.map((c, i) =>
+          '<button type="button" class="btn choice side-' + c.s +
+          (c.plain ? ' plain' : '') + '"' +
+          (c.dis ? ' disabled' : h(() => choose(i))) + '>' +
+          (c.plain ? '' : '<i class="side">' + SIDE_LABEL[c.s] + '</i>') +
+          '<span>' + c.t +
+          (c.dis && c.reqT ? '<small>（' + c.reqT + '）</small>' : '') +
+          '</span></button>').join('') + '</div>';
+    }
+    return '<div class="veil"><section class="sheet event" role="dialog" aria-modal="true" aria-label="' +
+      esc(o.title) + '">' +
+      '<div class="event-topline"><span class="tag ' + (TYPE_CLS[o.type] || 'grey') +
+      '">' + esc(o.type) + '事件</span><span class="event-date">' +
+      dateStr() + '</span></div>' +
+      '<div class="scene">' + art(illustration, o.title) + face(o.who, 'on-art') +
+      '</div><h2 class="event-title">' + esc(o.title) + '</h2>' +
+      content + '</section></div>';
   }
   if (o.k === 'lvup') {
     const used = Object.values(o.add).reduce((a, b) => a + b, 0), left = S.pts - used;
@@ -382,26 +459,39 @@ const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name))
 const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
 function gameHud(dim) {
-  const orbRow = (n, m, kind) => Array.from({ length: m }, (_, i) => `<img class="pxo" src="${PIX.orb(kind, i < n)}" alt="">`).join('');
-  const stat = k => `<span class="hs" title="${STAT_N[k]}"><img class="pxi" src="${pxIcon(k, STAT_COL[k], 14)}" alt=""><b>${S.stats[k]}</b></span>`;
-  const gear = dim ? `<span class="hgear"><img class="pxi" src="${PIX.gear()}" alt=""></span>`
-    : `<button type="button" class="hgear" aria-label="設定"${h(() => openMenu('settings'))}><img class="pxi" src="${PIX.gear()}" alt=""></button>`;
-  return `<div class="bhud${dim ? ' dim' : ''}">
-    <div class="hport"><img class="pxi" src="${pxIcon('person', '#E8D6B0', 30)}" alt=""></div>
-    <div class="hmid"><div class="hname">${esc(fameTitle())} ${esc(S.name)}</div>
-      <div class="orbs">${orbRow(S.life, lifeMax(), 'red')}</div><div class="orbs">${orbRow(S.qi, qiMax(), 'green')}</div></div>
-    <div class="htop">${gear}</div>
-    <div class="hstats">${Object.keys(STAT_N).map(stat).join('')}</div>
-    <div class="hxp"><i style="width:${clamp(S.exp / expNeed(S.lv) * 100, 0, 100)}%"></i><em>Lv ${S.lv}</em></div>
-    <span class="hdate">${dateStr()}<b>${season()}</b></span>
-  </div>`;
+  const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +
+    h(() => openMenu('settings')) + '>' + ico('settings') + '</button>';
+  const stats = '<div class="statrow">' + Object.keys(STAT_N).map(k =>
+    '<span>' + ico(k) + '<i>' + STAT_N[k] + '</i><b>' + S.stats[k] + '</b>' +
+    (S.bonus && S.bonus[k] ? '<small>+' + S.bonus[k] + '</small>' : '') + '</span>'
+  ).join('') + '</div>';
+  return '<header class="bhud' + (dim ? ' dim' : '') + '">' +
+    '<div class="hud-head"><div class="hport" aria-hidden="true">俠</div>' +
+    '<div class="hud-title"><div class="hname">' + esc(S.name) +
+    ' <small>Lv ' + S.lv + '</small></div><div class="hfame">' +
+    esc(fameTitle()) + '</div></div>' + gear + '</div>' +
+    '<div class="hud-life"><span><strong>氣血</strong><span class="ico">' + hearts() +
+    '</span></span><span><strong>內力</strong><span class="ico">' +
+    orbs(S.qi, qiMax()) + '</span></span></div>' +
+    '<div class="hud-meta"><span>閱歷 ' + S.exp + '/' + expNeed(S.lv) +
+    '</span><span class="hdate">' + dateStr() + '<b>' + season() + '</b></span></div>' +
+    '<div class="hxp" aria-label="閱歷進度"><i style="width:' +
+    clamp(S.exp / expNeed(S.lv) * 100, 0, 100) + '%"></i></div>' +
+    (dim ? '' : '<details class="hud-stats"><summary>查看六項能力值 ▾</summary>' +
+      stats + '</details>') + '</header>';
 }
 // 底部導覽：江湖／人物／行囊；戰鬥中同一排圖示壓暗、不能按
 const TAB_DEF = [['world', '江湖', 'compass', '#4F7F92'], ['me', '人物', 'person', '#C9B48E'], ['bag', '行囊', 'bag', '#A8743F']];
 function gameNav(active, live) {
-  return `<nav class="bnav${live ? ' live' : ''}">${TAB_DEF.map(t => live
-    ? `<button type="button" class="${active === t[0] ? 'on' : ''}" aria-label="${t[1]}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></button>`
-    : `<span><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></span>`).join('')}</nav>`;
+  return '<nav class="bnav' + (live ? ' live' : '') + '" aria-label="主要分頁">' +
+    TAB_DEF.map(t => live
+      ? '<button type="button" class="' + (active === t[0] ? 'on' : '') +
+        '" aria-label="' + t[1] + '"' +
+        (active === t[0] ? ' aria-current="page"' : '') +
+        h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); }) + '>' +
+        ico(t[2]) + '<span>' + t[1] + '</span></button>'
+      : '<span aria-hidden="true">' + ico(t[2]) + '<span>' + t[1] +
+        '</span></span>').join('') + '</nav>';
 }
 // 戰鬥背景：用事件或所在地的場景圖，不再固定同一張
 const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
@@ -424,7 +514,7 @@ function battleView(o) {
   if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
   else side = '';
-  const PXI = (name, color, n) => `<img class="pxi" src="${pxIcon(name, color, n)}" alt="">`;
+  const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
   const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
   const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
@@ -455,7 +545,7 @@ function battleView(o) {
         ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
     </div>
     <div class="bdock">
-      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}><img class="pxi" src="${PIX.flag()}" alt=""><span>投降</span></button>`}</div>
+      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}>${ico('flag')}<span>投降</span></button>`}</div>
       <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
       <div class="side">${side}</div>
     </div>
@@ -476,11 +566,4 @@ try {
   if (mq.addEventListener) mq.addEventListener('change', () => render());
   new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 } catch (e) { /* 主題監聽不可用時略過 */ }
-// 手機版面：以 410 單位寬為基準整體放大，字與按鈕在任何手機上都一樣大
-function fitScreen() {
-  const w = window.innerWidth || 410;
-  document.documentElement.style.setProperty('--z', w <= 1100 ? Math.max(1, Math.min(2.6, w / 410)).toFixed(3) : '1');
-}
-fitScreen();
-window.addEventListener('resize', fitScreen);
 render();
