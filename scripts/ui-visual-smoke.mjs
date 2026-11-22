@@ -15,6 +15,12 @@ async function snapshot(page,name){
   return {width:innerWidth,height:innerHeight,page:app?.dataset.page,documentWidth:document.documentElement.scrollWidth,
    titleBannerCount:document.querySelectorAll('.wuxia-masthead').length,
    hud:rect(hud),story:rect(story),footer:rect(nav),
+   heading:rect(document.querySelector('.story-heading')),
+   storyProse:rect(document.querySelector('.story-prose')),
+   firstStoryLine:rect(document.querySelector('.reader-line')),
+   storyArt:rect(document.querySelector('.reader-media')),
+   storyChoiceBlock:rect(document.querySelector('.story-choice-block')),
+   styleHints:(()=>{const e=document.querySelector('.story-stage');const h=document.querySelector('.story-heading');return e&&h?{stageMinHeight:getComputedStyle(e).minHeight,stageJustify:getComputedStyle(e).justifyContent,headingMargin:getComputedStyle(h).margin,headingPadding:getComputedStyle(h).padding}:null})(),
    text:(story?.innerText||'').slice(0,250),choiceCount:document.querySelectorAll('.story-option').length,
    scrollHeight:story?.scrollHeight,clientHeight:story?.clientHeight};
  });
