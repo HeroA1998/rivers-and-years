@@ -21,6 +21,7 @@ function render() {
   if (UI.ov) html += overlay();
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
+  root.dataset.page = UI.screen === 'game' ? UI.tab : UI.screen;
   root.innerHTML = html;
   if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
     seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tick: +el.dataset.tick, tone: el.dataset.tone }));
@@ -64,18 +65,36 @@ const SCREENS = {
     const L = LOCS[S.loc];
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
+
+    const isWorld = UI.tab === 'world';
+    const goal = isWorld ? nextGoal() : null;
+    // 主操作直接放在場景圖內：沿用 nextGoal().acts 的原始 callback，
+    // 不因版面改動而漏掉「歸隱」或歷史落幕等第二個行動。
+    const scene = isWorld ? `
+      <section class="scene-wrap" aria-label="目前所在地與下一步">
+        <div class="scene scenery-${esc(L.art)}${goal.acts.length > 1 ? ' scene-multiple' : ''}">
+          ${art(L.art, S.loc + season())}
+          <span class="place">${esc(L.n)}</span>
+          <div class="scene-overlay">
+            <span class="scene-kicker">下一步 · ${esc(goal.title)}</span>
+            <div class="scene-actions">
+              ${goal.acts.map((a, i) => B(esc(a[0]), a[1],
+                i === 0 ? 'primary big hero-cta' : 'big hero-cta hero-cta-alt')).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="scene-caption"><strong>${esc(L.n)}</strong><span>${esc(L.d)}</span></div>
+      </section>` : '';
+
     return `${gameHud(false)}
-      <section class="scene-wrap" aria-label="目前所在地">
-        <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
-        <div class="scene-caption"><strong>${L.n}</strong><span>${L.d}</span></div>
-      </section>
+      ${scene}
       <div class="chips2" aria-label="江湖資源">
         <span>${ico('coin')} 銀兩 <b>${S.silver}</b></span>
         <span>${ico('star')} 聲望 <b>${S.fame}</b></span>
         <span>${esc(moralName())}</span>
         ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
       </div>
-      <main id="main-content">${TABS[UI.tab]()}</main>
+      <main id="main-content">${isWorld ? TABS.world(goal) : TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
   },
   end() {
@@ -157,15 +176,20 @@ const TABS = {
     const sub = SUBS.some(x => x[0] === UI.sub) ? UI.sub : 'status';
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
-  world() {
+  world(ng = nextGoal()) {
     const logs = S.log.slice(-6).reverse();
     const rum = histRumors(720);
     const hints = chainHints();
     const urgent = rum.find(x => x.now);
-    const ng = nextGoal();
-    const guide = '<section class="guide"><span class="tag seal">下一步</span><h3>' + ng.title +
-      '</h3><p>' + ng.desc + '</p>' + (ng.note ? '<small>' + ng.note + '</small>' : '') +
-      '<div class="col">' + ng.acts.map(a => B(a[0], a[1], 'primary big')).join('') + '</div></section>';
+    // 簡短提示按需展開；主按鈕已放到場景中央，不重複渲染。
+    const guide = `<details class="brief world-guide">
+      <summary>旅程提示</summary>
+      <div class="world-guide-content">
+        <h3>${esc(ng.title)}</h3>
+        <p>${esc(ng.desc)}</p>
+        ${ng.note ? `<small>${esc(ng.note)}</small>` : ''}
+      </div>
+    </details>`;
     const rumors = rum.map(x => '<small class="rum' + (x.now ? ' now' : '') +
       '"><b>' + x.when + '・' + x.where + '</b>' + (x.now ? '　正在發生！' : '') +
       '<span> ' + x.h.rumor + '</span></small>').join('');
