@@ -15,6 +15,9 @@ async function snapshot(page,name){
   return {width:innerWidth,height:innerHeight,page:app?.dataset.page,documentWidth:document.documentElement.scrollWidth,
    titleBannerCount:document.querySelectorAll('.wuxia-masthead').length,
    hud:rect(hud),story:rect(story),footer:rect(nav),
+   portrait:rect(document.querySelector('.hport')),
+   nameRow:rect(document.querySelector('.hud-name-row')),
+   stats:rect(document.querySelector('.hud-stats-mini')),
    heading:rect(document.querySelector('.story-heading')),
    storyProse:rect(document.querySelector('.story-prose')),
    firstStoryLine:rect(document.querySelector('.reader-line')),
@@ -51,7 +54,23 @@ for(const dims of [[320,700],[390,844],[430,932]]){
  await page.getByRole('button',{name:/踏入江湖/}).click();
  await page.waitForSelector('#app[data-page="world"] .bhud',{timeout:15000});
  await reveal(page);
- await snapshot(page,'world_'+width+'x'+height);
+ const initial=await snapshot(page,'world_'+width+'x'+height);
+ check(String(width)+' enlarged portrait',!!initial.portrait&&initial.portrait.height>=105,{portrait:initial.portrait});
+ check(String(width)+' complete six stats',await page.locator('#app[data-page="world"] .mini-stat').count()===6);
+ const fit=await page.evaluate(()=>{
+  const root=document.querySelector('.hud-core').getBoundingClientRect();
+  const children=['.hport','.hud-identity','.hud-stats-mini','.hgear'];
+  return children.map(sel=>{const e=document.querySelector(sel)?.getBoundingClientRect();return{selector:sel,within:!!e&&e.left>=root.left-2&&e.right<=root.right+2}});
+ });
+ check(String(width)+' HUD columns fit',fit.every(x=>x.within),{fit});
+ if(width===390){
+   await page.evaluate(()=>showEvent({type:'奇遇',title:'溪邊問路',
+    text:'書生問道：「前面的山路是否通往嘉興？」',
+    choices:[{s:'g',t:'指明方向',go:()=> '你為書生指了路。'}]}));
+   await reveal(page);
+   check('390 speaker dialogue highlighted',await page.locator('.reader-line.reader-dialogue').count()===1);
+   await page.screenshot({path:out+'/dialogue_390x844.png',fullPage:false,animations:'disabled'});
+ }
  if(width===390){
    const art=await page.evaluate(async()=>{
      const paths=['assets/ui/v9/story-border.webp','assets/ui/v9/story-header.webp','assets/ui/v9/story-button.webp'];
