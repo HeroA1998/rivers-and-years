@@ -22,7 +22,8 @@ function render() {
   if (UI.ov && UI.ov.k !== 'event') html += overlay();
   if (toastMsg) { html += `<div class="toast" role="status">${toastMsg}</div>`; toastMsg = ''; }
   root.dataset.align = S ? (S.moral >= 20 ? 'g' : S.moral <= -20 ? 'e' : 'n') : 'n';
-  root.dataset.page = UI.screen === 'game' ? UI.tab : UI.screen;
+  root.dataset.page = UI.screen === 'game' && UI.ov && UI.ov.k === 'battle' ? 'battle' :
+    (UI.screen === 'game' ? UI.tab : UI.screen);
   root.innerHTML = html;
   if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
     seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tick: +el.dataset.tick, tone: el.dataset.tone }));
