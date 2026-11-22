@@ -435,8 +435,14 @@ function eventReader(o) {
   }
   // 不在 p 與 span 之間插入 HTML 模板換行：pre-line 會把排版用換行
   // 當成故事內容，造成正文前多出兩行空白。
-  const transcript = lines.map((line, i) =>
-    `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${esc(line.text)}</span><span class="reader-visible" aria-hidden="true">${esc(line.text)}</span></p>`).join('');
+  // Speaker-led dialogue receives a discreet visual cue; typewriter markup stays
+  // identical and no narrative text is rewritten or removed.
+  const transcript = lines.map((line, i) => {
+    const text = String(line.text || '').trimStart();
+    const dialogue = line.kind === 'prose' &&
+      (/^「/.test(text) || /^(?:[^\s，。！？；：]{1,12})(?:道|問|說|答|喊|喝|笑道|低聲道|冷笑道)\s*[:：]?\s*「/.test(text));
+    return `<p class="reader-line reader-${line.kind}${dialogue ? ' reader-dialogue' : ''}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${esc(line.text)}</span><span class="reader-visible" aria-hidden="true">${esc(line.text)}</span></p>`;
+  }).join('');
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
@@ -560,7 +566,8 @@ function gameHud(dim) {
   return '<header class="bhud' + (dim ? ' dim' : '') + '" aria-label="人物狀態">' +
     '<div class="hud-core">' + playerAvatar(dim) +
     '<div class="hud-identity">' +
-      '<div class="hname">' + esc(S.name) + '<small>Lv ' + S.lv + '</small></div>' +
+      '<div class="hud-name-row"><span class="hname">' + esc(S.name) + '</span>' +
+      '<span class="hud-level">Lv ' + S.lv + '</span></div>' +
       '<div class="hfame">' + esc(fameTitle()) + '</div>' +
       '<div class="hud-life"><span aria-label="氣血">' +
         '<span class="vital-label">命</span><span class="ico">' + hearts() + '</span></span>' +
