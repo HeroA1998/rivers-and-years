@@ -105,34 +105,8 @@
   padding-top:3px;
   padding-bottom:4px;
 }
-#app[data-page="world"] .story-stage::after {
-  content:"";
-  position:absolute;
-  inset:auto 0 0;
-  z-index:0;
-  height:30%;
-  pointer-events:none;
-  background:url("../assets/ui/v8/mountain.webp") center bottom/100% auto no-repeat;
-  opacity:.20;
-  -webkit-mask-image:linear-gradient(to top,#000,#0006 52%,transparent);
-  mask-image:linear-gradient(to top,#000,#0006 52%,transparent);
-}
-#app[data-page="world"] .reader-scenery {
-  position:absolute;
-  inset:0 0 auto;
-  z-index:0;
-  height:43%;
-  pointer-events:none;
-  mix-blend-mode:multiply;
-  opacity:.25;
-  -webkit-mask-image:radial-gradient(ellipse 78% 100% at center top,#000 12%,#0009 53%,transparent);
-  mask-image:radial-gradient(ellipse 78% 100% at center top,#000 12%,#0009 53%,transparent);
-}
-#app[data-page="world"] .reader-scenery .art {
-  display:block;width:100%;height:100%;
-  object-fit:cover;
-  filter:saturate(.62) contrast(.84);
-}
+/* 上下兩張山水圖均已按玩家要求取消。
+   不再建立 ::after 圖層，也不再建立 .reader-scenery，保留雕花紙張。 */
 #app[data-page="world"] .story-heading,
 #app[data-page="world"] .story-prose,
 #app[data-page="world"] .reader-character,
