@@ -167,39 +167,39 @@ async function verifyHud(page, width, height) {
 }
 
 async function verifyScenery(page, width) {
-  const art = await page.evaluate(async () => {
+  const visual = await page.evaluate(async () => {
     const stage = document.querySelector('.event-reader');
-    const layer = stage.firstElementChild;
-    const image = layer.querySelector('img');
-    if (image) await image.decode();
-    const css = getComputedStyle(layer);
-    const bottom = getComputedStyle(stage, '::after');
     const main = document.querySelector('#main-content');
     const folio = getComputedStyle(stage.querySelector('.reader-folio'));
-    const urls = [bottom.backgroundImage, getComputedStyle(main, '::before').backgroundImage,
-      getComputedStyle(main).borderImageSource];
-    const fetched = await Promise.all(urls.map(url => fetch(url.match(/url\("([^"]+)"\)/)[1])));
+    const stageAfter = getComputedStyle(stage, '::after');
+    const header = getComputedStyle(main, '::before').backgroundImage;
+    const border = getComputedStyle(main).borderImageSource;
+    const urls = [header,border];
+    const fetched = await Promise.all(urls.map(async url => {
+      const match=url.match(/url\\(["']?(.*?)["']?\\)/);
+      if(!match)return false;
+      const response=await fetch(match[1]);
+      return response.ok;
+    }));
     return {
-      image: image?.naturalWidth > 0 && image.src.includes('/mountain.jpg'),
-      top: layer.classList.contains('reader-scenery') && css.position === 'absolute' &&
-        css.maskImage !== 'none' && !stage.querySelector('.reader-landscape'),
-      bottom: bottom.position === 'absolute' && bottom.maskImage !== 'none' &&
-        urls[0].includes('/v8/mountain.webp') && folio.paddingTop === '0px' &&
-        folio.backgroundImage === 'none',
-      assets: fetched.every(response => response.ok) && urls[1].includes('story-header.webp') &&
-        urls[2].includes('story-border.webp'),
+      noTopScenery:stage.querySelectorAll('.reader-scenery,.reader-landscape').length===0,
+      noBottomScenery:(stageAfter.content==='none'||stageAfter.content==='normal') &&
+        stageAfter.backgroundImage==='none' &&
+        folio.paddingTop==='0px' && folio.backgroundImage==='none',
+      framePreserved:fetched.every(Boolean) &&
+        header.includes('story-header.webp') && border.includes('story-border.webp')
     };
   });
-  check(width + ' two non-flow scenery layers, intact plaque and border', Object.values(art).every(Boolean));
-  await showFixture(page, '未收錄的場景仍須有水墨繪製。', { art: 'ink-fallback', noChoices: true });
-  check(width + ' canvas fallback retained',
-    await page.locator('.reader-scenery canvas').evaluate(el =>
-      el.getContext('2d').getImageData(0, 0, 1, 1).data[3] > 0));
+  check(width + ' both scenery images gone; ornate plaque and border preserved',
+    Object.values(visual).every(Boolean),visual);
+  await showFixture(page, '未收錄的場景亦不應在正文中生成圖片。', { art: 'ink-fallback', noChoices: true });
+  check(width + ' no fallback landscape canvas in story',
+    await page.locator('.reader-scenery canvas,.reader-landscape canvas').count()===0);
   await showFixture(page, '故人現身。', { who: 'su', noChoices: true });
-  check(width + ' portrait is foreground',
-    await page.locator('.reader-character img').count() === 1 &&
-    await page.locator('.reader-scenery').count() === 0);
-  await fit(page, width + ' foreground portrait');
+  check(width + ' character portrait is preserved without scenery',
+    await page.locator('.reader-character img').count()===1 &&
+    await page.locator('.reader-scenery').count()===0);
+  await fit(page,width+' foreground portrait');
 }
 
 async function verifyReflow(page) {
