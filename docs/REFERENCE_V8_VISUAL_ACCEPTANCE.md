@@ -1,6 +1,6 @@
 # v8 — Approved concept fidelity and acceptance record
 
-**Status:** Working branch, not merged into `main`. Current branch improves responsive DOM layout but does **not** yet meet the artwork fidelity gate.
+**Status:** Working draft branch, not merged into `main`. Original concept-derived images are now committed and live in the PR preview; detailed art fidelity and gameplay acceptance remain open.
 
 ## Design source
 - **Single approved reference:** the 941×1672 mobile wuxia concept image accepted by the player on 2026-11-22.
@@ -14,24 +14,23 @@
 - Explicit 320–375px small-screen rules, 390/430px mobile styling and landscape under 500px height.
 - Style consistency for the character and inventory tabs; existing dialogue, battle and save flow retained.
 - No gameplay files edited. Existing `SAVE_KEY=jianghu_jinyong_v1` retained.
-- Cache-busting version: `20261122-reference-layout-v8`.
+- Cache-busting version: `20261122-reference-layout-v8-assets`. Uses `css/v8-reference-art.css` linked after the base stylesheet.
 
-## Artwork and visual evidence
-The extracted high-resolution artwork derived from the approved **original screenshot** is available in the conversation's review package, but **not yet present in the GitHub repository**. Its source is 941px wide, not a new 1024px portrait master. The existing low-resolution `approved-wuxia-atlas.svg` remains a temporary fallback in this branch.
-
-A separate static HTML/CSS mock with these local art crops was rendered in headless Chromium at:
-- 320×700 — body stays within 700px; scrolling is confined to main content.
-- 390×844 — body stays within 844px; navigation begins at y=743px.
-- 430×932 — body stays within 932px; navigation begins at y=831px.
-
-Additional **no-title** static previews have now been rendered at 320×700, 390×844 and 430×932; all have zero masthead elements, no body overflow, the HUD at y=0 and navigation fixed at y=599 / 743 / 831 respectively. A long-story overflow test confirmed that only the middle story scrolls. These are still STATIC PREVIEWS, not actual game screenshots. Do not treat them as a live game screenshot or as proof that binary assets were committed.
+## Artwork and real-browser evidence
+- **13 original WebP art assets now committed** at `assets/ui/v8/`: female protagonist portrait (166×166), six ability icons (50×50), red/green flower icons, 780px-wide mountain/ornament/footer crops and unused header image. Total binary payload 119,786 bytes. These are faithful crops from the approved concept, not independent 1024px masters. No fal service was used.
+- The game page now loads `css/v8-reference-art.css` which binds those actual assets to the dynamic HTML elements. The title banner remains removed as requested.
+- Real game GitHub Actions / Playwright **320×700, 390×844, 430×932** tests succeeded for: title screen, new character, world HUD, original event, injected long event, independent story scroll, choice transcript, result, "Continue" to following event, all nav shortcuts and settings panel.
+- The first successful action run is [Wuxia UI visual smoke test #44993505274](https://github.com/HeroA1998/rivers-and-years/actions/runs/44993505274). It uploaded nine screenshots and JSON validation report.
+- Real-game render at 390×844: character HUD y=0–138, scrollable content y=138–743, footer y=743–844; no horizontal overflow, no masthead.
+- Static mockups remain **illustrative only**. The actual-game screenshots are the relevant visual acceptance basis.
+- Visual review still finds excess whitespace between story headline and first paragraph and a portrait originally cropped to 166px. Further typography/spacing refinement is in progress.
 
 ## Remaining must-pass gates before merge
-- [ ] Commit all non-embedded, original screenshot-derived art crops under `assets/ui/v8/` (or higher-quality newly generated replacement masters), and point actual UI CSS to those local files.
+- [x] Commit 13 source-derived WebP assets under `assets/ui/v8/`, and activate the linked artwork stylesheet.
 - [ ] At least one original **high-resolution, transparent, approved** protagonist portrait per required gender; do not mislabel a low-resolution upscaled crop or checkerboard RGB file as a transparent master.
-- [ ] Capture screenshots from **the actual game source code**, not only from the static approximation, using its real DOM at 320, 390, 430 and landscape.
+- [x] Capture 320px, 390px and 430px portrait screenshots from **the actual game**; [ ] add landscape coverage.
 - [ ] Compare actual game screenshot with approved concept: portrait framing, header background, vitality icons, six stat badges, story/choice proportions and footer illustrated icons.
-- [ ] Walk through new game, continue from saved game, long story, dialogue choice, fight/die roll, equipment, settings, chapter transition and legacy.
+- [x] Automated new game, long story, dialogue choice, appended result, continuation, and six bottom navigation actions. [ ] Add explicit save/reload, battle/die-roll, equipment, chapter transition and legacy checks.
 - [ ] Obtain user approval of actual game screenshots before merging into `main`.
 
 **Do not merge this branch merely because JavaScript parses, CSS braces match or the static mock looks good.**
