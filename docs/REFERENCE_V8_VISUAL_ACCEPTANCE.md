@@ -25,6 +25,17 @@
 - Static mockups remain **illustrative only**. The actual-game screenshots are the relevant visual acceptance basis.
 - Excess vertical space before story text was traced to HTML template whitespace under `white-space:pre-line` and corrected in `js/ui.js`. Footer labels now sit below their painted icons. A secondary-tab audit found old HUD styles in character/inventory; these now share the main HUD and artwork rules. The portrait crop remains 166px source; it must not be called a high-resolution master.
 
+## v10 — Enlarged portrait, jade HUD, dialogue and battle polish
+
+- Added `css/v10-hud-reading.css`, linked after the ornate v9 CSS, so the approved concept's portrait and gold-bordered jade name plaque receive a stronger visual hierarchy.
+- 390×844 actual-game HUD: portrait **104×118px**, total HUD **172px**, independent story starts at y=172 and painted footer remains at y=743. At 320×700 the portrait is **80×114px**, aligned to the top rather than dropped into empty space; the six ability badges wrap into a separate two-row grid.
+- New `hud-name-row` and `hud-level` use semantic live data, never screenshot text. Existing save keys and story content remain unchanged.
+- Speaker-led paragraphs receive a subtle gold side rule via `reader-dialogue` class. The typewriter still operates on the same unmodified content and `reader-visible` node.
+- Character and inventory tabs share a smaller version of the jade plaque. Battle `gameHud(true)` now has a **real portrait and colored vitality symbols**, hides six detailed attributes during combat, and suppresses inactive navigation labels.
+- [GitHub Actions #45013191757](https://github.com/HeroA1998/rivers-and-years/actions/runs/45013191757) reported **102/102 checks passed** with 320/390/430 real-game screenshots, scripted dialogue, save reload, battle opening, dice, and compact HUD checks.
+- Latest combat-navigation visibility check is pending one final CI run. **Do not infer physical Android testing from headless Chromium.**
+- **Art limitation:** protagonist portrait is still the original approved 166×166px concept crop rendered larger. It is *not* an independently approved 1024px art master; do not mark this art gate complete.
+
 ## Remaining must-pass gates before merge
 - [x] Commit 13 source-derived WebP assets under `assets/ui/v8/`, and activate the linked artwork stylesheet.
 - [ ] At least one original **high-resolution, transparent, approved** protagonist portrait per required gender; do not mislabel a low-resolution upscaled crop or checkerboard RGB file as a transparent master.
