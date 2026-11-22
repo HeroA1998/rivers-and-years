@@ -128,6 +128,8 @@ const IC = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.500 3.500-7 8-7s8 2.500 8 7"/>',
   bag: '<path d="M6 9h12l1 12H5z"/><path d="M9 9V7a3 3 0 016 0v2"/>',
   shield: '<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/>',
+  settings: '<path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M10 2h4l.6 2.5 2 1.1 2.4-.8 2 3.4-1.8 1.8v2l1.8 1.8-2 3.4-2.4-.8-2 1.1L14 22h-4l-.6-2.5-2-1.1-2.4.8-2-3.4L4.8 14v-2L3 10.2l2-3.4 2.4.8 2-1.1z"/>',
+  flag: '<path d="M5 21V4M5 5c5-3 9 3 14 0v10c-5 3-9-3-14 0z"/>',
 };
 const ico = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
 const artIcon = id => artRole(id) === 'sup' ? 'sup' : SKILLS[id].type;
@@ -458,7 +460,7 @@ const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
 function gameHud(dim) {
   const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +
-    h(() => openMenu('settings')) + '>' + ico('shield') + '</button>';
+    h(() => openMenu('settings')) + '>' + ico('settings') + '</button>';
   const stats = '<div class="statrow">' + Object.keys(STAT_N).map(k =>
     '<span>' + ico(k) + '<i>' + STAT_N[k] + '</i><b>' + S.stats[k] + '</b>' +
     (S.bonus && S.bonus[k] ? '<small>+' + S.bonus[k] + '</small>' : '') + '</span>'
@@ -512,7 +514,7 @@ function battleView(o) {
   if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
   else side = '';
-  const PXI = (name, color, n) => `<img class="pxi" src="${pxIcon(name, color, n)}" alt="">`;
+  const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
   const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
   const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
@@ -543,7 +545,7 @@ function battleView(o) {
         ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
     </div>
     <div class="bdock">
-      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}><img class="pxi" src="${PIX.flag()}" alt=""><span>投降</span></button>`}</div>
+      <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}>${ico('flag')}<span>投降</span></button>`}</div>
       <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
       <div class="side">${side}</div>
     </div>
