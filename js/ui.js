@@ -74,7 +74,7 @@ const SCREENS = {
       <span>${esc(moralName())}</span>
       ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
     </div>`;
-    return `<header class="wuxia-masthead" aria-label="江湖歲月錄"><span class="masthead-seal">江湖歲月錄</span></header>${gameHud(false)}
+    return `${gameHud(false)}
       ${resources}
       <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
