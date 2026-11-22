@@ -206,21 +206,48 @@ const TABS = {
       return `<article class="card tier-${k.tier}${on ? ' equipped' : ''}"><div class="card-h"><span class="artic">${ico(artIcon(id), 'big')}</span><b>${k.n}</b><em class="stars">${stars(k.tier)}</em><span class="tag r-${r}">${ROLE_N[r]}</span><span class="tag ${k.tier === 3 ? 'gold' : 'grey'}">${TIER_N[k.tier]}${TYPE_N[k.type]}・${ATTR_N[k.attr]}</span>${ctl}</div>
         <div class="lvrow">第${cnNum(sk.lv)}層 ${sk.lv >= 10 ? '<em>圓滿</em>' : bar(sk.exp, xpNeed(sk.lv, k.tier), 'xp') + `<em>${sk.exp}/${xpNeed(sk.lv, k.tier)}</em>`}</div>
         <p class="props">${r === 'atk' ? `<span>攻擊力 <b>${artAtk(id)}</b></span>` : ''}<span>裝備加成 <b>${stat}</b></span>${fx ? `<span>效果 <b>${fx}</b></span>` : ''}</p>
-        <p>${k.d}</p><p class="moves">${detail}</p></article>`;
+        <details class="skill-details"><summary>查看招式與典故</summary><p>${k.d}</p><p class="moves">${detail}</p></details></article>`;
     }).join('');
   },
   bag() {
     const ids = Object.keys(S.inv);
-    const stx = it => Object.keys(it.st || {}).map(k => `${STAT_N[k]}+${it.st[k]}`).join('、');
-    const desc = it => it.d || (it.kind === 'weapon' ? `${TYPE_N[it.wt]}威力+${it.atk}（僅對同類武功有效）` : it.kind === 'armor' ? `防禦+${it.def}` : it.kind === 'acc' ? '飾品' : it.kind === 'manual' ? `可習得${SKILLS[it.skill].n}` : '');
-    const slot = (n, id, ic) => `<div>${ico(ic, 'gearic')}<span>${n}</span><b>${id ? ITEMS[id].n : '—'}</b><small>${id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備'}</small></div>`;
-    return `<section class="group"><h3>裝備</h3><div class="stats gear">${slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword')}${slot('護甲', S.armor, 'shield')}${slot('飾品', S.acc, 'ring')}</div><p class="desc">兵刃、護甲、飾品在路上的市集、鐵匠舖、貨郎那裡買得到，也可能在奇遇裡得到。</p></section>` +
-      (ids.length ? ids.map(id => {
-        const it = ITEMS[id];
-        const eqd = S.weapon === id || S.armor === id || S.acc === id;
-        const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
-        return `<article class="card row-card"><span class="itemic">${ico(itemIcon(it), 'big')}</span><div><b>${it.n}</b> ×${S.inv[id]} ${eqd ? '<span class="tag jade">使用中</span>' : ''}<p>${[desc(it), stx(it)].filter(Boolean).join('・')}</p></div>${lab ? B(lab, () => useItem(id), 'mini') : ''}</article>`;
-      }).join('') : '<p class="empty">行囊空空如也。</p>');
+    const stx = it => Object.keys(it.st || {}).map(k => STAT_N[k] + '+' + it.st[k]).join('、');
+    const desc = it => it.d || (it.kind === 'weapon'
+      ? TYPE_N[it.wt] + '威力+' + it.atk + '（僅對同類武功有效）'
+      : it.kind === 'armor' ? '防禦+' + it.def : it.kind === 'acc' ? '飾品'
+      : it.kind === 'manual' ? '可習得' + SKILLS[it.skill].n : '');
+    const slot = (n, id, ic) => '<div>' + ico(ic, 'gearic') +
+      '<span>' + n + '</span><b>' + (id ? ITEMS[id].n : '—') + '</b><small>' +
+      (id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備') + '</small></div>';
+    const equipped = '<section class="group"><h3>隨身裝備</h3><div class="stats gear">' +
+      slot('兵刃', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword') +
+      slot('護甲', S.armor, 'shield') + slot('飾品', S.acc, 'ring') + '</div></section>';
+    const groups = [
+      ['兵器與裝備', ['weapon', 'armor', 'acc']],
+      ['藥品與補給', ['med', 'tonic']],
+      ['武功秘笈', ['manual']],
+      ['其他物品', []]
+    ];
+    const content = groups.map(([title, kinds]) => {
+      const matching = ids.filter(id => {
+        const kind = ITEMS[id] && ITEMS[id].kind;
+        return kind && (kinds.length ? kinds.includes(kind) :
+          !groups.slice(0, 3).some(g => g[1].includes(kind)));
+      });
+      if (!matching.length) return '';
+      return '<section class="bag-section"><h3>' + title + '</h3>' +
+        matching.map(id => {
+          const it = ITEMS[id], eqd = S.weapon === id || S.armor === id || S.acc === id;
+          const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備',
+            armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上' }[it.kind];
+          return '<article class="card row-card"><span class="itemic">' + ico(itemIcon(it), 'big') +
+            '</span><div><b>' + it.n + '</b> ×' + S.inv[id] +
+            (eqd ? ' <span class="tag jade">使用中</span>' : '') +
+            '<p>' + [desc(it), stx(it)].filter(Boolean).join('・') + '</p></div>' +
+            (lab ? B(lab, () => useItem(id), 'mini') : '') + '</article>';
+        }).join('') + '</section>';
+    }).join('');
+    return equipped + (ids.length ? content : '<p class="empty">行囊空空如也。</p>');
   },
   people() {
     const met = Object.keys(NPCS).filter(id => S.npcs[id] && S.npcs[id].met);
@@ -537,11 +564,4 @@ try {
   if (mq.addEventListener) mq.addEventListener('change', () => render());
   new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 } catch (e) { /* 主題監聽不可用時略過 */ }
-// 手機版面：以 410 單位寬為基準整體放大，字與按鈕在任何手機上都一樣大
-function fitScreen() {
-  const w = window.innerWidth || 410;
-  document.documentElement.style.setProperty('--z', w <= 1100 ? Math.max(1, Math.min(2.6, w / 410)).toFixed(3) : '1');
-}
-fitScreen();
-window.addEventListener('resize', fitScreen);
 render();
