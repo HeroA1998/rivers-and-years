@@ -433,11 +433,10 @@ function eventReader(o) {
         </span>
       </button>`).join('');
   }
+  // 不在 p 與 span 之間插入 HTML 模板換行：pre-line 會把排版用換行
+  // 當成故事內容，造成正文前多出兩行空白。
   const transcript = lines.map((line, i) =>
-    `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}">
-      <span class="reader-screenreader">${esc(line.text)}</span>
-      <span class="reader-visible" aria-hidden="true">${esc(line.text)}</span>
-    </p>`).join('');
+    `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${esc(line.text)}</span><span class="reader-visible" aria-hidden="true">${esc(line.text)}</span></p>`).join('');
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
