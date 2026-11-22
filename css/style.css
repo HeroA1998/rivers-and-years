@@ -805,6 +805,25 @@ body{background:#C7BAA5;color:var(--ink)}
   background:rgba(216,205,186,.98);
   border-color:#BAA583;
 }
+/* 人物／行囊亦須兼容 320px 螢幕，而不是只修江湖首頁 */
+@media(max-width:375px){
+  #app[data-page="me"] .bhud .hud-core,
+  #app[data-page="bag"] .bhud .hud-core{
+    grid-template-columns:51px minmax(0,1fr) 28px;
+    grid-template-areas:"portrait identity gear" "stats stats stats";
+    gap:5px 7px;
+  }
+  #app[data-page="me"] .bhud .hport,
+  #app[data-page="bag"] .bhud .hport{grid-area:portrait;width:51px;height:58px}
+  #app[data-page="me"] .bhud .hud-identity,
+  #app[data-page="bag"] .bhud .hud-identity{grid-area:identity}
+  #app[data-page="me"] .bhud .hud-stats-mini,
+  #app[data-page="bag"] .bhud .hud-stats-mini{
+    grid-area:stats;grid-template-columns:repeat(6,minmax(0,1fr));
+  }
+  #app[data-page="me"] .bhud .hgear,
+  #app[data-page="bag"] .bhud .hgear{grid-area:gear}
+}
 /* 過窄手機：六屬性移到第二行，但依舊保持 HUD 清晰可讀 */
 @media(max-width:375px){
   #app[data-page="world"]{padding-left:9px;padding-right:9px}
