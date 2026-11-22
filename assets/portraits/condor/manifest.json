@@ -1,0 +1,206 @@
+[
+  {
+    "id": "guo_jing",
+    "name_zh": "郭靖",
+    "src": "assets/portraits/condor/mobile/guo_jing.webp",
+    "master": "assets/portraits/condor/guo_jing.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/guo_jing.webp",
+      "256": "assets/portraits/condor/mobile/256/guo_jing.webp",
+      "128": "assets/portraits/condor/mobile/128/guo_jing.webp"
+    },
+    "role": "Stalwart frontier-raised young warrior",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "huang_rong",
+    "name_zh": "黃蓉",
+    "src": "assets/portraits/condor/mobile/huang_rong.webp",
+    "master": "assets/portraits/condor/huang_rong.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/huang_rong.webp",
+      "256": "assets/portraits/condor/mobile/256/huang_rong.webp",
+      "128": "assets/portraits/condor/mobile/128/huang_rong.webp"
+    },
+    "role": "Resourceful Peach Blossom Island heroine",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "yang_kang",
+    "name_zh": "楊康",
+    "src": "assets/portraits/condor/mobile/yang_kang.webp",
+    "master": "assets/portraits/condor/yang_kang.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/yang_kang.webp",
+      "256": "assets/portraits/condor/mobile/256/yang_kang.webp",
+      "128": "assets/portraits/condor/mobile/128/yang_kang.webp"
+    },
+    "role": "Jin-court-raised young nobleman",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "mu_nianci",
+    "name_zh": "穆念慈",
+    "src": "assets/portraits/condor/mobile/mu_nianci.webp",
+    "master": "assets/portraits/condor/mu_nianci.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/mu_nianci.webp",
+      "256": "assets/portraits/condor/mobile/256/mu_nianci.webp",
+      "128": "assets/portraits/condor/mobile/128/mu_nianci.webp"
+    },
+    "role": "Warm, resolute itinerant martial artist",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "hong_qigong",
+    "name_zh": "洪七公",
+    "src": "assets/portraits/condor/mobile/hong_qigong.webp",
+    "master": "assets/portraits/condor/hong_qigong.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/hong_qigong.webp",
+      "256": "assets/portraits/condor/mobile/256/hong_qigong.webp",
+      "128": "assets/portraits/condor/mobile/128/hong_qigong.webp"
+    },
+    "role": "Weathered leader of the Beggars’ Sect",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "huang_yaoshi",
+    "name_zh": "黃藥師",
+    "src": "assets/portraits/condor/mobile/huang_yaoshi.webp",
+    "master": "assets/portraits/condor/huang_yaoshi.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/huang_yaoshi.webp",
+      "256": "assets/portraits/condor/mobile/256/huang_yaoshi.webp",
+      "128": "assets/portraits/condor/mobile/128/huang_yaoshi.webp"
+    },
+    "role": "Discerning scholar and master of Peach Blossom Island",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "ouyang_feng",
+    "name_zh": "歐陽鋒",
+    "src": "assets/portraits/condor/mobile/ouyang_feng.webp",
+    "master": "assets/portraits/condor/ouyang_feng.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/ouyang_feng.webp",
+      "256": "assets/portraits/condor/mobile/256/ouyang_feng.webp",
+      "128": "assets/portraits/condor/mobile/128/ouyang_feng.webp"
+    },
+    "role": "Severe martial master of White Camel Mountain",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "yideng",
+    "name_zh": "一燈大師",
+    "src": "assets/portraits/condor/mobile/yideng.webp",
+    "master": "assets/portraits/condor/yideng.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/yideng.webp",
+      "256": "assets/portraits/condor/mobile/256/yideng.webp",
+      "128": "assets/portraits/condor/mobile/128/yideng.webp"
+    },
+    "role": "Compassionate Buddhist monk and former Dali ruler",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "zhou_botong",
+    "name_zh": "周伯通",
+    "src": "assets/portraits/condor/mobile/zhou_botong.webp",
+    "master": "assets/portraits/condor/zhou_botong.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/zhou_botong.webp",
+      "256": "assets/portraits/condor/mobile/256/zhou_botong.webp",
+      "128": "assets/portraits/condor/mobile/128/zhou_botong.webp"
+    },
+    "role": "Playful Taoist elder known as the Old Urchin",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "qiu_chuji",
+    "name_zh": "丘處機",
+    "src": "assets/portraits/condor/mobile/qiu_chuji.webp",
+    "master": "assets/portraits/condor/qiu_chuji.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/qiu_chuji.webp",
+      "256": "assets/portraits/condor/mobile/256/qiu_chuji.webp",
+      "128": "assets/portraits/condor/mobile/128/qiu_chuji.webp"
+    },
+    "role": "Principled Quanzhen Taoist elder",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "mei_chaofeng",
+    "name_zh": "梅超風",
+    "src": "assets/portraits/condor/mobile/mei_chaofeng.webp",
+    "master": "assets/portraits/condor/mei_chaofeng.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/mei_chaofeng.webp",
+      "256": "assets/portraits/condor/mobile/256/mei_chaofeng.webp",
+      "128": "assets/portraits/condor/mobile/128/mei_chaofeng.webp"
+    },
+    "role": "Formidable, haunted martial artist of Peach Blossom Island lineage",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  },
+  {
+    "id": "ke_zhen_e",
+    "name_zh": "柯鎮惡",
+    "src": "assets/portraits/condor/mobile/ke_zhen_e.webp",
+    "master": "assets/portraits/condor/ke_zhen_e.png",
+    "variants": {
+      "512": "assets/portraits/condor/mobile/ke_zhen_e.webp",
+      "256": "assets/portraits/condor/mobile/256/ke_zhen_e.webp",
+      "128": "assets/portraits/condor/mobile/128/ke_zhen_e.webp"
+    },
+    "role": "Austere blind master of the Seven Freaks of Jiangnan",
+    "credit": "OpenAI Image Generation. Original fan-art interpretation of Jin Yong’s The Legend of the Condor Heroes.",
+    "generation_method": "Individual reference-guided OpenAI Image Generation raster render using the approved wuxia atlas crop, with alpha cleanup, square framing and export resizing.",
+    "license_status": "For review in this noncommercial fan project. Underlying character and novel rights remain with their respective rights holders. Commercial redistribution rights have not been established.",
+    "approved": false,
+    "era": "shediao"
+  }
+]
