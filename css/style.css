@@ -805,3 +805,100 @@ body { font-size: 16px; }
 .opt span, .opt b i { color: var(--sf-ink2); }
 .opt.sealed { color: var(--sf-ink2); }
 .sheet .story, .story { color: var(--ink); }
+
+/* ================= v6.7 暖色統一：戰鬥內外同一套灰褐底、羊皮紙、像素邊框 =================
+   取消冷色的靛藍主題；淺色與深色模式都用同一組暖色（參考圖配色）。 */
+:root, :root[data-theme="dark"] {
+  --paper: #E3DDCB; --card: #EFE9D8; --ink: #4B473E; --ink2: #7A7262; --line: #B9AE92;
+  --jade: #4E8C6E; --on-jade: #F4EFE2; --seal: #A8433C; --gold: #B08A3E; --rose: #9A4F6A;
+  --indigo: #6B665B; --indigo2: #7A7468; --gold-hi: #E2C77A; --art-filter: none;
+  --sf-a: #F1ECDD; --sf-b: #E3DCC8; --sf-ink: #4B473E; --sf-ink2: #7A7262; --sf-edge: #B9AE92; --sf-q: #ECE6D5;
+  --taupe: #6B665B; --cream: #EDE7D6; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #E3DDCB; --card: #EFE9D8; --ink: #4B473E; --ink2: #7A7262; --line: #B9AE92;
+  --jade: #4E8C6E; --on-jade: #F4EFE2; --seal: #A8433C; --gold: #B08A3E; --rose: #9A4F6A;
+  --indigo: #6B665B; --indigo2: #7A7468; --gold-hi: #E2C77A; --art-filter: none;
+  --sf-a: #F1ECDD; --sf-b: #E3DCC8; --sf-ink: #4B473E; --sf-ink2: #7A7262; --sf-edge: #B9AE92; --sf-q: #ECE6D5;
+  --taupe: #6B665B; --cream: #EDE7D6; color-scheme: light; } }
+#app { --accent: #4E8C6E; --accent-d: #2C4F3F; --accent-hi: #6FA88A; }
+#app[data-align="e"] { --accent: #A8433C; --accent-d: #5E1E1A; --accent-hi: #C9675E; }
+#app[data-align="n"], :root[data-theme="dark"] #app[data-align="n"] { --accent: #8A7656; --accent-d: #4E4130; --accent-hi: #A89474; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #app[data-align="n"] { --accent: #8A7656; --accent-d: #4E4130; --accent-hi: #A89474; } }
+html body, :root[data-theme="dark"] body { background: var(--taupe) !important; color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background: var(--taupe) !important; } }
+
+/* 頂部角色列：主畫面不壓暗，戰鬥中壓暗 */
+.bhud { opacity: 1; filter: none; grid-template-rows: auto auto auto; padding-bottom: 6px; }
+.bhud.dim { opacity: .7; filter: saturate(.8); }
+.htop { grid-column: 3; grid-row: 1; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.hdate { font: 600 13px var(--f-brush); color: var(--cream); white-space: nowrap; }
+.hdate b { margin-left: 4px; padding: 0 4px; background: var(--seal); color: #FFF6E4; font-weight: 600; }
+.hgear { background: none; border: 0; padding: 0; line-height: 0; justify-self: end; height: auto; }
+.hgear .pxi { height: 24px; }
+button.hgear { cursor: pointer; }
+.hxp { position: relative; }
+.hxp em { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); font: 700 11px var(--f-ui); font-style: normal; color: var(--cream); text-shadow: 0 1px 0 #000; }
+
+/* 主畫面：場景圖、資源列 */
+.scene { border: 10px solid transparent !important; border-image: var(--sp-art) 5 / 10px round !important; border-radius: 0 !important; box-shadow: none !important; image-rendering: pixelated; overflow: hidden; }
+.scene img.art { border-radius: 0; }
+.place { background: var(--seal) !important; border: 2px solid #5E1E1A !important; border-radius: 0 !important; box-shadow: none !important; }
+.chips2 { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips2 span { display: inline-flex; align-items: center; gap: 4px; background: var(--paper); border: 2px solid var(--line); padding: 2px 8px; font: 14px var(--f-ui); color: var(--ink); }
+.chips2 b { color: var(--seal); } .chips2 .hot { color: #FFF6E4; background: var(--seal); border-color: #5E1E1A; }
+.chips2 .pxi { height: 18px; }
+
+/* 文字直接落在灰褐底上時用淺色 */
+main > .desc, main > .empty, .group > .desc, .group > .empty, main > p { color: #E9E3D2; }
+.title-screen, .create, .ending { color: #F0EADB; }
+.title-screen .lead, .create .note, .ending .note, .ending .story { color: #DCD5C3; }
+.field { color: #F0EADB; }
+.field input { background: var(--paper); border: 2px solid var(--line); border-radius: 0; color: var(--ink); }
+.ver { color: #CFC8B5; }
+
+/* 卡片與按鈕：羊皮紙像素邊框 */
+.guide, .quest, .log, .card, .stats > div, .opt, .lvr, .codex div, .insight, .slot, .statrow span, .act {
+  border: 10px solid transparent !important; border-image: var(--sp-btn) 5 fill / 10px round !important; background: none !important;
+  box-shadow: none !important; border-radius: 0 !important; image-rendering: pixelated; color: var(--ink); }
+.guide::before, .guide::after { color: var(--gold); }
+.guide h3, .quest h3 { color: var(--seal); }
+.card .card-h b, .stats > div span { color: var(--ink); }
+.btn { border: 10px solid transparent !important; border-image: var(--sp-btn) 5 fill / 10px round !important; background: none !important;
+  box-shadow: none !important; border-radius: 0 !important; color: var(--ink); text-shadow: none; image-rendering: pixelated; padding: 2px 8px; }
+.btn.big { padding: 4px 8px; }
+.btn.primary, .btn.primary.big { border-image: var(--sp-btn-red) 5 fill / 10px round !important; color: #FFF6E4; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.btn.on, .btn.mini.on { border-image: var(--sp-btn-green) 5 fill / 10px round !important; color: #F4EFE2; }
+.btn.surr { color: var(--seal); }
+.btn:active { transform: translateY(2px); filter: brightness(.95); }
+.btn.choice { color: var(--ink); }
+.btn.choice.side-g { box-shadow: inset 6px 0 0 #4E8C6E !important; }
+.btn.choice.side-e { box-shadow: inset 6px 0 0 #A8433C !important; }
+.btn.choice.side-n { box-shadow: inset 6px 0 0 #8A7656 !important; }
+.btn.choice .side { border-radius: 0; }
+.side-g .side { background: #4E8C6E; } .side-e .side { background: #A8433C; } .side-n .side { background: #8A7656; }
+.tag { border-radius: 0 !important; }
+.group h3 { border-radius: 0; box-shadow: none; }
+.seg { border: 2px solid var(--line); border-radius: 0; background: var(--paper); }
+.seg button { color: var(--ink2); border-right-color: var(--line); }
+.seg button.on { background: var(--taupe); color: var(--cream); }
+.card.tier-3 { box-shadow: none !important; }
+
+/* 事件與選單浮層：灰褐遮罩上的羊皮紙 */
+.veil { background: rgba(58,54,46,.72); backdrop-filter: none; }
+.sheet { background: none !important; border: 12px solid transparent !important; border-image: var(--sp-panel) 6 fill / 12px round !important;
+  box-shadow: none !important; border-radius: 0 !important; color: var(--ink); image-rendering: pixelated; }
+.sheet-h { background: var(--paper); }
+.sheet .scene { border-radius: 0 !important; }
+.sheet .story, .story { color: var(--ink); }
+.sheet .desc { color: var(--ink2); }
+
+/* 底部導覽：主畫面可按，戰鬥中壓暗 */
+.bnav.live { position: sticky; bottom: 0; z-index: 5; opacity: 1; margin: auto -16px 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--taupe); border-top: 3px solid #8D8167; }
+.bnav.live button { background: none; border: 0; padding: 4px 18px; opacity: .55; line-height: 0; }
+.bnav.live button.on { opacity: 1; filter: drop-shadow(0 0 6px rgba(226,199,122,.8)); }
+.bnav span { line-height: 0; }
+.bhud .hxp { grid-column: 1 / span 2; grid-row: 3; align-self: center; }
+.bhud .hdate { grid-column: 3; grid-row: 3; justify-self: end; align-self: center; }
+.hname { font-size: 14px; padding: 2px 5px; }
+.hs { min-width: 44px; padding: 2px 4px; gap: 3px; }

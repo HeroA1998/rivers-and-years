@@ -64,21 +64,11 @@ const SCREENS = {
     const L = LOCS[S.loc];
     if (UI.tab === 'skill' || UI.tab === 'people') { UI.sub = UI.tab; UI.tab = 'me'; }
     if (!TABS[UI.tab] || UI.tab === 'status') UI.tab = 'world';
-    return `<header class="top">
-        <div class="date">${dateStr()}<span class="season">${season()}</span></div>
-        ${B('⚙ 設定', () => openMenu('settings'), 'mini gear')}
-        <div class="who">${esc(S.name)}・${cnNum(age())}歲・${fameTitle()}</div>
-      </header>
+    return `${gameHud(false)}
       <div class="scene">${art(L.art, S.loc + season())}<span class="place">${L.n}</span></div>
-      <div class="vitals">
-        <div class="icorow"><span>氣血</span><span class="ico">${hearts()}</span></div>
-        <div class="icorow"><span>內力</span><span class="ico">${orbs(S.qi, qiMax())}</span></div>
-        <div><span>Lv ${S.lv}</span>${bar(S.exp, expNeed(S.lv), 'xp')}<em>${S.exp}/${expNeed(S.lv)}</em></div>
-        ${statRow()}
-        <div class="chips"><span>${ico('coin')}銀兩 <b>${S.silver}</b></span><span>${ico('star')}聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
-      </div>
+      <div class="chips2"><span><img class="pxi" src="${pxIcon('coin', '#C9A24A', 12)}" alt="">銀兩 <b>${S.silver}</b></span><span><img class="pxi" src="${pxIcon('star', '#C9A24A', 12)}" alt="">聲望 <b>${S.fame}</b></span><span>${moralName()}</span>${S.pts ? `<span class="hot">屬性點 ${S.pts}</span>` : ''}</div>
       <main>${TABS[UI.tab]()}</main>
-      <nav class="tabs">${[['world', '江湖', 'compass'], ['me', '人物', 'person'], ['bag', '行囊', 'bag']].map(t => `<button type="button" class="${UI.tab === t[0] ? 'on' : ''}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}>${ico(t[2])}<span>${t[1]}</span></button>`).join('')}</nav>`;
+      ${gameNav(UI.tab, true)}`;
   },
   end() {
     const e = UI.end;
@@ -366,20 +356,31 @@ const foeFig = style => style === 'beast'
 const SOLID = new Set(['shield', 'star', 'bag', 'box', 'person', 'coin']);
 const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name));
 const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
-function battleHud() {
+// 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
+function gameHud(dim) {
   const orbRow = (n, m, kind) => Array.from({ length: m }, (_, i) => `<img class="pxo" src="${PIX.orb(kind, i < n)}" alt="">`).join('');
-  const stat = k => `<span class="hs"><img class="pxi" src="${pxIcon(k, STAT_COL[k], 14)}" alt=""><b>${S.stats[k]}</b></span>`;
-  return `<div class="bhud">
+  const stat = k => `<span class="hs" title="${STAT_N[k]}"><img class="pxi" src="${pxIcon(k, STAT_COL[k], 14)}" alt=""><b>${S.stats[k]}</b></span>`;
+  const gear = dim ? `<span class="hgear"><img class="pxi" src="${PIX.gear()}" alt=""></span>`
+    : `<button type="button" class="hgear" aria-label="設定"${h(() => openMenu('settings'))}><img class="pxi" src="${PIX.gear()}" alt=""></button>`;
+  return `<div class="bhud${dim ? ' dim' : ''}">
     <div class="hport"><img class="pxi" src="${pxIcon('person', '#E8D6B0', 30)}" alt=""></div>
     <div class="hmid"><div class="hname">${esc(fameTitle())} ${esc(S.name)}</div>
       <div class="orbs">${orbRow(S.life, lifeMax(), 'red')}</div><div class="orbs">${orbRow(S.qi, qiMax(), 'green')}</div></div>
+    <div class="htop">${gear}</div>
     <div class="hstats">${Object.keys(STAT_N).map(stat).join('')}</div>
-    <img class="hgear pxi" src="${PIX.gear()}" alt="">
-    <div class="hxp"><i style="width:${clamp(S.exp / expNeed(S.lv) * 100, 0, 100)}%"></i></div>
+    <div class="hxp"><i style="width:${clamp(S.exp / expNeed(S.lv) * 100, 0, 100)}%"></i><em>Lv ${S.lv}</em></div>
+    <span class="hdate">${dateStr()}<b>${season()}</b></span>
   </div>`;
 }
-const NAV = [['scroll', '#3F6577'], ['box', '#8A6A3A'], ['star', '#C9A24A'], ['shield', '#5E7A58'], ['person', '#B9A98C'], ['bag', '#9A6B3C']];
-const battleNav = () => `<div class="bnav">${NAV.map(([n, c]) => `<img class="pxi" src="${pxIcon(n, c, 20)}" alt="">`).join('')}</div>`;
+// 底部導覽：江湖／人物／行囊；戰鬥中同一排圖示壓暗、不能按
+const TAB_DEF = [['world', '江湖', 'compass', '#4F7F92'], ['me', '人物', 'person', '#C9B48E'], ['bag', '行囊', 'bag', '#A8743F']];
+function gameNav(active, live) {
+  return `<nav class="bnav${live ? ' live' : ''}">${TAB_DEF.map(t => live
+    ? `<button type="button" class="${active === t[0] ? 'on' : ''}" aria-label="${t[1]}"${h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); })}><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></button>`
+    : `<span><img class="pxi" src="${pxIcon(t[2], t[3], 20)}" alt=""></span>`).join('')}</nav>`;
+}
+// 戰鬥背景：用事件或所在地的場景圖，不再固定同一張
+const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
 
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
@@ -408,7 +409,7 @@ function battleView(o) {
   const shield = `<img class="pxi shd" src="${pxIcon('shield', '#EDE7D3', 12)}" alt="">`;
   const pct = (v, m) => clamp(m ? v / m * 100 : 0, 0, 100);
   return `<div class="veil bveil"><div class="sheet battle auto">
-    ${battleHud()}
+    ${gameHud(true)}
     <div class="bpanel">
       <div class="bhead">
         <div class="side-p"><b>${esc(S.name)}</b><span class="pw">${PXI('sword', '#6B6556', 12)}${pw.toFixed(1)}</span></div>
@@ -421,7 +422,7 @@ function battleView(o) {
         <div class="pxbar p">${shield}<i style="width:${pct(S.hp, maxHp())}%"></i><span>${Math.max(0, S.hp)}/${maxHp()}</span></div>
         <div class="pxbar e"><i style="width:${pct(e.hp, e.mhp)}%"></i><span>${Math.max(0, e.hp)}/${e.mhp}</span>${shield.replace('shd"', 'shd r"')}</div>
       </div>
-      <div class="arena">${art(o.art || 'fight', e.n, 'bg')}
+      <div class="arena">${art(battleBg(o), e.n, 'bg')}
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
         <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
@@ -434,7 +435,7 @@ function battleView(o) {
       <div class="tray ${o.phase === 'roll' ? 'live' : ''}" data-seq="${o.seq || 0}" data-roll="${o.roll == null ? '' : o.roll}" data-phase="${o.phase}" data-tick="${o.tick || 0}" data-tone="${tone}">${DIE3 ? '' : `<div class="${dieCls}">${dieInner}</div>`}</div>
       <div class="side">${side}</div>
     </div>
-    ${battleNav()}
+    ${gameNav(null, false)}
   </div></div>`;
 }
 

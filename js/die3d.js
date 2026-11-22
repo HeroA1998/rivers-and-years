@@ -7,7 +7,7 @@ const DIE3 = (function () {
   const TRAY_H = 150, VIEW_H = 2.5;   // 骰盤高 150px 對應 2.5 個世界單位（PX = 60 px/單位，會跟著 #app 的縮放）
   const S = 0.92;                     // 骰子外接圓半徑（世界單位）
   const CAM_Z = 6;
-  const FLIGHT = 1.0, SETTLE = 0.3, GLIDE = 0.45, PIXEL = 2;   // PIXEL：每個像素格的 CSS px（像素風渲染）   // 秒：飛行（整個螢幕）、飛回骰盤
+  const FLIGHT = 1.0, SETTLE = 0.3, GLIDE = 0.45;   // 秒：飛行（整個螢幕）、飛回骰盤
   const FRICTION = 1.3, RESTITUTION = 0.7;
   let PX = 60;                        // 螢幕 px 每世界單位
 
@@ -41,27 +41,31 @@ const DIE3 = (function () {
       faceNum[i] = k; faceNum[j] = 21 - k; k++;
     }
     faceOf = []; faceNum.forEach((n, i) => { faceOf[n] = i; });
-    faceUp = tri.map(t => new T.Vector3(0, 1, 0).sub(t.n.clone().multiplyScalar(t.n.y)).normalize());
+    // 每面的「向上」：從面中心指向該面最高的那個角，讓三角形尖端朝上、數字擺正
+    faceUp = tri.map(t => {
+      const c = new T.Vector3().add(t.a).add(t.b).add(t.c).divideScalar(3);
+      const top = [t.a, t.b, t.c].reduce((m, v) => (v.y > m.y ? v : m));
+      return top.clone().sub(c).normalize();
+    });
     return tri;
   }
 
-  // 數字圖集：5×4 格，每格 64px，不做平滑，像素風；底色平塗，明暗交給光照形成低多邊形切面
+  // 數字圖集：5×4 格，每格 256px，平滑取樣；底色平塗，明暗交給光照形成切面
   function atlas(name, emit) {
-    const CELL = 64, c = document.createElement('canvas'); c.width = CELL * 5; c.height = CELL * 4;
+    const CELL = 256, c = document.createElement('canvas'); c.width = CELL * 5; c.height = CELL * 4;
     const g = c.getContext('2d');
-    const pal = { red: ['#8E3432', '#E3B466', '#2E0F0E'], gold: ['#E0A92A', '#FFFDF2', '#5A3A05'], iron: ['#8A8478', '#FFFDF4', '#2A2722'] }[name];
+    const pal = { red: ['#8E3432', '#E8BC6A', '#2E0F0E'], gold: ['#D9A634', '#FFF8E2', '#5A3A05'], iron: ['#857F73', '#FFFDF4', '#2A2722'] }[name];
     for (let n = 1; n <= 20; n++) {
       const x0 = ((n - 1) % 5) * CELL, y0 = Math.floor((n - 1) / 5) * CELL;
       g.fillStyle = emit ? '#000' : pal[0]; g.fillRect(x0, y0, CELL, CELL);
-      const txt = String(n), cx = x0 + CELL / 2, cy = y0 + CELL * 0.7;
-      g.font = 'bold ' + (n >= 10 ? 30 : 40) + 'px "Courier New", monospace';
+      const txt = String(n), cx = x0 + CELL / 2, cy = y0 + CELL * 0.69;
+      g.font = 'bold ' + (n >= 10 ? 112 : 140) + 'px "Noto Serif TC", Georgia, "Times New Roman", serif';
       g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-      if (!emit) { g.lineWidth = 5; g.strokeStyle = pal[2]; g.strokeText(txt, cx, cy); }
+      if (!emit) { g.lineWidth = 14; g.strokeStyle = pal[2]; g.strokeText(txt, cx, cy); }
       g.fillStyle = pal[1]; g.fillText(txt, cx, cy);
     }
     const tex = new T.CanvasTexture(c);
-    tex.colorSpace = T.SRGBColorSpace;
-    tex.magFilter = T.NearestFilter; tex.minFilter = T.NearestFilter; tex.generateMipmaps = false;
+    tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8;
     return tex;
   }
 
@@ -89,13 +93,13 @@ const DIE3 = (function () {
 
   function init() {
     const tri = layout();
-    R = new T.WebGLRenderer({ alpha: true, antialias: false });
-    R.setPixelRatio(1 / PIXEL);
+    R = new T.WebGLRenderer({ alpha: true, antialias: true });
+    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
     R.outputColorSpace = T.SRGBColorSpace;
     // 畫布蓋住整個螢幕，但不攔截點擊；骰子可以飛到任何地方
     const st = R.domElement.style;
     st.position = 'fixed'; st.left = '0'; st.top = '0'; st.width = '100vw'; st.height = '100vh';
-    st.pointerEvents = 'none'; st.zIndex = '60'; st.imageRendering = 'pixelated';
+    st.pointerEvents = 'none'; st.zIndex = '60';
     document.body.appendChild(R.domElement);
     scene = new T.Scene();
     cam = new T.OrthographicCamera(-1, 1, 1, -1, -50, 50);
@@ -296,6 +300,8 @@ const DIE3 = (function () {
       anim = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
       tray = null; away = false; wantHome = false; showFace(null); cur = targetQuat(20); pos.set(0, 0); vel.set(0, 0);
     },
+    // 與結果面正對姿態相差的角度（度，驗證用）
+    tilt() { if (!mesh) return null; const r = this.topFace(); return mesh.quaternion.angleTo(targetQuat(r)) * 180 / Math.PI; },
     // 目前朝向鏡頭的那一面的數字（驗證用）
     topFace() {
       if (!mesh) return null;

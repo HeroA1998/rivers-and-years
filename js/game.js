@@ -439,7 +439,7 @@ function startBattle(r) {
   clearTimeout(battleTimer);
   S.flags.sinceFight = 0; PEND = [];
   UI.ov = {
-    k: 'battle', type: '戰鬥', who: prev.who, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
+    k: 'battle', type: '戰鬥', who: prev.who, art: prev.art, title: r.title || prev.title || '狹路相逢', e: r.battle, win: r.win, lose: r.lose, noFlee: r.noFlee,
     log: [r.intro || `${r.battle.n}擺開架勢，殺氣逼人。`], fx: { bleed: 0, bleedV: 0, poison: 0, poisonV: 0, stun: 0, weak: 0 },
     tick: 0, over: null, phase: 'roll', roll: null, mult: 1, take: 1, god: false, speed: 1, esc: 1, pop: null,
   };

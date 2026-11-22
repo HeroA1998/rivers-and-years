@@ -15,7 +15,7 @@ const PIX = (function () {
       const d = Math.min(x, y, o.w - 1 - x, o.h - 1 - y);
       const corner = (x < 2 && y < 2) || (x > o.w - 3 && y < 2) || (x < 2 && y > o.h - 3) || (x > o.w - 3 && y > o.h - 3);
       if (corner) continue;
-      if (o.torn && d < 2 && R() < (d === 0 ? 0.1 : 0.03)) continue;
+      if (o.torn && d < 2 && R() < (d === 0 ? (o.tear || 0.1) : 0.03)) continue;
       if (d < o.rings.length) put(g, x, y, o.rings[d]);
       else if (o.fill) put(g, x, y, o.fill);
     }
@@ -103,7 +103,9 @@ const PIX = (function () {
   // 邊框素材 → CSS 變數
   const SPRITES = {
     '--sp-panel': { w: 36, h: 36, rings: ['#8D8167', '#F4EFE0'], fill: '#E3DDCB', torn: true, seed: 3 },
-    '--sp-btn':   { w: 30, h: 30, rings: ['#A99D80', '#FAF7EC'], fill: '#ECE7D8', torn: true, seed: 11 },
+    '--sp-btn':   { w: 30, h: 30, rings: ['#A99D80', '#FAF7EC'], fill: '#ECE7D8', torn: true, seed: 11, tear: 0.035 },
+    '--sp-btn-red':   { w: 30, h: 30, rings: ['#5E1E1A', '#C9675E'], fill: '#A8433C', torn: true, seed: 19, tear: 0.035 },
+    '--sp-btn-green': { w: 30, h: 30, rings: ['#2C4F3F', '#86B9A0'], fill: '#4E8C6E', torn: true, seed: 23, tear: 0.035 },
     '--sp-bar':   { w: 12, h: 12, rings: ['#463C28', '#BCAC7C', '#BCAC7C', '#6B5E45'] },
     '--sp-slot':  { w: 9, h: 9, rings: ['#B89B63', '#E4CF97'], fill: '#2B251C' },
     '--sp-slot-hot': { w: 9, h: 9, rings: ['#B23A3A', '#E26A6A'], fill: '#2B251C' },
