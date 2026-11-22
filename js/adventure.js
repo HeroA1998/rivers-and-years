@@ -223,7 +223,6 @@ const CARDS = [
 
   /* ===== 回城 ===== */
   { id: 'y_townmed', ctx: ['city', 'wild', 'sect'], w: s => s.life < lifeMax() ? 38 : 9, make: townMedCard },
-  { id: 'y_townart', ctx: ['city', 'wild', 'sect'], w: s => s.silver >= 150 ? 20 : 5, cond: s => artShop(s).length > 0, make: townArtCard },
 
   /* ===== 買賣 ===== */
   { id: 'y_market', ctx: ['city'], w: 10, make: marketCard },
@@ -345,14 +344,6 @@ function shopSell(id) {
 }
 function openShop() { UI.ov = { k: 'menu', m: 'shop', tab: 'buy' }; render(); }
 function closeShop() { save(); showEvent(cardEvent(townCard(S))); }   // 離開商人，回到回城的三個選項
-function townArtCard(s) {
-  goTown();
-  const id = pick(artShop(s)), it = ITEMS[id], sk = SKILLS[it.skill];
-  return { title: '回城買武功', art: 'city', text: `你回到${LOCS[s.loc].n}，在書肆的角落裡翻到一本${it.n}。掌櫃擦著眼鏡：「${sk.n}，${TIER_N[sk.tier]}${TYPE_N[sk.type]}。${sk.d}${it.price} 兩，要就拿去。」\n\n你身上有 ${s.silver} 兩。`,
-    opts: [$g(P(`付 ${it.price} 兩買下，回去研讀`, ['你付了銀子，把秘笈揣進懷裡。', { silver: -it.price }, () => learn(it.skill)], { req: money(it.price), reqT: `需 ${it.price} 兩` })),
-      $e(O('趁掌櫃打盹，把秘笈揣進懷裡', 'agi', 13, ['你抄起秘笈，若無其事地走出了書肆。', {}, () => learn(it.skill)], ['掌櫃一嗓子喊來了鄰舖的夥計。你被扭送出門，秘笈也沒拿到。', { silver: -Math.min(s.silver, 50), fame: -4 }])),
-      $n(P('翻了翻，放回架上', ['你把書放回了原處。'])) ] };
-}
 
 /* ---------- 買賣 ---------- */
 const priceOf = id => ITEMS[id].price;
