@@ -132,31 +132,50 @@ for(const dims of [[320,700],[390,844],[430,932]]){
   await reveal(page);
   check(String(width)+' saved game resumed',await page.locator('.event-reader').count()>0);
  }
- if(width===390){
-   await page.evaluate(()=>{
-     showEvent({type:'江湖',title:'山路試招',text:'前方有個山賊擋住去路。',choices:[
-       {s:'g',t:'挺身應戰',go:()=>({title:'山路對決',intro:'山賊擺開架勢。',battle:foe('山賊',2,0.15,'thug')})}
-     ]});
-   });
-   await reveal(page);
-   await page.locator('.event-choice:not([disabled])').first().click();
-   check('390 battle opens',await page.locator('#app[data-page="battle"] .bveil').count()>0);
-   await page.screenshot({path:out+'/battle_390x844.png',fullPage:false,animations:'disabled'});
-   const skip=page.getByRole('button',{name:/跳過投擲/});
-   check('390 dice offers roll/skip',await skip.count()>0);
-   if(await skip.count())await skip.click();
-   check('390 combat retains HUD',await page.locator('.bveil .bhud').count()>0);
-   const battleHud=await page.evaluate(()=>{
-     const portrait=document.querySelector('#app[data-page="battle"] .approved-portrait');
-     const stats=document.querySelector('#app[data-page="battle"] .hud-stats-mini');
-     return {portraitVisible:!!portrait&&portrait.getBoundingClientRect().height>=50,
-       portraitSource:portrait?getComputedStyle(portrait).backgroundImage:'',
-       statHidden:!stats||getComputedStyle(stats).display==='none'};
-   });
-   check('390 battle painted avatar',battleHud.portraitVisible&&battleHud.portraitSource.includes('portrait.webp'),battleHud);
-   check('390 battle HUD not crowded with six attributes',battleHud.statHidden);
-   check('390 disabled battle navigation hidden',await page.locator('#app[data-page="battle"] .bnav:visible').count()===0);
-   await page.screenshot({path:out+'/battle_hud_390x844.png',fullPage:false,animations:'disabled'});
+ // Each mobile viewport exercises the real, compact modal over its existing story.
+ await page.evaluate(()=>{
+   showEvent({type:'江湖',title:'山路試招',text:'前方有個山賊擋住去路。',choices:[
+     {s:'g',t:'挺身應戰',go:()=>({title:'山路對決',intro:'山賊擺開架勢。',battle:foe('山賊',2,0.15,'thug')})}
+   ]});
+ });
+ await reveal(page);
+ await page.locator('.event-choice:not([disabled])').first().click();
+ const dialog=page.getByRole('dialog',{name:'山路對決'});
+ check(width+' compact battle modal',await dialog.count()===1);
+ check(width+' original world remains visible',await page.locator('#app[data-page="world"] > .bhud').count()===1);
+ check(width+' battle background story preserved',await page.locator('.battle-behind .reader-line').count()>0);
+ check(width+' battle removes arena',await dialog.locator('.arena,.tray,.bnav,.bhud').count()===0);
+ const geometry=await dialog.evaluate(el=>{
+   const r=el.getBoundingClientRect();
+   return {width:Math.round(r.width),height:Math.round(r.height),top:Math.round(r.top),
+     left:Math.round(r.left),viewportWidth:innerWidth,viewportHeight:innerHeight};
+ });
+ check(width+' compact battle fits screen',
+   geometry.width<=Math.min(geometry.viewportWidth-20,420) &&
+   geometry.height<=geometry.viewportHeight*.82 &&
+   geometry.left>=0&&geometry.top>=0,geometry);
+ check(width+' battle has both HP bars',await dialog.locator('.battle-health').count()===2);
+ check(width+' battle dice choices',
+   await dialog.getByRole('button',{name:/擲骰子/}).count()===1 &&
+   await dialog.getByRole('button',{name:/直接以 10 點開始/}).count()===1);
+ if(width===390)
+   await page.screenshot({path:out+'/battle_dialog_before_roll_390x844.png',fullPage:false,animations:'disabled'});
+ await dialog.getByRole('button',{name:/直接以 10 點開始/}).click();
+ check(width+' dice result 10',await dialog.locator('.battle-die-score').textContent()==='10');
+ await page.waitForSelector('.battle-dialog-actions button', {timeout:4000});
+ const speed=dialog.getByRole('button',{name:/速度 ×/});
+ if(await speed.count()) {
+   await speed.click();
+   check(width+' battle speed toggle',await dialog.getByRole('button',{name:'速度 ×2'}).count()===1);
+ }
+ if(width===390)
+   await page.screenshot({path:out+'/battle_dialog_fighting_390x844.png',fullPage:false,animations:'disabled'});
+ const surrender=dialog.getByRole('button',{name:'投降'});
+ if(await surrender.count()){
+   await surrender.click();
+   check(width+' surrender outcome',await dialog.getByRole('button',{name:'繼續故事'}).count()===1);
+   await dialog.getByRole('button',{name:'繼續故事'}).click();
+   check(width+' battle returns to story',await page.locator('.event-reader .reader-result').count()>=1);
  }
  await ctx.close();
 }
