@@ -106,7 +106,7 @@
   justify-content:flex-start;
   position:relative;
   width:100%;
-  min-height:clamp(61px,17vw,74px);
+  min-height:clamp(52px,14vw,62px);
   margin:0;
   padding:10px clamp(15px,5vw,30px) 10px clamp(47px,13vw,74px);
   border:0!important;
@@ -177,7 +177,7 @@
   #app[data-page="world"] .story-options .btn.story-option {
     padding-left:47px;
     padding-right:13px;
-    min-height:61px;
+    min-height:52px;
   }
 }
 @media(prefers-reduced-motion:reduce){
