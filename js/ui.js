@@ -74,7 +74,7 @@ const SCREENS = {
       <span>${esc(moralName())}</span>
       ${S.pts ? '<span class="hot">待分配屬性點 ' + S.pts + '</span>' : ''}
     </div>`;
-    return `${gameHud(false)}
+    return `<div class="wuxia-masthead" aria-hidden="true"><span class="masthead-seal">江湖歲月錄</span><small>金庸編年史</small></div>${gameHud(false)}
       ${resources}
       <main id="main-content">${TABS[UI.tab]()}</main>
       ${gameNav(UI.tab, true)}`;
@@ -525,17 +525,18 @@ const SOLID = new Set(['shield', 'star', 'bag', 'box', 'person', 'coin']);
 const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name));
 const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
-/* 武俠名牌：不用低質量卡通假臉，也不冒用有名字的 NPC 立繪。 */
+/* 使用已審核的原創概念圖裁切肖像。女性玩家顯示原畫；
+   男性玩家先保留姓名紋章，不將女性頭像或其他 NPC 冒認為主角。 */
 function playerAvatar(dim = false) {
-  const nameGlyph = esc(Array.from(S.name || '俠')[0] || '俠');
-  const inner = '<span class="avatar-corner avatar-corner-tl"></span>' +
-    '<span class="avatar-corner avatar-corner-br"></span>' +
-    '<span class="avatar-glyph">' + nameGlyph + '</span>' +
-    '<span class="avatar-small">江湖</span>';
+  const portrait = S.gender === '女'
+    ? '<span class="approved-portrait" role="img" aria-label="女性主角原創武俠肖像"></span>'
+    : '<span class="avatar-monogram" aria-hidden="true">' +
+        esc(Array.from(S.name || '俠')[0] || '俠') + '</span>';
+  const inner = portrait;
   return dim ? '<span class="hport" aria-hidden="true">' + inner + '</span>' :
     '<button type="button" class="hport" aria-label="查看人物資料"' +
-    h(() => { UI.tab = 'me'; render(); window.scrollTo(0, 0); }) + '>' +
-    inner + '</button>';
+      h(() => { UI.tab = 'me'; UI.sub = 'status'; render(); window.scrollTo(0, 0); }) +
+      '>' + inner + '</button>';
 }
 function gameHud(dim) {
   const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +
@@ -568,19 +569,39 @@ function gameHud(dim) {
 }
 // 底部導覽：江湖／人物／行囊；戰鬥中同一排圖示壓暗、不能按
 // 固定三分頁，保持遊戲介面視覺一致。戰鬥時仍保留不可操作狀態。
-const TAB_DEF = [['world', '江湖', 'compass'], ['me', '人物', 'person'], ['bag', '行囊', 'bag']];
+const TAB_DEF = [
+  ['world', '江湖', 0],
+  ['bag', '行囊', 1],
+  ['skill', '武功', 2],
+  ['status', '人物', 3],
+  ['people', '人脈', 4],
+  ['settings', '設定', 5]
+];
 function gameNav(active, live) {
-  return '<nav class="bnav' + (live ? ' live' : '') + '" aria-label="主要分頁">' +
-    TAB_DEF.map(t => live
-      ? '<button type="button" class="nav-tab ' + (active === t[0] ? 'on' : '') +
-        '" aria-label="' + t[1] + '"' +
-        (active === t[0] ? ' aria-current="page"' : '') +
-        h(() => { UI.tab = t[0]; render(); window.scrollTo(0, 0); }) + '>' +
-        '<span class="nav-mark nav-' + t[0] + '">' + ico(t[2]) + '</span>' +
-        '<span class="nav-label">' + t[1] + '</span></button>'
-      : '<span class="nav-tab" aria-hidden="true"><span class="nav-mark nav-' +
-        t[0] + '">' + ico(t[2]) + '</span><span class="nav-label">' +
-        t[1] + '</span></span>').join('') + '</nav>';
+  const current = active === 'me' ? (UI.sub || 'status') : active;
+  const change = tab => {
+    if (tab === 'settings') return openMenu('settings');
+    if (tab === 'skill' || tab === 'status' || tab === 'people') {
+      UI.tab = 'me'; UI.sub = tab;
+    } else {
+      UI.tab = tab;
+    }
+    render();
+    window.scrollTo(0, 0);
+  };
+  return '<nav class="bnav illustrated-nav' + (live ? ' live' : '') +
+    '" aria-label="遊戲功能">' +
+    TAB_DEF.map(([key, label, iconIndex]) => {
+      const activeTab = current === key;
+      const art = '<span class="nav-art nav-art-' + iconIndex + '" aria-hidden="true"></span>';
+      const inner = art + '<span class="nav-label">' + label + '</span>';
+      return live
+        ? '<button type="button" class="nav-tab ' + (activeTab ? 'on' : '') +
+          '" aria-label="' + label + '"' +
+          (activeTab ? ' aria-current="page"' : '') +
+          h(() => change(key)) + '>' + inner + '</button>'
+        : '<span class="nav-tab" aria-hidden="true">' + inner + '</span>';
+    }).join('') + '</nav>';
 }
 // 戰鬥背景：用事件或所在地的場景圖，不再固定同一張
 const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
