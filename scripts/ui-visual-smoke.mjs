@@ -155,6 +155,7 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    });
    check('390 battle painted avatar',battleHud.portraitVisible&&battleHud.portraitSource.includes('portrait.webp'),battleHud);
    check('390 battle HUD not crowded with six attributes',battleHud.statHidden);
+   check('390 disabled battle navigation hidden',await page.locator('#app[data-page="battle"] .bnav:visible').count()===0);
    await page.screenshot({path:out+'/battle_hud_390x844.png',fullPage:false,animations:'disabled'});
  }
  await ctx.close();
