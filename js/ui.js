@@ -562,10 +562,11 @@ function gameHud(dim) {
     '<div class="hud-head"><div class="hport">' + playerAvatar() + '</div>' +
     '<div class="hud-title"><div class="hname">' + esc(S.name) +
     ' <small>Lv ' + S.lv + '</small></div><div class="hfame">' +
-    esc(fameTitle()) + '</div></div>' + gear + '</div>' +
+    esc(fameTitle()) + '</div>' +
     '<div class="hud-life"><span><strong>氣血</strong><span class="ico">' + hearts() +
     '</span></span><span><strong>內力</strong><span class="ico">' +
     orbs(S.qi, qiMax()) + '</span></span></div>' +
+    '</div>' + gear + '</div>' +
     '<div class="hud-meta"><span>閱歷 ' + S.exp + '/' + expNeed(S.lv) +
     '</span><span class="hdate">' + dateStr() + '<b>' + season() + '</b></span></div>' +
     '<div class="hxp" aria-label="閱歷進度"><i style="width:' +
