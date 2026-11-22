@@ -33,7 +33,7 @@
 - Speaker-led paragraphs receive a subtle gold side rule via `reader-dialogue` class. The typewriter still operates on the same unmodified content and `reader-visible` node.
 - Character and inventory tabs share a smaller version of the jade plaque. Battle `gameHud(true)` now has a **real portrait and colored vitality symbols**, hides six detailed attributes during combat, and suppresses inactive navigation labels.
 - [GitHub Actions #45013191757](https://github.com/HeroA1998/rivers-and-years/actions/runs/45013191757) reported **102/102 checks passed** with 320/390/430 real-game screenshots, scripted dialogue, save reload, battle opening, dice, and compact HUD checks.
-- Latest combat-navigation visibility check is pending one final CI run. **Do not infer physical Android testing from headless Chromium.**
+- Latest [GitHub Actions #45013371519](https://github.com/HeroA1998/rivers-and-years/actions/runs/45013371519) completed successfully: **103/103 checks passed**, including battle painted portrait, suppression of crowded six stats and hiding of disabled battle navigation. **Do not infer physical Android testing from headless Chromium.**
 - **Art limitation:** protagonist portrait is still the original approved 166×166px concept crop rendered larger. It is *not* an independently approved 1024px art master; do not mark this art gate complete.
 
 ## Remaining must-pass gates before merge
