@@ -34,3 +34,11 @@
 - [ ] Obtain user approval of actual game screenshots before merging into `main`.
 
 **Do not merge this branch merely because JavaScript parses, CSS braces match or the static mock looks good.**
+
+## v9 — ornate narrative panel (implemented on this PR)
+- Extracted three **actual high-resolution story UI crops** from the user-approved original AI concept: `story-header.webp` (1024×121; gold “江湖紀事” plaque and plum blossoms), `story-border.webp` (1024×920 nine-slice source), and `story-button.webp` (880×128 RGBA; original engraved gold button and blossom, baked text carefully removed).
+- All 3 binary files are committed to `assets/ui/v9/` (total approximately 277 KB). The files are **not** remote image links and **not** stretched-up screenshots advertised as original master paintings.
+- `css/v9-ornate-story.css` activates the gilt border, sticky carved plaque and real engraved choice graphics while keeping event text and clickable options in HTML. Do not add the previously rejected top GAME title banner.
+- Story image now blends into the parchment via a feathered paper-mask rather than presenting as a rectangular card.
+- In first actual game screenshots at 390×844, portrait HUD remains at y=0–138 and footer begins y=743; a synthetic 3-option event has all three gold buttons inside the story region. No JS gameplay files have been changed.
+- Mandatory visual review remains outstanding: button legibility when text wraps, 320/430 screenshot parity, touch-device use, and real story transitions (beyond synthetic injected fixture).
