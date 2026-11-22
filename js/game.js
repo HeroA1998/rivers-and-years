@@ -335,6 +335,17 @@ function sides(list) {
   }
   return out;
 }
+/* ---------- 同一事件的逐段閱讀紀錄（僅存在 UI 暫存，不更動存檔格式） ---------- */
+function storyBegin(text) {
+  UI.story = { lines: [], revealed: 0, chars: 0 };
+  storyAppend('prose', text);
+}
+function storyAppend(kind, text) {
+  if (!UI.story) UI.story = { lines: [], revealed: 0, chars: 0 };
+  if (text == null || text === '') return;
+  UI.story.lines.push({ kind, text: String(text) });
+  UI.story.chars = 0;
+}
 function showEvent(ev) {
   if (ev.due != null && today() - ev.due > 5) return pump(true);
   if (ev.cond && ev.fixed && !ev.cond(S)) return pump(true);
@@ -346,6 +357,7 @@ function showEvent(ev) {
   const choices = sides(raw).map(c => { const qi = c.qi != null ? c.qi : autoQi(c); return Object.assign({}, c, { qi, t: c.t + (qi ? `〔耗內力${qi}〕` : ''), dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S)) || (qi && S.qi < qi)), reqT: c.reqT || (qi && S.qi < qi ? '內力不足' : '') }); });
   if (choices.length && choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
   UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who, big: ['歷史', '傳承', '奇遇', '奇緣'].includes(ev.type) };
+  storyBegin(text);
   log(`【${ev.type}】${ev.title}`);
   render();
   window.scrollTo(0, 0);
@@ -355,6 +367,8 @@ function choose(i) {
   if (!c || c.dis) return;
   if (c.qi) S.qi = Math.max(0, S.qi - c.qi);
   S.moral = clamp(S.moral + (c.s === 'g' ? 1 : c.s === 'e' ? -2 : 0), -100, 100);
+  // 將玩家的選擇留在故事裡；結果會接在這一行之後。
+  storyAppend('choice', c.t);
   const r = c.go ? c.go(S) : '';
   o.side = c.s;
   if (r && typeof r === 'object') return handleResult(r);
@@ -367,8 +381,9 @@ function handleResult(r) {
   const ov = UI.ov && UI.ov.k === 'event' ? UI.ov : (UI.ov = { k: 'event', type: '江湖', title: '', text: '' });
   ov.result = (r || '此事就此揭過。') + takePend();
   ov.choices = [];
+  storyAppend('result', ov.result);
   render();
-  window.scrollTo(0, 0);
+  // 不回捲到故事開頭，保留閱讀脈絡，將新結果移到可見範圍。
 }
 function closeEvent() { UI.ov = null; pump(true); }
 /* 升級配點 */
@@ -567,7 +582,9 @@ function endBattle() {
     if (r && typeof r === 'object') return handleResult(r);
     r = (b.surr ? '你認輸了。' : '') + r + gainExp(6 + b.e.P);
   } else r = '你且戰且退，總算甩開了對手。';
-  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: r + takePend(), who: b.who };
+  const outcome = r + takePend();
+  storyAppend('result', outcome);
+  UI.ov = { k: 'event', type: '戰鬥', title: b.title, text: '', choices: [], result: outcome, who: b.who };
   render();
 }
 

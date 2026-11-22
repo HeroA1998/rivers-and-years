@@ -30,6 +30,7 @@ function render() {
   document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
+  activateStoryAnimation(root);
 }
 
 const SCREENS = {
@@ -336,9 +337,63 @@ MENUS.shop = () => {
 
 
 /* ---------- 單一故事閱讀區：事件、結果、下一章直接銜接 ---------- */
+/* 漸進顯示故事文字；逐段進度只存在 UI，重繪後可繼續播放。 */
+let storyFrame = 0;
+function stopStoryAnimation() {
+  if (storyFrame) cancelAnimationFrame(storyFrame);
+  storyFrame = 0;
+}
+function finishStoryAnimation() {
+  stopStoryAnimation();
+  const state = UI.story;
+  if (!state || !state.lines.length) return;
+  state.revealed = state.lines.length;
+  state.chars = 0;
+  const root = document.getElementById('app');
+  const node = root.querySelector('.reader-line.is-typing .reader-visible');
+  if (node) node.textContent = state.lines[state.lines.length - 1].text;
+  const line = root.querySelector('.reader-line.is-typing');
+  if (line) line.classList.remove('is-typing');
+  root.classList.remove('story-typing');
+}
+function activateStoryAnimation(root) {
+  stopStoryAnimation();
+  root.classList.remove('story-typing');
+  if (UI.screen !== 'game' || UI.tab !== 'world' || !UI.ov || UI.ov.k !== 'event') return;
+  const state = UI.story;
+  if (!state || !state.lines.length || state.revealed >= state.lines.length) return;
+  const line = root.querySelector('.reader-line.is-typing');
+  const span = line && line.querySelector('.reader-visible');
+  if (!span) return;
+  const letters = Array.from(state.lines[state.lines.length - 1].text);
+  let shown = Math.max(0, Math.min(state.chars || 0, letters.length));
+  span.textContent = letters.slice(0, shown).join('');
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finishStoryAnimation();
+    return;
+  }
+  root.classList.add('story-typing');
+  if (state.lines.length > 1 && line.scrollIntoView) line.scrollIntoView({ block: 'nearest' });
+  const begun = performance.now(), offset = shown;
+  const tick = now => {
+    if (UI.story !== state || !line.isConnected) { storyFrame = 0; return; }
+    shown = Math.min(letters.length, offset + Math.floor((now - begun) / 23));
+    state.chars = shown;
+    span.textContent = letters.slice(0, shown).join('');
+    if (shown >= letters.length) { finishStoryAnimation(); return; }
+    storyFrame = requestAnimationFrame(tick);
+  };
+  storyFrame = requestAnimationFrame(tick);
+}
+
 function eventReader(o) {
   const pendingPage = !o.result && o.pages && o.pi < o.pages.length - 1;
-  const storyText = o.result || (o.pages ? o.pages[o.pi] : o.text) || '';
+  const state = UI.story || {
+    lines: [{ kind: 'prose', text: String(o.result || (o.pages ? o.pages[o.pi] : o.text) || '') }],
+    revealed: 1, chars: 0
+  };
+  const lines = state.lines;
+  const typing = state.revealed < lines.length;
   const label = esc(o.type || '江湖');
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
   // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
@@ -353,8 +408,8 @@ function eventReader(o) {
   } else if (pendingPage) {
     controls = B('繼續', () => {
       o.pi++;
+      storyAppend('prose', o.pages[o.pi]);
       render();
-      window.scrollTo(0, 0);
     }, 'story-option');
   } else if (!o.choices || !o.choices.length) {
     controls = B('繼續', closeEvent, 'story-option');
@@ -369,14 +424,20 @@ function eventReader(o) {
       </button>`).join('');
   }
   const prompt = o.result || pendingPage || !o.choices || !o.choices.length
-    ? '故事仍在繼續' : '你會如何抉擇？';
+    ? '接下來' : '你會如何抉擇？';
+  const transcript = lines.map((line, i) =>
+    `<p class="reader-line reader-${line.kind}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}">
+      <span class="reader-screenreader">${esc(line.text)}</span>
+      <span class="reader-visible" aria-hidden="true">${esc(line.text)}</span>
+    </p>`).join('');
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
       <span class="story-chapter">${label} · ${place} · ${dateStr()}</span>
       <h2>${esc(o.title || '江湖紀事')}</h2>
     </div>
     ${media}
-    <div class="story-prose"><p class="reader-text">${esc(storyText)}</p></div>
+    <div class="story-prose" aria-label="當前故事">${transcript}</div>
+    <button type="button" class="reader-skip" data-story-skip>點按顯示全文</button>
     <div class="story-choice-block">
       <p class="story-question">${prompt}</p>
       <div class="story-options" role="group" aria-label="故事選擇與繼續">
@@ -465,6 +526,31 @@ const SOLID = new Set(['shield', 'star', 'bag', 'box', 'person', 'coin']);
 const pxIcon = (name, color, n) => PIX.icon(IC[name], color, n, SOLID.has(name));
 const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A', luck: '#4F8F55', cha: '#5A62B0' };
 // 頂部角色列：戰鬥內外共用同一個（戰鬥中壓暗、齒輪不能按）
+/* 通用角色肖像為自繪 SVG，不冒用劇情 NPC 的肖像。 */
+function playerAvatar() {
+  const female = S.gender === '女';
+  const robe = female ? '#416C63' : '#3C6074';
+  const hem = female ? '#729184' : '#718DA0';
+  return `<svg class="avatar-svg" viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="玩家角色肖像">
+    <rect width="64" height="72" fill="#E5D2B1"/>
+    <path d="M0 12Q30 -5 64 11V40L0 54Z" fill="#CEB28C" opacity=".45"/>
+    <path d="M3 72Q5 53 22 51L42 51Q59 53 61 72Z" fill="${robe}"/>
+    <path d="M22 51L32 66L42 51L37 46H27Z" fill="#F0C6A1"/>
+    <path d="M13 35Q13 8 32 8Q52 8 52 35L49 55H15Z" fill="#292C2C"/>
+    ${female ? '<path d="M14 15Q4 25 10 46L7 62L19 59L21 24Z" fill="#303334"/><path d="M50 15Q60 28 54 46L59 64L45 58L43 22Z" fill="#303334"/>' :
+      '<path d="M18 12Q23 -4 34 8L47 12L51 24L14 24Z" fill="#2F3333"/>'}
+    <path d="M18 30Q17 15 32 15Q47 15 46 30L44 42Q41 52 32 54Q23 52 20 42Z" fill="#F4CCAA"/>
+    <path d="M19 28Q24 16 30 17Q36 13 47 23L44 16L34 10L22 15L16 24Z" fill="#2B2E2E"/>
+    <path d="M24 32L29 31M35 31L40 32" stroke="#544237" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M27 36H29M36 36H38" stroke="#42342E" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M32 36L31 43L34 44" fill="none" stroke="#C89778" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M29 48Q32 49.5 35 47.5" fill="none" stroke="#AC7465" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M23 53L32 66L27 72H20L11 61Z" fill="${hem}"/>
+    <path d="M41 53L32 66L37 72H45L53 61Z" fill="${robe}"/>
+    <path d="M27 61L32 66L37 61" fill="none" stroke="#D8BB83" stroke-width="1.5"/>
+    <path d="M18 22Q33 25 47 22" stroke="#A98B64" stroke-width="2" fill="none"/>
+  </svg>`;
+}
 function gameHud(dim) {
   const gear = dim ? '' : '<button type="button" class="hgear" aria-label="設定"' +
     h(() => openMenu('settings')) + '>' + ico('settings') + '</button>';
@@ -473,18 +559,19 @@ function gameHud(dim) {
     (S.bonus && S.bonus[k] ? '<small>+' + S.bonus[k] + '</small>' : '') + '</span>'
   ).join('') + '</div>';
   return '<header class="bhud' + (dim ? ' dim' : '') + '">' +
-    '<div class="hud-head"><div class="hport" aria-hidden="true">俠</div>' +
+    '<div class="hud-head"><div class="hport">' + playerAvatar() + '</div>' +
     '<div class="hud-title"><div class="hname">' + esc(S.name) +
     ' <small>Lv ' + S.lv + '</small></div><div class="hfame">' +
-    esc(fameTitle()) + '</div></div>' + gear + '</div>' +
+    esc(fameTitle()) + '</div>' +
     '<div class="hud-life"><span><strong>氣血</strong><span class="ico">' + hearts() +
     '</span></span><span><strong>內力</strong><span class="ico">' +
     orbs(S.qi, qiMax()) + '</span></span></div>' +
+    '</div>' + gear + '</div>' +
     '<div class="hud-meta"><span>閱歷 ' + S.exp + '/' + expNeed(S.lv) +
     '</span><span class="hdate">' + dateStr() + '<b>' + season() + '</b></span></div>' +
     '<div class="hxp" aria-label="閱歷進度"><i style="width:' +
     clamp(S.exp / expNeed(S.lv) * 100, 0, 100) + '%"></i></div>' +
-    (dim ? '' : '<details class="hud-stats"><summary>查看六項能力值 ▾</summary>' +
+    (dim ? '' : '<details class="hud-stats"><summary>六項能力 ▾</summary>' +
       stats + '</details>') + '</header>';
 }
 // 底部導覽：江湖／人物／行囊；戰鬥中同一排圖示壓暗、不能按
@@ -562,6 +649,9 @@ function battleView(o) {
 
 /* ---------- 啟動 ---------- */
 document.addEventListener('click', ev => {
+  if (ev.target.closest('[data-story-skip], .reader-line.is-typing')) {
+    finishStoryAnimation(); return;
+  }
   const b = ev.target.closest('[data-h]');
   if (!b || b.disabled) return;
   const fn = H[+b.dataset.h];
