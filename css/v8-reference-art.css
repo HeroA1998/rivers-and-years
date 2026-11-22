@@ -1,0 +1,52 @@
+/* v8 optional high-fidelity artwork layer.
+   ONLY activate after assets/ui/v8/*.webp are committed on the same branch.
+   Mirrors the accepted 941x1672 original concept without baking dynamic text. */
+#app[data-page="world"] .wuxia-masthead{
+  height:clamp(46px,13vw,64px);min-height:clamp(46px,13vw,64px);
+  background:#2B413A url("../assets/ui/v8/header.webp") center/100% 100% no-repeat;
+}
+#app[data-page="world"] .wuxia-masthead::before,
+#app[data-page="world"] .wuxia-masthead::after{display:none}
+#app[data-page="world"] .wuxia-masthead .masthead-seal{opacity:0}
+#app[data-page="world"] .approved-portrait{
+  background:url("../assets/ui/v8/portrait.webp") center/cover no-repeat;
+}
+#app[data-page="world"] .hud-life .ico svg.heart{
+  background:url("../assets/ui/v8/redheart.webp") center/contain no-repeat;
+}
+#app[data-page="world"] .hud-life .ico svg.orb{
+  background:url("../assets/ui/v8/greenheart.webp") center/contain no-repeat;
+}
+#app[data-page="world"] .hud-life .ico svg.heart *,
+#app[data-page="world"] .hud-life .ico svg.orb *{opacity:0}
+#app[data-page="world"] .mini-stat-mark{
+  background-color:transparent!important;background-repeat:no-repeat;
+  background-position:center;background-size:contain;font-size:0;border:0;box-shadow:none;
+}
+#app[data-page="world"] .ms-str .mini-stat-mark{background-image:url("../assets/ui/v8/stat0.webp")}
+#app[data-page="world"] .ms-con .mini-stat-mark{background-image:url("../assets/ui/v8/stat1.webp")}
+#app[data-page="world"] .ms-int .mini-stat-mark{background-image:url("../assets/ui/v8/stat2.webp")}
+#app[data-page="world"] .ms-agi .mini-stat-mark{background-image:url("../assets/ui/v8/stat3.webp")}
+#app[data-page="world"] .ms-luck .mini-stat-mark{background-image:url("../assets/ui/v8/stat4.webp")}
+#app[data-page="world"] .ms-cha .mini-stat-mark{background-image:url("../assets/ui/v8/stat5.webp")}
+#app[data-page="world"] .story-heading::before{
+  content:"";display:block;width:calc(100% + 48px);height:clamp(32px,9.6vw,49px);
+  margin:0 0 15px -24px;background:url("../assets/ui/v8/ornament.webp") center/100% 100% no-repeat;
+}
+#app[data-page="world"] .reader-folio{
+  background:url("../assets/ui/v8/mountain.webp") center top/100% 72px no-repeat;
+  padding-top:72px;
+}
+#app[data-page="world"] .bnav.illustrated-nav{
+  background:#28443C url("../assets/ui/v8/footer.webp") center/100% 100% no-repeat;
+  height:clamp(85px,26vw,118px);min-height:clamp(85px,26vw,118px);
+  border:0;box-shadow:none;padding-top:9px;
+}
+#app[data-page="world"] .bnav.illustrated-nav::before{display:none}
+#app[data-page="world"] .bnav .nav-art{opacity:0}
+#app[data-page="world"] .bnav .nav-label{color:#FFE7B6;text-shadow:0 1px 3px #203229}
+#app[data-page="world"] .bnav .nav-tab.on .nav-label{color:#FFF0BD}
+@media(max-width:375px){
+  #app[data-page="world"] .story-heading::before{width:calc(100% + 28px);margin-left:-14px}
+  #app[data-page="world"] .hud-life .ico svg{width:17px;height:17px}
+}
