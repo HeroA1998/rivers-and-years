@@ -117,6 +117,28 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    check('390 real gilded option artwork enabled',art.background.includes('story-button.webp'));
    check('390 actual decorative border enabled',art.panel.includes('story-border.webp'));
  }
+ // 戰場、角色立繪與故事選項仍保留，但兩張山水插畫不得佔用正文高度。
+ await page.evaluate(()=>showEvent({
+   type:'歷史', title:'事件風景移除驗收', art:'mountain',
+   text:'這段故事應直接顯示在書卷紙面上。',
+   choices:[{s:'g',t:'繼續前行',go:()=> '已繼續前行。'}]
+ }));
+ await reveal(page);
+ check(String(width)+' historic event landscape omitted',
+   await page.locator('.reader-landscape').count()===0);
+ const folio=await page.locator('.reader-folio').evaluate(el=>({
+   image:getComputedStyle(el).backgroundImage,
+   padding:getComputedStyle(el).paddingTop,
+   height:Math.round(el.getBoundingClientRect().height)
+ }));
+ check(String(width)+' bottom mountain omitted with no reserved height',
+   folio.image==='none'&&Number.parseFloat(folio.padding)===0&&folio.height<36,{folio});
+ check(String(width)+' gilded story frame remains',
+   await page.locator('#main-content').evaluate(el=>
+     getComputedStyle(el).borderImageSource.includes('story-border.webp')));
+ if(width===390)await page.screenshot({
+   path:out+'/no_scenery_story_390x844.png',fullPage:false,animations:'disabled'
+ });
  await page.evaluate(()=>{
    showEvent({type:'江湖',title:'長篇故事的視覺驗收',
      text:Array.from({length:12},(_,i)=>'第'+(i+1)+'段：江湖風雨如晦，山野行人仍循著故人留下的線索前行。').join('\n'),
