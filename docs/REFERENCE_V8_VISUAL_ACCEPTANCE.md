@@ -20,10 +20,10 @@
 - **13 original WebP art assets now committed** at `assets/ui/v8/`: female protagonist portrait (166×166), six ability icons (50×50), red/green flower icons, 780px-wide mountain/ornament/footer crops and unused header image. Total binary payload 119,786 bytes. These are faithful crops from the approved concept, not independent 1024px masters. No fal service was used.
 - The game page now loads `css/v8-reference-art.css` which binds those actual assets to the dynamic HTML elements. The title banner remains removed as requested.
 - Real game GitHub Actions / Playwright **320×700, 390×844, 430×932** tests succeeded for: title screen, new character, world HUD, original event, injected long event, independent story scroll, choice transcript, result, "Continue" to following event, all nav shortcuts and settings panel.
-- The first successful action run is [Wuxia UI visual smoke test #44993505274](https://github.com/HeroA1998/rivers-and-years/actions/runs/44993505274). It uploaded nine screenshots and JSON validation report.
+- Initial real-game visual run: [#44993505274](https://github.com/HeroA1998/rivers-and-years/actions/runs/44993505274), 75 passed checks. Extended flow run: [#44994192205](https://github.com/HeroA1998/rivers-and-years/actions/runs/44994192205), 87 passed checks, 12 screenshots including character, inventory and battle. The latest CSS alignment builds should be used for visual sign-off.
 - Real-game render at 390×844: character HUD y=0–138, scrollable content y=138–743, footer y=743–844; no horizontal overflow, no masthead.
 - Static mockups remain **illustrative only**. The actual-game screenshots are the relevant visual acceptance basis.
-- Visual review still finds excess whitespace between story headline and first paragraph and a portrait originally cropped to 166px. Further typography/spacing refinement is in progress.
+- Excess vertical space before story text was traced to HTML template whitespace under `white-space:pre-line` and corrected in `js/ui.js`. Footer labels now sit below their painted icons. A secondary-tab audit found old HUD styles in character/inventory; these now share the main HUD and artwork rules. The portrait crop remains 166px source; it must not be called a high-resolution master.
 
 ## Remaining must-pass gates before merge
 - [x] Commit 13 source-derived WebP assets under `assets/ui/v8/`, and activate the linked artwork stylesheet.
