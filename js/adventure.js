@@ -10,7 +10,7 @@ const statMod = k => Math.floor((S.stats[k] - 5) / 2);
 const dcOf = dc => dc + Math.floor(((S.lv || 1) - 1) / 4);
 function check(stat, dc) {
   dc = dcOf(dc);
-  const roll = d20(), mod = stat ? statMod(stat) : 0, total = roll + mod;
+  const roll = d20(), mod = stat ? statMod(stat) + gearChk(stat) : 0, total = roll + mod;   // 裝備詞條可加檢定
   return { roll, mod, total, dc, stat, crit: roll === 20, fumble: roll === 1, ok: roll === 20 || (roll !== 1 && total >= dc) };
 }
 const dieHtml = (n, crit, fumble) => `<b class="die roll${crit ? ' crit' : fumble ? ' fumble' : ''}">${n}</b>`;
@@ -303,12 +303,12 @@ const $p = o => Object.assign(o, { s: 'n', plain: true });
 /* ---------- 回城：商人、客棧、離開 ----------
    商人可以買、可以賣。貨品每次回城重新隨機，每件只能買一次；賣東西按原價的一半收。 */
 const sellPrice = id => Math.max(1, Math.round(ITEMS[id].price * 0.5));
-const gearUsed = id => S.weapon === id || S.armor === id || S.acc === id;
+const gearUsed = id => GEAR_SLOTS.some(x => S[x[0]] === id);
 const shuf = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
 function townStock(s) {
   const med = ['jinchuang', 'jinchuang', 'huiqi'];
   if (chance(25)) med.push('dahuan');
-  const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 3);
+  const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc', 'off', 'relic'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 4);
   const arts = shuf(artShop(s).filter(id => ITEMS[id].price)).slice(0, 2);
   return [...med, ...gear, ...arts].map(id => ({ id, sold: false }));
 }
@@ -355,10 +355,12 @@ function buyOpts(id, how) {
 }
 // 新買到的兵刃、護甲、飾品，比身上的好就換上
 function autoGear(id) {
-  const it = ITEMS[id], sl = { weapon: 'weapon', armor: 'armor', acc: 'acc' }[it.kind];
+  const it = ITEMS[id], sl = GEAR_KIND[it.kind];
   if (!sl) return '';
-  const cur = S[sl] && ITEMS[S[sl]], val = x => x ? (x.atk || 0) + (x.def || 0) + Object.values(x.st || {}).reduce((a, b) => a + b, 0) * 3 : -1;
-  const fits = it.kind !== 'weapon' || atkArts().some(a => SKILLS[a].type === it.wt);
+  const cur = S[sl] && ITEMS[S[sl]], val = x => x ? (x.atk || 0) + (x.def || 0) + Object.values(x.st || {}).reduce((a, b) => a + b, 0) * 3 + (x.fx ? 4 : 0) : -1;
+  let fits = reqOk(it);
+  if (it.kind === 'weapon') fits = fits && atkArts().some(a => SKILLS[a].type === it.wt) && !(it.hand === 2 && S.off);
+  if (it.kind === 'off') fits = fits && !(S.weapon && ITEMS[S.weapon].hand === 2);
   if (fits && val(it) > val(cur)) { S[sl] = id; recalc(); return `〔已裝備${it.n}〕`; }
   return '〔可在行囊頁裝備〕';
 }
