@@ -146,6 +146,16 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    check('390 dice offers roll/skip',await skip.count()>0);
    if(await skip.count())await skip.click();
    check('390 combat retains HUD',await page.locator('.bveil .bhud').count()>0);
+   const battleHud=await page.evaluate(()=>{
+     const portrait=document.querySelector('#app[data-page="battle"] .approved-portrait');
+     const stats=document.querySelector('#app[data-page="battle"] .hud-stats-mini');
+     return {portraitVisible:!!portrait&&portrait.getBoundingClientRect().height>=50,
+       portraitSource:portrait?getComputedStyle(portrait).backgroundImage:'',
+       statHidden:!stats||getComputedStyle(stats).display==='none'};
+   });
+   check('390 battle painted avatar',battleHud.portraitVisible&&battleHud.portraitSource.includes('portrait.webp'),battleHud);
+   check('390 battle HUD not crowded with six attributes',battleHud.statHidden);
+   await page.screenshot({path:out+'/battle_hud_390x844.png',fullPage:false,animations:'disabled'});
  }
  await ctx.close();
 }
