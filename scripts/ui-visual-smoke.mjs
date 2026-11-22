@@ -1,0 +1,84 @@
+import { chromium } from 'playwright';
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+const out='artifacts/ui-regression';
+mkdirSync(out,{recursive:true});
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const result={time:new Date().toISOString(),screens:[],checks:[],errors:[],version:'v8'};
+function check(name,ok,detail={}){result.checks.push({name,pass:!!ok,...detail});if(!ok)result.errors.push(name)}
+async function snapshot(page,name){
+ await page.screenshot({path:out+'/'+name+'.png',fullPage:false,animations:'disabled'});
+ const dim=await page.evaluate(()=>{
+  const app=document.querySelector('#app'),hud=document.querySelector('.bhud');
+  const story=document.querySelector('#main-content'),nav=document.querySelector('.illustrated-nav');
+  const rect=e=>e?Object.fromEntries(['top','bottom','height','left','right','width'].map(k=>[k,Math.round(e.getBoundingClientRect()[k])])):null;
+  return {width:innerWidth,height:innerHeight,page:app?.dataset.page,documentWidth:document.documentElement.scrollWidth,
+   titleBannerCount:document.querySelectorAll('.wuxia-masthead').length,
+   hud:rect(hud),story:rect(story),footer:rect(nav),
+   text:(story?.innerText||'').slice(0,250),choiceCount:document.querySelectorAll('.story-option').length,
+   scrollHeight:story?.scrollHeight,clientHeight:story?.clientHeight};
+ });
+ result.screens.push({name,...dim});
+ check(name+' title removed',dim.titleBannerCount===0);
+ check(name+' no horizontal overflow',dim.documentWidth<=dim.width+1,{documentWidth:dim.documentWidth});
+ check(name+' HUD visible',!!dim.hud);
+ check(name+' footer visible',!!dim.footer&&dim.footer.bottom<=dim.height+3);
+ check(name+' readable center',!!dim.story&&dim.story.height>80);
+ return dim;
+}
+async function reveal(page){
+ const button=page.locator('.reader-skip:visible');
+ if(await button.count())await button.first().click();
+}
+const base=process.env.TEST_ORIGIN||'http://127.0.0.1:8765';
+for(const dims of [[320,700],[390,844],[430,932]]){
+ const width=dims[0],height=dims[1];
+ const ctx=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,hasTouch:true,isMobile:true});
+ const page=await ctx.newPage();
+ page.on('pageerror',err=>result.errors.push(String(width)+' JS: '+err.message));
+ await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+ await page.waitForSelector('#app .title-screen');
+ check(String(width)+' title screen',await page.getByRole('heading',{name:'江湖歲月錄'}).count()>0);
+ await page.getByRole('button',{name:/初入江湖/}).click();
+ await page.locator('#nm').fill('沈孤雁');
+ await page.getByRole('button',{name:'女',exact:true}).click();
+ await page.getByRole('button',{name:/踏入江湖/}).click();
+ await page.waitForSelector('#app[data-page="world"] .bhud',{timeout:15000});
+ await reveal(page);
+ await snapshot(page,'world_'+width+'x'+height);
+ await page.evaluate(()=>{
+   showEvent({type:'江湖',title:'長篇故事的視覺驗收',
+     text:Array.from({length:12},(_,i)=>'第'+(i+1)+'段：江湖風雨如晦，山野行人仍循著故人留下的線索前行。').join('\n'),
+     choices:[{s:'g',t:'上前協助',go:()=> '你上前扶起了受傷的旅人。'},
+              {s:'e',t:'索取報酬',go:()=> '你開口索要一筆酬金。'},
+              {s:'n',t:'暫且觀望',go:()=> '你退到樹旁，靜觀事態。'}]});
+ });
+ await reveal(page);
+ await page.locator('#main-content').evaluate(el=>{el.scrollTop=el.scrollHeight});
+ const scroll=await page.evaluate(()=>{const el=document.querySelector('#main-content');return{top:el.scrollTop,max:el.scrollHeight-el.clientHeight}});
+ check(String(width)+' long story scroll',scroll.max>35&&scroll.top>0,scroll);
+ await snapshot(page,'long_'+width+'x'+height);
+ await page.locator('#main-content .event-choice:not([disabled])').first().click();
+ await reveal(page);
+ check(String(width)+' choice retained',await page.locator('.reader-choice').count()===1);
+ check(String(width)+' result appended',await page.locator('.reader-result').count()===1);
+ await snapshot(page,'result_'+width+'x'+height);
+ const cont=page.locator('#main-content .story-option').filter({hasText:'繼續'});
+ if(await cont.count()){
+  await cont.first().click();await reveal(page);
+  check(String(width)+' continuation',await page.locator('#app[data-page="world"] .bhud').count()>0);
+ }
+ for(const tab of ['人物','武功','人脈','行囊']){
+  await page.locator('.illustrated-nav button[aria-label="'+tab+'"]').click();
+  check(String(width)+' nav '+tab,await page.locator('#main-content').count()===1);
+ }
+ await page.locator('.illustrated-nav button[aria-label="江湖"]').click();
+ await reveal(page);
+ await page.locator('.illustrated-nav button[aria-label="設定"]').click();
+ check(String(width)+' settings panel',await page.locator('.sheet').count()>0);
+ await ctx.close();
+}
+writeFileSync(out+'/report.json',JSON.stringify(result,null,2));
+await browser.close();
+if(result.errors.length){console.error(JSON.stringify(result.errors,null,2));process.exitCode=1}
+else console.log(JSON.stringify({passed:result.checks.length,screens:result.screens.length}));
