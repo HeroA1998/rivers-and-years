@@ -1,0 +1,52 @@
+/* v14 背包：參考手遊的裝備與背包——道具詳情卡＋深褐撕紙背包面板＋方格物品欄。只影響背包分頁。 */
+.bk-card, .bk-panel { --bk-ink: #4A4236; }
+/* 詳情卡：羊皮紙、撕邊 */
+.bk-card { position: relative; margin: 0 0 12px; padding: 14px 14px 12px; color: var(--bk-ink); border: 3px solid #B9A67E; border-radius: 4px;
+  background: radial-gradient(120% 90% at 50% 0, #F3ECDA, #E8DFC8); box-shadow: inset 0 0 0 2px #F7F1E1, 0 3px 8px rgba(60,40,20,.25);
+  clip-path: polygon(0 3px, 4% 0, 12% 2px, 24% 0, 38% 3px, 52% 0, 66% 2px, 80% 0, 92% 3px, 100% 1px, 100% calc(100% - 3px), 94% 100%, 82% calc(100% - 2px), 68% 100%, 52% calc(100% - 3px), 36% 100%, 22% calc(100% - 2px), 8% 100%, 0 calc(100% - 3px)); }
+.bk-idle { min-height: 96px; display: flex; align-items: center; justify-content: center; text-align: center; color: #8A7C66; font: 15px var(--f-reading, serif); }
+.bk-head { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(138,124,102,.35); }
+.bk-big { width: 64px; height: 64px; flex: none; display: flex; align-items: center; justify-content: center; border: 3px solid #5B4F3F; background: #6E6455; border-radius: 3px; }
+.bk-big .bk-ico { width: 40px; height: 40px; }
+.bk-title { flex: 1; min-width: 0; text-align: center; }
+.bk-title h3 { margin: 0; font: 600 22px/1.25 var(--f-reading, serif); color: var(--bk-ink); letter-spacing: .06em; }
+.bk-title h3 em { margin-left: 8px; padding: 1px 8px; font: 600 12px var(--f-ui, sans-serif); font-style: normal; color: #fff; background: #4E8C6E; border-radius: 3px; vertical-align: middle; }
+.bk-kind { display: block; margin-top: 2px; font: 13px var(--f-ui, sans-serif); color: #8A7C66; text-align: right; }
+.bk-main { display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 10px 0 2px; font: 18px var(--f-reading, serif); }
+.bk-main b { font-weight: 600; color: #3B342A; } .bk-main small { font: 13px var(--f-ui, sans-serif); color: #8A7C66; }
+.bk-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 6px 0 2px; }
+.bk-chip { padding: 2px 10px; font: 600 14px var(--f-ui, sans-serif); color: #3B6E55; background: rgba(78,140,110,.14); border: 1px solid rgba(78,140,110,.4); border-radius: 3px; }
+.bk-chip.warn { color: #8A5A1E; background: rgba(176,130,40,.14); border-color: rgba(176,130,40,.45); } .bk-chip.bad { color: #A8433C; background: rgba(168,67,60,.12); border-color: rgba(168,67,60,.45); }
+.bk-trait { display: flex; align-items: flex-start; gap: 8px; margin: 8px 4px 0; padding: 8px 10px; background: rgba(176,130,40,.10); border-left: 4px solid #C9A24A; }
+.bk-tico { width: 22px; height: 22px; flex: none; color: #B08A3E; } .bk-trait p { margin: 0; font: 14px/1.6 var(--f-ui, sans-serif); color: #4A4236; }
+.bk-desc { margin: 8px 4px 0; text-align: center; font: 15px/1.7 var(--f-reading, serif); color: #6B6050; }
+.bk-price { margin: 10px 0 8px; text-align: center; font: 14px var(--f-ui, sans-serif); color: #7A6E5A; }
+.bk-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bk-btn { min-height: 44px; font: 600 17px var(--f-reading, serif); color: #5A5042; background: linear-gradient(180deg, #E9DFC6, #D9CCAC); border: 2px solid #B9A67E; border-radius: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+.bk-btn:active { transform: translateY(2px); filter: brightness(.95); }
+
+/* 背包面板：深褐色、橘色撕紙邊 */
+.bk-panel { padding: 14px 10px 14px; color: #F0E4D0; background: linear-gradient(180deg, #43281A, #2E1B10); border: 3px solid #C86F28;
+  box-shadow: inset 0 0 0 2px #5A3622, inset 0 0 18px rgba(0,0,0,.45), 0 4px 10px rgba(60,30,10,.35);
+  clip-path: polygon(0 6px, 3% 0, 9% 5px, 17% 1px, 27% 6px, 40% 0, 55% 5px, 68% 1px, 80% 6px, 92% 0, 100% 5px, 100% calc(100% - 6px), 95% 100%, 84% calc(100% - 5px), 70% 100%, 56% calc(100% - 6px), 41% 100%, 27% calc(100% - 5px), 13% 100%, 4% calc(100% - 6px), 0 calc(100% - 3px)); }
+.bk-top { display: grid; grid-template-columns: minmax(0, 1.15fr) repeat(5, minmax(0, 1fr)); gap: 6px; }
+.bk-top > * { min-width: 0; }
+.bk-sum span { white-space: nowrap; }
+.bk-sum { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 4px 6px; background: #20202C; border: 2px solid #55586B; border-radius: 3px; }
+.bk-sum span { display: flex; align-items: center; gap: 5px; font: 600 14px var(--f-ui, sans-serif); color: #E8E4D8; } .bk-sum .bk-sico { width: 16px; height: 16px; color: #C9D3E0; }
+.bk-cell { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; padding: 0; background: #1D2233; border: 2px solid #3A4058; border-radius: 3px; box-shadow: inset 0 0 8px rgba(0,0,0,.55); color: #C9D3E0; }
+.bk-cell .bk-ico { width: 62%; height: 62%; }
+.bk-cell small { position: absolute; right: 3px; bottom: 1px; font: 700 12px var(--f-ui, sans-serif); color: #fff; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
+.bk-eq { border-color: #C9A24A; background: #232A40; } .bk-cell.on { outline: 3px solid #F2D27A; outline-offset: -1px; }
+.bk-empty { border-style: dashed; color: #4B5270; background: #181C2A; } .bk-ghost { width: 52%; height: 52%; opacity: .45; }
+.bk-slotn { left: 0; right: 0; bottom: 2px !important; text-align: center; font: 11px var(--f-ui, sans-serif) !important; color: #7C84A5 !important; text-shadow: none !important; }
+.bk-blank { background: #1A1613; border-color: #2E2620; box-shadow: none; }
+.bk-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; padding: 6px; background: #20202C; border: 2px solid #3A4058; border-radius: 3px; }
+.bk-stat { display: flex; align-items: center; gap: 4px; font: 600 14px var(--f-ui, sans-serif); color: #EADFC8; min-width: 0; } .bk-stat small { display: none; }
+.bk-stat .bk-sico { width: 18px; height: 18px; flex: none; color: #E0884A; } .bk-stat:nth-child(2) .bk-sico { color: #E05A4A; } .bk-stat:nth-child(3) .bk-sico { color: #6FA0D0; } .bk-stat:nth-child(4) .bk-sico { color: #E0B84A; }
+.bk-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+/* 物品圖示依類別上色 */
+.bk-weapon { color: #CFD8E3; } .bk-off { color: #B7C4D4; } .bk-armor { color: #D8C9A8; } .bk-acc { color: #E8C45A; } .bk-relic { color: #D9A0E0; }
+.bk-med, .bk-tonic { color: #E5736A; } .bk-manual { color: #8FD0A8; } .bk-gift, .bk-misc { color: #E0B07A; }
+.bk-big.bk-weapon, .bk-big.bk-off { color: #E8EEF5; } .bk-big { color: #EFE3C8; }
+@media (max-width: 380px) { .bk-title h3 { font-size: 19px; } .bk-top { gap: 4px; } }

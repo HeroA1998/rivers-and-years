@@ -139,7 +139,7 @@ const IC = {
 };
 const ico = (n, cls = '') => IC[n] ? `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>` : '';
 const artIcon = id => artRole(id) === 'sup' ? 'sup' : SKILLS[id].type;
-const itemIcon = it => ({ med: 'bottle', tonic: 'bottle', gift: 'box', misc: 'leaf', manual: 'scroll', armor: 'shield', acc: 'ring' }[it.kind] || it.wt || 'box');
+const itemIcon = it => ({ med: 'bottle', tonic: 'bottle', gift: 'box', misc: 'leaf', manual: 'scroll', armor: 'shield', acc: 'ring', off: 'dart', relic: 'scroll' }[it.kind] || it.wt || 'box');
 const stars = n => '★'.repeat(n);
 
 /* ---------- 分頁 ---------- */
@@ -214,49 +214,55 @@ const TABS = {
     }).join('');
   },
   bag() {
-    const ids = Object.keys(S.inv);
-    const stx = it => Object.keys(it.st || {}).map(k => STAT_N[k] + '+' + it.st[k]).join('、');
-    const desc = it => [it.d || (it.kind === 'weapon'
-      ? TYPE_N[it.wt] + '威力+' + it.atk + '（僅對同類武功有效）'
-      : it.kind === 'armor' ? '防禦+' + it.def : it.kind === 'acc' ? '飾品'
-      : it.kind === 'off' ? '副手' : it.kind === 'relic' ? '奇物'
-      : it.kind === 'manual' ? '可習得' + SKILLS[it.skill].n : ''),
-      GEAR_KIND[it.kind] ? gearInfo(it) : ''].filter(Boolean).join('・');
-    const slot = (n, id, ic) => '<div>' + ico(ic, 'gearic') +
-      '<span>' + n + '</span><b>' + (id ? ITEMS[id].n : '—') + '</b><small>' +
-      (id ? [desc(ITEMS[id]), stx(ITEMS[id])].filter(Boolean).join('・') : '未裝備') + '</small></div>';
-    const equipped = '<section class="group"><h3>隨身裝備</h3><div class="stats gear">' +
-      slot('主手', S.weapon, S.weapon ? ITEMS[S.weapon].wt : 'sword') +
-      slot('副手', S.weapon && ITEMS[S.weapon].hand === 2 ? null : S.off, 'dart') +
-      slot('護甲', S.armor, 'shield') + slot('飾品', S.acc, 'ring') +
-      slot('奇物', S.relic, 'scroll') + '</div></section>';
-    const groups = [
-      ['兵器與裝備', ['weapon', 'off', 'armor', 'acc', 'relic']],
-      ['藥品與補給', ['med', 'tonic']],
-      ['武功秘笈', ['manual']],
-      ['其他物品', []]
-    ];
-    const content = groups.map(([title, kinds]) => {
-      const matching = ids.filter(id => {
-        const kind = ITEMS[id] && ITEMS[id].kind;
-        return kind && (kinds.length ? kinds.includes(kind) :
-          !groups.slice(0, 3).some(g => g[1].includes(kind)));
-      });
-      if (!matching.length) return '';
-      return '<section class="bag-section"><h3>' + title + '</h3>' +
-        matching.map(id => {
-          const it = ITEMS[id], eqd = GEAR_SLOTS.some(x => S[x[0]] === id);
-          const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: eqd ? '卸下' : '裝備',
-            off: eqd ? '卸下' : '裝備', armor: eqd ? '卸下' : '穿上', acc: eqd ? '卸下' : '戴上',
-            relic: eqd ? '卸下' : '佩帶' }[it.kind];
-          return '<article class="card row-card"><span class="itemic">' + ico(itemIcon(it), 'big') +
-            '</span><div><b>' + it.n + '</b> ×' + S.inv[id] +
-            (eqd ? ' <span class="tag jade">使用中</span>' : '') +
-            '<p>' + [desc(it), stx(it)].filter(Boolean).join('・') + '</p></div>' +
-            (lab ? B(lab, () => useItem(id), 'mini') : '') + '</article>';
-        }).join('') + '</section>';
+    // 參考手遊的背包：上方道具詳情卡、深褐色背包面板（總覽＋裝備欄＋屬性條＋物品格）
+    const sel = UI.bagSel && ITEMS[UI.bagSel] && (S.inv[UI.bagSel] || GEAR_SLOTS.some(x => S[x[0]] === UI.bagSel)) ? UI.bagSel : null;
+    const kindName = it => it.kind === 'weapon' ? (it.hand === 2 ? '雙手' : '單手') + ' ' + TYPE_N[it.wt]
+      : { armor: '護甲', acc: '飾品', off: '副手', relic: '奇物', med: '藥品', tonic: '補品', manual: '武功秘笈', gift: '禮物' }[it.kind] || '物品';
+    const stClass = k => 'bk-' + (k || 'misc');
+    const cell = (id, extra, fn, badge) => '<button type="button" class="bk-cell ' + stClass(ITEMS[id].kind) + (extra || '') + '"' + h(fn) + ' aria-label="' + esc(ITEMS[id].n) + '">' +
+      ico(itemIcon(ITEMS[id]), 'bk-ico') + (badge > 1 ? '<small>' + badge + '</small>' : '') + '</button>';
+    const pick = (id) => () => { UI.bagSel = UI.bagSel === id ? null : id; render(); };
+
+    // 詳情卡
+    let card;
+    if (sel) {
+      const it = ITEMS[sel], eqd = GEAR_SLOTS.some(x => S[x[0]] === sel);
+      const main = it.kind === 'weapon' ? '<b>威力 ' + it.atk + '</b><small>' + ATK_TN[ATK_T[it.wt]] + '擊・看' + STAT_N[it.stat || ART_ST[it.wt]] + '</small>'
+        : it.kind === 'armor' ? '<b>防禦 ' + it.def + '</b>'
+        : it.kind === 'med' ? '<b>' + esc(it.d || '') + '</b>' : it.kind === 'manual' ? '<b>可習得「' + esc(SKILLS[it.skill].n) + '」</b>' : '';
+      const stats = Object.keys(it.st || {}).map(k => '<span class="bk-chip">' + esc(STAT_N[k]) + (it.st[k] > 0 ? ' +' : ' ') + it.st[k] + '</span>').join('');
+      const req = it.req ? '<span class="bk-chip warn' + (reqOk(it) ? '' : ' bad') + '">' + esc(reqText(it)) + '</span>' : '';
+      const trait = it.fx && it.fx.d ? '<div class="bk-trait">' + ico('star', 'bk-tico') + '<p>' + esc(it.fx.d) + '</p></div>' : '';
+      const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: '裝備', off: '裝備', armor: '穿上', acc: '戴上', relic: '佩帶' }[it.kind];
+      card = '<section class="bk-card"><div class="bk-head"><span class="bk-big ' + stClass(it.kind) + '">' + ico(itemIcon(it), 'bk-ico') + '</span>' +
+        '<div class="bk-title"><h3>' + esc(it.n) + (S.inv[sel] > 1 ? ' ×' + S.inv[sel] : '') + (eqd ? '<em>使用中</em>' : '') + '</h3><span class="bk-kind">' + esc(kindName(it)) + '</span></div></div>' +
+        (main ? '<div class="bk-main">' + main + '</div>' : '') + ((stats || req) ? '<div class="bk-chips">' + stats + req + '</div>' : '') + trait +
+        (it.d && GEAR_KIND[it.kind] ? '<p class="bk-desc">' + esc(it.d) + '</p>' : '') +
+        '<div class="bk-price">' + (it.price ? '收購價：' + sellPrice(sel) + ' 兩' : '無價之寶') + '</div>' +
+        '<div class="bk-acts">' + (lab ? B(eqd ? '卸下' : lab, () => { UI.bagSel = null; useItem(sel); }, 'bk-btn') : '<span></span>') + B('取消', () => { UI.bagSel = null; render(); }, 'bk-btn') + '</div></section>';
+    } else {
+      card = '<section class="bk-card bk-idle"><p>點選下方的裝備或物品，查看詳情。</p></section>';
+    }
+
+    // 背包面板：總覽＋裝備欄
+    const slots = [['weapon', 'sword'], ['off', 'dart'], ['armor', 'shield'], ['acc', 'ring'], ['relic', 'scroll']].map(([k, gi]) => {
+      const id = k === 'off' && S.weapon && ITEMS[S.weapon].hand === 2 ? null : S[k];
+      const nm = GEAR_SLOTS.find(x => x[0] === k)[1];
+      return id && ITEMS[id] ? cell(id, (sel === id ? ' on' : '') + ' bk-eq', pick(id))
+        : '<span class="bk-cell bk-empty" title="' + nm + '">' + ico(gi, 'bk-ghost') + '<small class="bk-slotn">' + (k === 'off' && S.weapon && ITEMS[S.weapon].hand === 2 ? '雙手' : nm) + '</small></span>';
     }).join('');
-    return equipped + (ids.length ? content : '<p class="empty">行囊空空如也。</p>');
+    const crit = clamp(S.stats.luck * 1.3 + fxSum('crit'), 0, 100), red = Math.min(50, (fxSum('dmgRed') + fxSum('guard') * 0.15) * 100);
+    const strip = [['agi', '閃避', Math.round(pDodge())], ['luck', '暴擊', crit.toFixed(1) + '%'], ['shield', '減傷', red.toFixed(1) + '%'], ['coin', '銀兩', S.silver]]
+      .map(x => '<span class="bk-stat" title="' + x[1] + '">' + ico(x[0], 'bk-sico') + '<b>' + x[2] + '</b><small>' + x[1] + '</small></span>').join('');
+    // 物品格：已穿戴且只有一件的不重複顯示
+    const order = ['weapon', 'off', 'armor', 'acc', 'relic', 'med', 'tonic', 'manual', 'gift'];
+    const ids = Object.keys(S.inv).filter(id => ITEMS[id] && !(GEAR_SLOTS.some(x => S[x[0]] === id) && S.inv[id] === 1))
+      .sort((x, y) => (order.indexOf(ITEMS[x].kind) + 1 || 99) - (order.indexOf(ITEMS[y].kind) + 1 || 99));
+    const total = Math.max(14, Math.ceil(ids.length / 7) * 7 + (ids.length % 7 === 0 && ids.length ? 0 : 0));
+    const grid = ids.map(id => cell(id, sel === id ? ' on' : '', pick(id), S.inv[id] - (GEAR_SLOTS.some(x => S[x[0]] === id) ? 1 : 0)))
+      .concat(Array.from({ length: Math.max(0, total - ids.length) }, () => '<span class="bk-cell bk-blank"></span>')).join('');
+    return card + '<section class="bk-panel"><div class="bk-top"><div class="bk-sum"><span>' + ico('sword', 'bk-sico') + '<b>' + power().toFixed(1) + '</b></span><span>' + ico('shield', 'bk-sico') + '<b>' + pDef().toFixed(1) + '</b></span></div>' + slots + '</div>' +
+      '<div class="bk-strip">' + strip + '</div><div class="bk-grid">' + grid + '</div></section>';
   },
   people() {
     const met = Object.keys(NPCS).filter(id => S.npcs[id] && S.npcs[id].met);
