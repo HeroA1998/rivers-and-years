@@ -54,3 +54,10 @@
 - In first actual game screenshots at 390×844, portrait HUD remains at y=0–138 and footer begins y=743; a synthetic 3-option event has all three gold buttons inside the story region. No JS gameplay files have been changed.
 - Verified in actual Playwright screenshots at 320/390/430: one-button scene and synthetic three-option scene both render the gold images. The 390px long-scene screenshot has three separate engraved choices and retained functional event handlers. The latest successful actual-game run passed **90/90 browser checks**, including explicit HTTP 200 for the three ornate WebPs and confirmation that the real gilded option and border images are assigned by computed CSS. See [run #45011972529](https://github.com/HeroA1998/rivers-and-years/actions/runs/45011972529).
 - Outstanding: human aesthetic sign-off, real touchscreen rendering, long wrapped button copy, full combat/legacy, and male protagonist portrait master.
+
+## Combat presentation revision — compact dialog
+- At the player's request, the former full-screen battle scene is replaced by a centered, mobile-width modal over the original Jianghu story screen. No duplicated HUD, arena, large 3D die, equipment ribbon or disabled footer inside the modal.
+- Keep player/opponent names and HP, advantage estimate, roll result, one-line combat log and phase-specific controls. Dice rules (1–20, 10-point skip), speed, surrender, outcome and combat mechanics remain untouched in `js/game.js`.
+- Background story/portrait and navigation remain visible but inert while the modal is active; the popup carries an accessible dialog role.
+- A new `css/v11-compact-battle.css` is loaded last, to override legacy full-screen battle styles without rewriting the battle engine.
+- Release check: run Playwright at 320, 390 and 430 widths, confirm the dialog stays centered and inside the viewport, all dice/surrender actions work and the player returns to the narrative.
