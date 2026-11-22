@@ -156,12 +156,29 @@ const TABS = {
     return `<div class="seg">${SUBS.map(x => `<button type="button" class="${sub === x[0] ? 'on' : ''}"${h(() => { UI.sub = x[0]; render(); window.scrollTo(0, 0); })}>${x[1]}</button>`).join('')}</div>` + TABS[sub]();
   },
   world() {
-    const logs = S.log.slice(-6).map(l => `<li><time>${l.t}</time>${l.s}</li>`).join('');
+    const logs = S.log.slice(-6).reverse();
     const rum = histRumors(720);
-    const quest = `<section class="quest"><span class="tag seal">江湖風聞</span><h3>${reign(ad())}（${ad()}年）</h3>${rum.length ? rum.map(x => `<small class="rum${x.now ? ' now' : ''}"><b>${x.when}・${x.where}</b>${x.now ? '　正在發生！' : ''}<br>${x.h.rumor}</small>`).join('') : '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>'}${chainHints().map(c => `<small class="side"><span class="tag jade">奇緣</span> ${c.title}：${c.hint}</small>`).join('')}</section>`;
+    const hints = chainHints();
+    const urgent = rum.find(x => x.now);
     const ng = nextGoal();
-    const guide = `<section class="guide"><span class="tag jade">下一步</span><h3>${ng.title}</h3><p>${ng.desc}</p>${ng.note ? `<small>${ng.note}</small>` : ''}<div class="col">${ng.acts.map(a => B(a[0], a[1], 'primary big')).join('')}</div></section>`;
-    return guide + `<p class="desc">${LOCS[S.loc].d}</p>` + quest + `<ul class="log">${logs}</ul>`;
+    const guide = '<section class="guide"><span class="tag seal">下一步</span><h3>' + ng.title +
+      '</h3><p>' + ng.desc + '</p>' + (ng.note ? '<small>' + ng.note + '</small>' : '') +
+      '<div class="col">' + ng.acts.map(a => B(a[0], a[1], 'primary big')).join('') + '</div></section>';
+    const rumors = rum.map(x => '<small class="rum' + (x.now ? ' now' : '') +
+      '"><b>' + x.when + '・' + x.where + '</b>' + (x.now ? '　正在發生！' : '') +
+      '<span> ' + x.h.rumor + '</span></small>').join('');
+    const rumorPanel = '<details class="brief"><summary>江湖風聞</summary>' +
+      '<p class="brief-preview">' + (urgent ? '重要消息：' + urgent.h.rumor :
+        rum.length ? rum[0].h.rumor : '江湖暫無重大消息。') + '</p>' +
+      '<section class="quest"><h3>' + reign(ad()) + '（' + ad() + '年）</h3>' +
+      (rumors || '<p>眼下江湖上沒有什麼大消息。在城裡的酒樓茶肆，比較容易聽到風聲。</p>') +
+      hints.map(c => '<small class="side"><span class="tag jade">奇緣</span> ' + c.title +
+        '：' + c.hint + '</small>').join('') + '</section></details>';
+    const logPanel = '<details class="brief"><summary>旅途札記</summary><p class="brief-preview">' +
+      (logs.length ? logs[0].s : '旅程才剛開始') + '</p>' +
+      '<ul class="log">' + logs.map(l => '<li><time>' + l.t + '</time>' + l.s + '</li>').join('') +
+      '</ul></details>';
+    return guide + rumorPanel + logPanel;
   },
   status() {
     return `<section class="group"><h3>${esc(S.name)}・Lv ${S.lv}</h3>
@@ -309,14 +326,37 @@ function overlay() {
     return `<div class="veil"><div class="sheet"><div class="sheet-h"><h2>${title}</h2>${B(o.m === 'shop' ? '離開' : '關閉', o.m === 'shop' ? closeShop : closeMenu, 'mini')}</div>${body}</div></div>`;
   }
   if (o.k === 'event') {
-    return `<div class="veil"><div class="sheet event">
-      <div class="scene">${art(o.art || (o.type === '戰鬥' ? 'fight' : o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road'), o.title)}${face(o.who, 'on-art')}</div>
-      <p class="tag ${TYPE_CLS[o.type] || 'grey'}">${o.type}事件</p><h2>${o.title}</h2>
-      ${o.result ? `<p class="story">${o.result}</p><div class="col">${B('繼續', closeEvent, 'primary big')}</div>`
-        : o.pages && o.pi < o.pages.length - 1
-          ? `<p class="story">${o.pages[o.pi]}</p><div class="col">${B(`繼續　${o.pi + 1}/${o.pages.length}`, () => { o.pi++; render(); document.querySelector('.sheet').scrollTop = 0; }, 'primary big')}</div>`
-          : `<p class="story">${o.pages ? o.pages[o.pi] : o.text}</p><div class="col">${o.choices.map((c, i) => `<button type="button" class="btn choice side-${c.s}${c.plain ? ' plain' : ''}"${c.dis ? ' disabled' : h(() => choose(i))}>${c.plain ? '' : `<i class="side">${SIDE_LABEL[c.s]}</i>`}<span>${c.t}${c.dis && c.reqT ? `<small>（${c.reqT}）</small>` : ''}</span></button>`).join('')}</div>`}
-    </div></div>`;
+    const illustration = o.art || (o.type === '戰鬥' ? 'fight' :
+      o.type === '戀愛' ? 'love' : o.type === '傳承' ? 'legacy' : 'road');
+    let content;
+    if (o.result) {
+      content = '<p class="story">' + o.result + '</p><div class="col">' +
+        B('繼續', closeEvent, 'primary big') + '</div>';
+    } else if (o.pages && o.pi < o.pages.length - 1) {
+      content = '<p class="story">' + o.pages[o.pi] + '</p><div class="col">' +
+        B('繼續　' + (o.pi + 1) + '/' + o.pages.length, () => {
+          o.pi++; render(); document.querySelector('.sheet').scrollTop = 0;
+        }, 'primary big') + '</div>';
+    } else {
+      content = '<p class="story">' + (o.pages ? o.pages[o.pi] : o.text) +
+        '</p><p class="note">你打算如何應對？</p><div class="col">' +
+        o.choices.map((c, i) =>
+          '<button type="button" class="btn choice side-' + c.s +
+          (c.plain ? ' plain' : '') + '"' +
+          (c.dis ? ' disabled' : h(() => choose(i))) + '>' +
+          (c.plain ? '' : '<i class="side">' + SIDE_LABEL[c.s] + '</i>') +
+          '<span>' + c.t +
+          (c.dis && c.reqT ? '<small>（' + c.reqT + '）</small>' : '') +
+          '</span></button>').join('') + '</div>';
+    }
+    return '<div class="veil"><section class="sheet event" role="dialog" aria-modal="true" aria-label="' +
+      esc(o.title) + '">' +
+      '<div class="event-topline"><span class="tag ' + (TYPE_CLS[o.type] || 'grey') +
+      '">' + esc(o.type) + '事件</span><span class="event-date">' +
+      dateStr() + '</span></div>' +
+      '<div class="scene">' + art(illustration, o.title) + face(o.who, 'on-art') +
+      '</div><h2 class="event-title">' + esc(o.title) + '</h2>' +
+      content + '</section></div>';
   }
   if (o.k === 'lvup') {
     const used = Object.values(o.add).reduce((a, b) => a + b, 0), left = S.pts - used;
