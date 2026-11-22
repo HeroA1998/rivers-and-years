@@ -459,3 +459,85 @@ svg.orb.off{opacity:.35}svg.orb.off path{fill:none}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* ===== 故事主導式首頁：以閱讀與選擇取代「歷練一個月」大按鈕 ===== */
+#app[data-page="world"]{
+  background:var(--paper);
+  gap:7px;
+  padding-top:max(8px,env(safe-area-inset-top));
+}
+#app[data-page="world"] .bhud{
+  background:transparent;border:0;border-bottom:1px solid #C6B8A3;
+  border-radius:0;box-shadow:none;padding:7px 4px 10px;gap:5px;
+}
+#app[data-page="world"] .hud-head{grid-template-columns:42px minmax(0,1fr) 42px}
+#app[data-page="world"] .hport{width:42px;height:42px}
+#app[data-page="world"] .hud-meta{border-color:#D7CAB7}
+#app[data-page="world"] main{display:flex;flex-direction:column;flex:1;gap:5px;padding:0 0 12px}
+.story-stage{
+  width:100%;max-width:575px;flex:1;margin:0 auto;
+  display:flex;flex-direction:column;gap:0;
+  padding:12px clamp(6px,3vw,20px) 10px;
+  color:var(--ink);
+}
+.story-heading{text-align:center;padding:4px 0 17px}
+.story-chapter{display:block;color:#89745A;font:500 12px/1.4 var(--f-ui);letter-spacing:.12em;margin-bottom:10px}
+.story-stage h2{
+  font:600 clamp(22px,5.7vw,27px)/1.55 var(--f-brush);
+  letter-spacing:.09em;text-wrap:balance;color:#3C3024;
+}
+.story-prose{display:flex;flex-direction:column;gap:14px;max-width:38em}
+.story-prose p{font:400 clamp(16px,4.2vw,18px)/1.95 var(--f-brush);letter-spacing:.025em;
+  color:#463B30;overflow-wrap:anywhere;white-space:pre-line}
+.story-choice-block{margin-top:auto;padding-top:clamp(20px,4vh,44px)}
+.story-question{display:flex;align-items:center;gap:10px;margin:0 0 5px;
+  color:#8B785E;font:500 13px/1.5 var(--f-brush)}
+.story-question::before{content:"";height:1px;background:#C8B79B;flex:1}
+.story-question::after{content:"";height:1px;background:#C8B79B;flex:1}
+.story-options{display:flex;flex-direction:column;gap:0}
+.story-options .btn.story-option{
+  display:flex;align-items:center;gap:12px;width:100%;min-height:57px;
+  background:transparent;border:0;border-bottom:1px solid #D8CDBB;
+  border-radius:0;box-shadow:none;
+  text-align:left;padding:10px 9px;
+  color:#4B3B2D;font:500 clamp(15px,4vw,17px)/1.55 var(--f-brush);
+  transition:background-color .15s,color .15s;
+}
+.story-options .btn.story-option::before{content:"❖";color:var(--seal);font-size:17px;flex:none}
+.story-options .btn.story-option::after{content:"›";color:#9A8467;font:24px/1 var(--f-ui);margin-left:auto}
+.story-options .btn.story-option:hover:not(:disabled),
+.story-options .btn.story-option:focus-visible{background:rgba(165,65,54,.07);color:var(--seal)}
+.story-options .btn.story-option:active:not(:disabled){transform:none;background:rgba(165,65,54,.12)}
+.story-options .btn.story-option:last-child{border-bottom:0}
+.world-archive{width:100%;max-width:575px;margin:4px auto 8px;border-top:1px solid #DED2BF}
+.world-archive summary{
+  display:block;list-style:none;cursor:pointer;
+  min-height:40px;padding:10px 10px 6px;
+  font:13px/1.5 var(--f-ui);text-align:center;color:#89745A;
+}
+.world-archive summary::-webkit-details-marker{display:none}
+.world-archive summary::after{content:"  ▾"}
+.world-archive[open] summary::after{content:"  ▴"}
+.world-archive-inner{display:flex;flex-direction:column;gap:10px;padding:12px 8px}
+.world-archive-inner h3{font:600 17px var(--f-brush);border-bottom:1px solid var(--line);padding-bottom:5px}
+.archive-rumor,.archive-note{font:14px/1.8 var(--f-brush);color:var(--ink2)}
+.archive-rumor b{font-weight:600;color:#796047}
+.archive-rumor strong{font-weight:600;color:var(--seal)}
+.world-archive .log{box-shadow:none;padding:10px;background:transparent;border:0;font-size:14px}
+#app[data-page="world"] .bnav.live{
+  background:rgba(246,241,230,.97);
+  border-radius:0;border:0;border-top:1px solid #C6B8A3;box-shadow:none;
+  padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+}
+#app[data-page="world"] .bnav button.on{background:transparent;color:var(--seal)}
+@media(max-width:380px){
+  .story-stage{padding-top:7px}
+  .story-heading{padding-bottom:12px}
+  .story-prose{gap:10px}
+  .story-choice-block{padding-top:18px}
+  .story-options .btn.story-option{min-height:51px}
+}
+@media(prefers-reduced-motion:reduce){
+  .story-options .btn.story-option{transition:none}
+}
