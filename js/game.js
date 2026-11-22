@@ -313,7 +313,7 @@ function pump(autoContinue = false) {
       });
     }
     // 不返回舊首頁，也不顯示額外的三個遊歷方向選項。
-    return adventureMonth('usual');
+    return adventureMonth();
   }
   render();
 }
@@ -344,10 +344,11 @@ function showEvent(ev) {
   const text = pages ? pages[0] : typeof ev.text === 'function' ? ev.text(S) : ev.text;
   const raw = typeof ev.choices === 'function' ? ev.choices(S) : ev.choices || [];
   const choices = sides(raw).map(c => { const qi = c.qi != null ? c.qi : autoQi(c); return Object.assign({}, c, { qi, t: c.t + (qi ? `〔耗內力${qi}〕` : ''), dis: !!((c.req && !c.req(S)) || (c.cond && !c.cond(S)) || (qi && S.qi < qi)), reqT: c.reqT || (qi && S.qi < qi ? '內力不足' : '') }); });
-  if (choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
+  if (choices.length && choices.every(c => c.dis)) { const k = choices.find(c => c.s === 'n') || choices[choices.length - 1]; k.dis = false; k.qi = 0; k.t = k.t.replace(/〔耗內力\d+〕/, ''); }
   UI.ov = { k: 'event', type: ev.type, title: ev.title, art: ev.art, text, choices, pages, pi: 0, result: null, who: typeof ev.who === 'function' ? ev.who(S) : ev.who, big: ['歷史', '傳承', '奇遇', '奇緣'].includes(ev.type) };
   log(`【${ev.type}】${ev.title}`);
   render();
+  window.scrollTo(0, 0);
 }
 function choose(i) {
   const o = UI.ov, c = o.choices[i];
@@ -367,6 +368,7 @@ function handleResult(r) {
   ov.result = (r || '此事就此揭過。') + takePend();
   ov.choices = [];
   render();
+  window.scrollTo(0, 0);
 }
 function closeEvent() { UI.ov = null; pump(true); }
 /* 升級配點 */
