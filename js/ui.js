@@ -506,7 +506,7 @@ function eventReader(o) {
   // Speaker-led dialogue receives a discreet visual cue; typewriter markup stays
   // identical and no narrative text is rewritten or removed.
   // 故事文字只放行本遊戲產生的少數標籤（骰點、換行），其餘一律跳脫，避免輸入內容被當成 HTML
-  const rich = t => esc(t).replace(/&lt;(\/?)(span|b|em|br)((?: class=&quot;[a-z\- ]+&quot;)?)&gt;/g, '<$1$2$3>');
+  const rich = t => esc(t).replace(/&lt;(\/?)(span|b|em|br)((?: class=&quot;[a-z\- ]+&quot;)?)&gt;/g, (_, sl, tag, attr) => `<${sl}${tag}${attr.replace(/&quot;/g, '"')}>`);
   const transcript = lines.map((line, i) => {
     const text = String(line.text || '').trimStart();
     const dialogue = line.kind === 'prose' &&
