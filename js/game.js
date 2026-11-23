@@ -532,6 +532,7 @@ function startBattle(r) {
   const K = maxMp() / Math.max(1, qiMax());           // 一顆氣團＝K 點戰鬥內力
   UI.ov.K = K; S.hp = maxHp(); S.mp = Math.round(S.qi * K);   // 每場新戰鬥開始都是滿血，不受上一戰影響
   battleOpen(UI.ov);
+  applyPrep(UI.ov);
   render();
 }
 let ROLL_SEQ = 0;
@@ -639,53 +640,29 @@ const healer = () => fxSum('heal') > 0;
 function useMed(id) {
   const it = ITEMS[id];
   addItem(id, -1);
-  if (!(UI.ov && UI.ov.k === 'battle')) {            // 平時：回復的是命與氣團
-    const t = (it.life ? heal(it.life) : '') + (it.qi ? gainQi(it.qi) : '');
-    return t;
-  }
-  if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (healer() && it.hp < 999 ? 1.5 : 1)));
-  if (it.mp) S.mp = Math.min(maxMp(), S.mp + it.mp);
+  return (it.life ? heal(it.life) : '') + (it.qi ? gainQi(it.qi) : '');   // 戰鬥全自動，藥只在平時用：回復命與氣團
 }
-// 戰鬥中用藥：在戰鬥的畫面上直接服用，回復的是本場的鬥氣與內力；戰前藥只管這一場
-const BATTLE_ITEM = id => ITEMS[id] && (ITEMS[id].kind === 'med' || ITEMS[id].kind === 'buff');
-// 目前這件道具在這場戰鬥裡派不派得上用場（滿血、已生效的都不必再用）
-function battleUsable(b, id) {
-  const it = ITEMS[id];
-  if (!b || b.over || b.phase !== 'fight' || !has(id)) return false;
-  if (it.kind === 'med') return !((!it.hp || S.hp >= maxHp()) && (!it.mp || S.mp >= maxMp()));
-  if (it.buff) return !Object.keys(it.buff).some(k => b.buff && b.buff[k]);
-  if (it.act === 'stun') return !(b.fx.stun > 0);
-  if (it.act === 'poison') return !(b.fx.poison > 0);
-  return false;
-}
-function battleUse(id) {
-  const b = UI.ov;
-  if (!b || b.k !== 'battle' || !BATTLE_ITEM(id) || !battleUsable(b, id)) return;
-  const it = ITEMS[id];
-  let msg;
-  if (it.kind === 'med') {
-    const hp0 = S.hp, mp0 = S.mp;
-    useMed(id);
-    msg = `你趁空檔服下${it.n}。` + [it.hp ? `氣血+${Math.max(0, S.hp - hp0)}` : '', it.mp ? `內力+${Math.max(0, S.mp - mp0)}` : ''].filter(Boolean).join('　');
-  } else if (it.buff) {
-    addItem(id, -1); b.buff = Object.assign(b.buff || {}, it.buff);
-    msg = `你服下${it.n}。${it.use}`;
-  } else if (it.act === 'stun') {
-    addItem(id, -1);
-    if (chance(70)) { b.fx.stun = 1; msg = `你彈出一撮${it.n}，${b.e.n}吸入少許，腳下一軟，下一手使不出來。`; }
-    else msg = `你彈出一撮${it.n}，可${b.e.n}屏住了氣，沒中招。`;
-  } else {
-    addItem(id, -1); b.fx.poison = 3; b.fx.poisonV = Math.max(6, Math.round(b.e.mhp * 0.04));
-    msg = `你把${it.n}彈進${b.e.n}的口中，毒性隨即發作。`;
-  }
-  bLog(msg);
-  save(); render();
+// 備戰：戰前藥與暗器藥在背包裡備好，下一場戰鬥開打時自動生效（戰鬥中沒有任何手動操作）
+const PREP_N = { atk: '活血', red: '鐵骨', stun: '蒙汗藥', poison: '毒餌' };
+const prepText = () => { const k = Object.keys(S.prep || {}).filter(x => S.prep[x]); return k.length ? `已備戰：${k.map(x => PREP_N[x]).join('、')}，下一場戰鬥開打時自動生效。` : ''; };
+function applyPrep(b) {
+  const p = S.prep; S.prep = null;
+  if (!p) return;
+  if (p.atk || p.red) { b.buff = {}; if (p.atk) b.buff.atk = p.atk; if (p.red) b.buff.red = p.red; b.log.push(`【備戰】${p.atk && p.red ? '藥力化開，氣血翻湧、筋骨如鐵。' : p.atk ? '藥力化開，渾身氣血翻湧，出手又快又重。' : '藥力入骨，筋肉繃得像鐵一般硬。'}`); }
+  if (p.stun) { if (chance(70)) { b.fx.stun = 1; b.log.push(`【備戰】你開戰前彈出一撮蒙汗藥，${b.e.n}吸入少許，第一手使不出來。`); } else b.log.push(`【備戰】你彈出一撮蒙汗藥，可${b.e.n}屏住了氣，沒中招。`); }
+  if (p.poison) { b.fx.poison = 3; b.fx.poisonV = Math.max(6, Math.round(b.e.mhp * 0.04)); b.log.push(`【備戰】你把毒餌彈進${b.e.n}的口中，毒性隨即發作。`); }
 }
 function useItem(id) {
   const it = ITEMS[id];
   if (it.kind === 'med') {
     if (!(S.life < lifeMax() && it.life) && !(S.qi < qiMax() && it.qi)) return toast('氣血與內力都是滿的，用不著');
     toast(`服下${it.n}` + useMed(id));
+  }
+  else if (it.kind === 'buff') {
+    const keys = it.buff ? Object.keys(it.buff) : [it.act];
+    if (keys.some(k => S.prep && S.prep[k])) return toast('這一場已經備下同樣的藥了');
+    addItem(id, -1); S.prep = Object.assign(S.prep || {}, it.buff || { [it.act]: true });
+    toast(`你備好了${it.n}，下一場戰鬥開打時自動生效。`);
   }
   else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain(it.gain || { con: 1, bonusLife: 1 })); }
   else if (it.kind === 'page') {

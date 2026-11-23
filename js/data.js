@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.17.0';
+const VERSION = 'v6.18.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -286,16 +286,16 @@ const sectOpen = id => { const k = SECTS[id], y = typeof ad === 'function' && S 
 
 /* ---------- 物品 ---------- */
 const ITEMS = {
-  jinchuang: { n: '金創藥', kind: 'med', price: 30, hp: 70, life: 1, d: '回復 1 點氣血（戰鬥中回復 70 鬥氣）' },
-  shangjin:  { n: '上品金創藥', kind: 'med', price: 90, hp: 160, life: 2, d: '回復 2 點氣血（戰鬥中回復 160 鬥氣）' },
-  juqi:      { n: '聚氣丹', kind: 'med', price: 110, mp: 100, qi: 4, d: '回復 4 點內力（戰鬥中回復 100）' },
-  huichun:   { n: '回春散', kind: 'med', price: 140, hp: 110, mp: 50, life: 2, qi: 2, d: '回復 2 點氣血與 2 點內力（戰鬥中回復 110 鬥氣、50 內力）' },
-  huoxue:    { n: '活血丸', kind: 'buff', price: 80, buff: { atk: 0.15 }, tag: '活血', use: '藥力化開，渾身氣血翻湧，出手又快又重。', d: '戰鬥中服用：本場傷害 +15%' },
-  tiegu:     { n: '鐵骨散', kind: 'buff', price: 80, buff: { red: 0.15 }, tag: '鐵骨', use: '藥力入骨，筋肉繃得像鐵一般硬。', d: '戰鬥中服用：本場受傷 −15%' },
-  menghan:   { n: '蒙汗藥', kind: 'buff', price: 70, act: 'stun', d: '戰鬥中使用：七成機率令對手下一手使不出來' },
-  duyan:     { n: '毒餌', kind: 'buff', price: 70, act: 'poison', d: '戰鬥中使用：對手中毒三手，每手損失一成不到的氣血' },
-  huiqi:     { n: '回氣散', kind: 'med', price: 40, mp: 45, qi: 2, d: '回復 2 點內力（戰鬥中回復 45）' },
-  dahuan:    { n: '大還丹', kind: 'med', price: 320, hp: 9999, mp: 9999, life: 99, qi: 99, d: '氣血與內力全滿' },
+  jinchuang: { n: '金創藥', kind: 'med', price: 30, life: 1, d: '回復 1 點氣血' },
+  shangjin:  { n: '上品金創藥', kind: 'med', price: 90, life: 2, d: '回復 2 點氣血' },
+  juqi:      { n: '聚氣丹', kind: 'med', price: 110, qi: 4, d: '回復 4 點內力' },
+  huichun:   { n: '回春散', kind: 'med', price: 140, life: 2, qi: 2, d: '回復 2 點氣血與 2 點內力' },
+  huoxue:    { n: '活血丸', kind: 'buff', price: 80, buff: { atk: 0.15 }, d: '備戰：下一場戰鬥傷害 +15%（開打時自動生效）' },
+  tiegu:     { n: '鐵骨散', kind: 'buff', price: 80, buff: { red: 0.15 }, d: '備戰：下一場戰鬥受傷 −15%（開打時自動生效）' },
+  menghan:   { n: '蒙汗藥', kind: 'buff', price: 70, act: 'stun', d: '備戰：下一場開打時，七成機率令對手第一手使不出來' },
+  duyan:     { n: '毒餌', kind: 'buff', price: 70, act: 'poison', d: '備戰：下一場開打時，對手中毒三手' },
+  huiqi:     { n: '回氣散', kind: 'med', price: 40, qi: 2, d: '回復 2 點內力' },
+  dahuan:    { n: '大還丹', kind: 'med', price: 320, life: 99, qi: 99, d: '氣血與內力全滿' },
   herb:      { n: '草藥', kind: 'misc', price: 16, d: '藥舖收購；三株可請藥舖煉成金創藥' },
   lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, gain: { con: 1, bonusLife: 1 }, d: '服下後根骨+1、氣血上限+1（多一顆命）' },
   renshen:   { n: '百年人參', kind: 'tonic', price: 420, gain: { str: 1, bonusHp: 20 }, d: '服下後臂力+1、鬥氣上限+20' },
