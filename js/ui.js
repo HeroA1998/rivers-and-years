@@ -624,6 +624,15 @@ function d20Svg(tone = 'red') {
 
 /* ---------- 全自動戰鬥畫面 ---------- */
 const hero = () => `<svg viewBox="0 0 64 80" aria-hidden="true"><ellipse cx="32" cy="76" rx="17" ry="3.5" fill="#000" opacity=".22"/><path d="M19 71L23 36Q32 24 41 36L45 71Z" fill="#4f8a6e"/><path d="M23 36Q32 24 41 36L39 44Q32 40 25 44Z" fill="#3d6f57"/><circle cx="32" cy="27" r="9.5" fill="#4f8a6e"/><circle cx="33" cy="29" r="5.2" fill="#ecd9bb"/><path d="M44 54L60 28" stroke="#e8edf0" stroke-width="3.4" stroke-linecap="round"/><path d="M43 56L47 51" stroke="#7a4f27" stroke-width="4.5" stroke-linecap="round"/></svg>`;
+/* 精靈圖：一條橫向的連續圖（每格方形、腳底與水平中心已對齊、面向右）。
+   idle：待機格　ready：擲骰前　atk：出招時依序播放的格　載入失敗就退回原本的人形 */
+const SPRITES = {
+  huangrong: { sheet: 'assets/sprites/huangrong.webp', frames: 6, ready: 0, idle: 5, ok: true },
+};
+const SPRITE_BY_NAME = { '黃蓉': 'huangrong' };
+Object.keys(SPRITES).forEach(k => { const im = new Image(); im.onerror = () => { SPRITES[k].ok = false; }; im.src = SPRITES[k].sheet; });
+const spriteOf = e => { const k = e.fig || SPRITE_BY_NAME[e.n]; return k && SPRITES[k] && SPRITES[k].ok ? k : null; };
+const spriteHtml = k => `<div class="spr"><i class="sf" style="background-image:url(${SPRITES[k].sheet})"></i></div>`;
 const foeFig = style => style === 'beast'
   ? `<svg viewBox="0 0 80 64" aria-hidden="true"><ellipse cx="40" cy="60" rx="26" ry="3.5" fill="#000" opacity=".22"/><ellipse cx="38" cy="38" rx="22" ry="13" fill="#8a5a3a"/><circle cx="62" cy="30" r="10" fill="#9a6642"/><path d="M58 22l-2-8 6 5zM66 21l3-7 2 8z" fill="#7a4a2c"/><circle cx="65" cy="29" r="1.8" fill="#f2d35a"/><path d="M22 46v12M32 48v10M46 48v10M56 46v12" stroke="#6e4528" stroke-width="5" stroke-linecap="round"/><path d="M17 36q-9-6-9-16" stroke="#8a5a3a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`
   : style === 'puppet'
@@ -765,7 +774,7 @@ function battleView(o) {
   const chips = ids => ids.map(id => `<i class="ac r-${artRole(id)} tier-${SKILLS[id].tier}" title="${SKILLS[id].n}">${ico(artIcon(id))}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const pop = o.pop || { toE: 0, toP: 0 }, fight = o.phase === 'fight';
   const pcls = `fgt p${fight && pop.toE ? ' atk' : ''}${fight && pop.toP ? ' hit' : ''}${o.god ? ' god' : ''}`;
-  const ecls = `fgt e${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
+  const ecls = `fgt e${spriteOf(e) ? ' hasspr' : ''}${o.phase === 'roll' ? ' ready' : ''}${fight && pop.toP ? ' atk' : ''}${fight && pop.toE ? ' hit' : ''}${o.over === 'win' ? ' down' : ''}`;
   const last = o.log[o.log.length - 1];
   // 點數在骰子落定時才揭曉；落定動畫只播一次（之後的重繪不重播）
   const tone = o.roll === 20 ? 'gold' : o.roll === 1 ? 'iron' : 'red';
@@ -802,7 +811,7 @@ function battleView(o) {
       </div>
       <div class="arena"><canvas class="art bg" data-battle-bg="${battleBg(o)}" data-seed="${esc(e.n)}" width="800" height="420" aria-hidden="true"></canvas>
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
-        <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
+        <div class="${ecls}">${spriteOf(e) ? spriteHtml(spriteOf(e)) : foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
         ${peek}
       </div>

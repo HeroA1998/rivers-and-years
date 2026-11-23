@@ -24,7 +24,7 @@ function figFight(id, kind, o) {
   const [n, fix, mult, style, moves] = FIG_FOE[id](ad());
   npc(id).met = true;
   const after = () => kind === 'duel' ? favUp(id, -5) : `〔切磋：${n}好感不變〕`;
-  return { battle: foe(n, fix, mult, style, { moves }), noFlee: true, title: o.title, intro: o.intro,
+  return { battle: foe(n, fix, mult, style, { moves, fig: id }), noFlee: true, title: o.title, intro: o.intro,
     win: () => lnTxt(o.win) + after(), lose: () => lnTxt(o.lose) + after() };
 }
 // 原作寫明改邪歸正：好感歸 0
