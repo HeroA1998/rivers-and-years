@@ -475,9 +475,7 @@ function eventReader(o) {
   // 常見小事件以文字為主；只有重要事件或有登場人物時展示短畫幅。
   const media = o.who && FACES.includes(o.who)
     ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>`
-    : o.big && o.art
-      ? `<div class="reader-media reader-landscape">${art(o.art, o.title)}</div>`
-      : '';
+    : '';   // 不再顯示事件風景圖，只在有登場人物時顯示人物
   let controls;
   if (o.result) {
     controls = B('繼續', closeEvent, 'story-option');

@@ -55,7 +55,7 @@ for(const dims of [[320,700],[390,844],[430,932]]){
  await page.waitForSelector('#app[data-page="world"] .bhud',{timeout:15000});
  await reveal(page);
  const initial=await snapshot(page,'world_'+width+'x'+height);
- check(String(width)+' enlarged portrait',!!initial.portrait&&initial.portrait.height>=105,{portrait:initial.portrait});
+ check(String(width)+' compact portrait',!!initial.portrait&&initial.portrait.height>=60&&initial.portrait.height<=90,{portrait:initial.portrait});
  check(String(width)+' complete six stats',await page.locator('#app[data-page="world"] .mini-stat').count()===6);
  check(String(width)+' correct female portrait',await page.locator('.hport img.hero-portrait[src*="hero_female.webp"]').count()===1);
  const imageCheck=await page.evaluate(async()=>{

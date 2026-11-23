@@ -1,0 +1,17 @@
+/* v16 縮小左上角的人物頭像，並讓出空間給右邊的資訊。 */
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hud-core{grid-template-columns:56px minmax(88px,1fr) 126px 25px}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hport{width:56px;height:76px}
+@media(max-width:410px){
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hud-core{grid-template-columns:52px minmax(78px,1fr) 119px 23px}
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hport{width:52px;height:70px}
+}
+@media(max-width:355px){
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hud-core{grid-template-columns:48px minmax(0,1fr) 24px}
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hport{width:48px;height:66px}
+}
+@media(orientation:landscape) and (max-height:500px){
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hud-core{grid-template-columns:44px minmax(90px,1fr) 130px 23px}
+  #app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hport{width:44px;height:60px}
+}
+/* 移除段落頁碼區塊上方的山水背景圖與預留的空白 */
+#app[data-page="world"] .reader-folio{background:none!important;padding-top:0!important;margin:10px 0 3px!important}

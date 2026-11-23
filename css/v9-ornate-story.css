@@ -36,7 +36,7 @@
   height:clamp(40px,11.5vw,59px);
   min-height:40px;
   pointer-events:none;
-  background-image:url("../assets/ui/v9/story-header.webp");
+  background-image:url("../assets/ui/v9/story-header.webp?v=nobanner");
   background-position:center top;
   background-size:100% 100%;
   background-repeat:no-repeat;
