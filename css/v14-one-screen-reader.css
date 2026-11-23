@@ -105,8 +105,28 @@
   padding-top:3px;
   padding-bottom:4px;
 }
-/* 上下兩張山水圖均已按玩家要求取消。
-   不再建立 ::after 圖層，也不再建立 .reader-scenery，保留雕花紙張。 */
+/* 固定背景山水取消；事件專屬插畫仍是內容，可隨事件切換。
+   不再建立固定 ::after 或 .reader-scenery 裝飾圖層。 */
+#app[data-page="world"] .reader-media.reader-landscape {
+  box-sizing:border-box;
+  position:relative;z-index:2;
+  flex:0 0 auto;
+  align-self:stretch;
+  width:100%;max-width:100%;
+  height:clamp(40px,9dvh,82px);
+  margin:2px 0 6px;
+  padding:0;
+  border:0;border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  overflow:hidden;
+}
+#app[data-page="world"] .reader-landscape .art {
+  width:100%;height:100%;
+  display:block;object-fit:cover;
+  image-rendering:auto;
+}
+/* 不要把場景圖當成另一張固定背景。 */
 #app[data-page="world"] .story-heading,
 #app[data-page="world"] .story-prose,
 #app[data-page="world"] .reader-character,
@@ -176,6 +196,7 @@
   #app[data-page="world"] .story-heading {padding:1px 0 3px}
   #app[data-page="world"] .story-stage h2 {font-size:17px;line-height:1.2}
   #app[data-page="world"] .reader-character {height:30px;margin-bottom:2px}
+  #app[data-page="world"] .reader-landscape {height:25px;margin:1px 0 2px}
   #app[data-page="world"] .story-prose .reader-line,
   #app[data-page="world"] .story-prose .reader-visible {font-size:16px;line-height:1.5}
   #app[data-page="world"] .story-options .btn.story-option {
@@ -217,6 +238,7 @@
   }
   #app[data-page="world"] .story-heading h2 {order:-1}
   #app[data-page="world"] .story-chapter {margin:0}
+  #app[data-page="world"] .reader-landscape {height:18px;margin:0 0 1px}
   #app[data-page="world"] .reader-character {
     align-self:flex-end;
     height:25px;
