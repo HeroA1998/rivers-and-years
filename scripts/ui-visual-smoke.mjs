@@ -167,38 +167,46 @@ async function verifyHud(page, width, height) {
 }
 
 async function verifyScenery(page, width) {
+  // 取消的是固定山水背景，不是事件觸發的 scene art。
   const visual = await page.evaluate(async () => {
     const stage = document.querySelector('.event-reader');
     const main = document.querySelector('#main-content');
     const folio = getComputedStyle(stage.querySelector('.reader-folio'));
-    const stageAfter = getComputedStyle(stage, '::after');
-    const header = getComputedStyle(main, '::before').backgroundImage;
+    const stageAfter = getComputedStyle(stage,'::after');
+    const header = getComputedStyle(main,'::before').backgroundImage;
     const border = getComputedStyle(main).borderImageSource;
-    const urls = [header,border];
-    const fetched = await Promise.all(urls.map(async url => {
+    const image = stage.querySelector('.reader-landscape img');
+    if(image && !image.complete) await image.decode();
+    const illustration=stage.querySelector('.reader-landscape');
+    const frame=illustration?.getBoundingClientRect();
+    const artResponse=await Promise.all([header,border].map(async url=>{
       const match=url.match(/url\(["']?(.*?)["']?\)/);
-      if(!match)return false;
-      const response=await fetch(match[1]);
-      return response.ok;
+      return !!match && (await fetch(match[1])).ok;
     }));
     return {
-      noTopScenery:stage.querySelectorAll('.reader-scenery,.reader-landscape').length===0,
-      noBottomScenery:(stageAfter.content==='none'||stageAfter.content==='normal') &&
+      eventIllustration:image?.complete && image.naturalWidth>0 &&
+        image.src.includes('/assets/art/mountain.jpg') &&
+        frame && frame.height>0 && frame.height<=83,
+      noFixedScenery:!stage.querySelector('.reader-scenery') &&
+        (stageAfter.content==='none'||stageAfter.content==='normal') &&
         stageAfter.backgroundImage==='none' &&
         folio.paddingTop==='0px' && folio.backgroundImage==='none',
-      framePreserved:fetched.every(Boolean) &&
-        header.includes('story-header.webp') && border.includes('story-border.webp')
+      originalOrnaments:artResponse.every(Boolean) &&
+        header.includes('story-header.webp') &&
+        border.includes('story-border.webp')
     };
   });
-  check(width + ' both scenery images gone; ornate plaque and border preserved',
+  check(width+' event illustration retained, only fixed scenery removed',
     Object.values(visual).every(Boolean),visual);
-  await showFixture(page, '未收錄的場景亦不應在正文中生成圖片。', { art: 'ink-fallback', noChoices: true });
-  check(width + ' no fallback landscape canvas in story',
-    await page.locator('.reader-scenery canvas,.reader-landscape canvas').count()===0);
-  await showFixture(page, '故人現身。', { who: 'su', noChoices: true });
-  check(width + ' character portrait is preserved without scenery',
+  await showFixture(page,'未收錄的場景應能用原有 Canvas 繪製。',{art:'ink-fallback',noChoices:true});
+  check(width+' event canvas fallback retained',
+    await page.locator('.reader-landscape canvas').evaluate(el=>
+      el.getContext('2d').getImageData(0,0,1,1).data[3]>0));
+  await fit(page,width+' illustration canvas fallback');
+  await showFixture(page,'故人現身。',{who:'su',noChoices:true});
+  check(width+' foreground portrait without duplicate scenery',
     await page.locator('.reader-character img').count()===1 &&
-    await page.locator('.reader-scenery').count()===0);
+    await page.locator('.reader-landscape').count()===0);
   await fit(page,width+' foreground portrait');
 }
 
