@@ -645,6 +645,16 @@ function useMed(id) {
   if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (healer() && it.hp < 999 ? 1.5 : 1)));
   if (it.mp) S.mp = Math.min(maxMp(), S.mp + it.mp);
 }
+// 戰鬥中用藥：在戰鬥的畫面上直接服用，回復的是本場的鬥氣與內力
+function battleUse(id) {
+  const b = UI.ov;
+  if (!b || b.k !== 'battle' || b.over || b.phase !== 'fight' || !has(id)) return;
+  const it = ITEMS[id], hp0 = S.hp, mp0 = S.mp;
+  useMed(id);
+  const got = [it.hp ? `氣血+${Math.max(0, S.hp - hp0)}` : '', it.mp ? `內力+${Math.max(0, S.mp - mp0)}` : ''].filter(Boolean).join('　');
+  bLog(`你趁空檔服下${it.n}。${got}`);
+  save(); render();
+}
 function useItem(id) {
   const it = ITEMS[id];
   if (it.kind === 'med') {

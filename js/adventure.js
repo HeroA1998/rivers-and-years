@@ -316,11 +316,12 @@ const sellPrice = id => Math.max(1, Math.round(ITEMS[id].price * 0.5));
 const gearUsed = id => GEAR_SLOTS.some(x => S[x[0]] === id);
 const shuf = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
 function townStock(s) {
-  const med = ['jinchuang', 'jinchuang', 'huiqi'];
-  if (chance(25)) med.push('dahuan');
+  // 同一種藥只列一筆，用 qty 表示數量
+  const med = [{ id: 'jinchuang', qty: 2 }, { id: 'huiqi', qty: 1 }];
+  if (chance(25)) med.push({ id: 'dahuan', qty: 1 });
   const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc', 'off', 'relic'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 4);
   const arts = shuf(artShop(s).filter(id => ITEMS[id].price)).slice(0, 2);
-  return [...med, ...gear, ...arts].map(id => ({ id, sold: false }));
+  return [...med, ...gear.map(id => ({ id, qty: 1 })), ...arts.map(id => ({ id, qty: 1 }))].map(e => ({ id: e.id, sold: false, qty: e.qty }));
 }
 function townMedCard(s) {
   goTown();
@@ -341,7 +342,7 @@ function shopBuy(i) {
   if (!e || e.sold) return;
   const it = ITEMS[e.id];
   if (S.silver < it.price) return toastRender('銀兩不夠');
-  S.silver -= it.price; e.sold = true;
+  S.silver -= it.price; if ((e.qty || 1) > 1) e.qty--; else e.sold = true;
   const msg = it.kind === 'manual' ? learn(it.skill) : (addItem(e.id), autoGear(e.id));
   toastRender(`買下${it.n}${msg ? ' ' + msg.replace(/<[^>]*>/g, '') : ''}`);
 }

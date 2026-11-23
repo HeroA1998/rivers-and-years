@@ -403,7 +403,7 @@ MENUS.shop = () => {
     const stock = (S.town && S.town.stock) || [];
     list = stock.length ? stock.map((e, i) => {
       const it = ITEMS[e.id];
-      return `<article class="card row-card${e.sold ? ' sold' : ''}"><span class="itemic">${ico(itemIc(it), 'big')}</span><div><b>${it.n}</b>${it.kind === 'manual' ? ' <span class="tag gold">武功</span>' : ''}<p>${dsc(it)}</p><p class="price">${it.price} 兩</p></div>${B(e.sold ? '已售' : '購買', () => shopBuy(i), 'mini', e.sold || S.silver < it.price)}</article>`;
+      return `<article class="card row-card${e.sold ? ' sold' : ''}"><span class="itemic">${ico(itemIc(it), 'big')}</span><div><b>${it.n}</b>${e.qty > 1 ? ` ×${e.qty}` : ''}${it.kind === 'manual' ? ' <span class="tag gold">武功</span>' : ''}<p>${dsc(it)}</p><p class="price">${it.price} 兩</p></div>${B(e.sold ? '已售' : '購買', () => shopBuy(i), 'mini', e.sold || S.silver < it.price)}</article>`;
     }).join('') : '<p class="empty">貨架空了。</p>';
   } else {
     const ids = Object.keys(S.inv).filter(id => ITEMS[id] && ITEMS[id].price);
@@ -713,6 +713,11 @@ function battleView(o) {
   let side;
   if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
+  else if (o.phase === 'fight') {
+    const meds = Object.keys(S.inv).filter(id => S.inv[id] > 0 && ITEMS[id] && ITEMS[id].kind === 'med');
+    side = `<div class="col">${meds.map(id => { const it = ITEMS[id], full = (!it.hp || S.hp >= maxHp()) && (!it.mp || S.mp >= maxMp());
+      return `<button type="button" class="pxbtn"${full ? ' disabled' : h(() => battleUse(id))}>${it.n} ×${S.inv[id]}</button>`; }).join('')}</div>`;
+  }
   else side = '';
   const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
