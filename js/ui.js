@@ -64,10 +64,13 @@ const SCREENS = {
         : `<button type="button" class="opt ${c.year === x.y ? 'on' : ''}"${h(() => { c.year = x.y; render(); })}><b>${x.n}<i>${reign(x.y)}・${x.y}年</i></b><span>${x.d}</span></button>`).join('')}</div>
       <label class="field" for="nm">姓名<input id="nm" maxlength="6" placeholder="例：沈孤雁" value="${esc(c.name)}" autocomplete="off"></label>
       <div class="field">性別<div class="row">${['男', '女'].map(g => B(g, () => { c.gender = g; render(); }, c.gender === g ? 'on' : '')).join('')}</div></div>
-      <p class="note">出身由天：投胎到什麼人家、生在哪裡，要等踏入江湖才知道。不同出身另有天資加成。</p>
+      ${c.year <= SEAL_YEAR ? `<div class="field">出身之地</div>
+      <div class="col">${[['中原', '楊康線', '江南人家的孩子。鄰家有個兒時玩伴叫阿康，八歲那年被一隊北方人馬接走了。'], ['蒙古', '郭靖線', '漠北牧民的孩子。從小跟一個叫郭靖的漢人少年在羊圈邊摔跤。']].map(([k, ln, d]) =>
+        `<button type="button" class="opt ${(c.land || '中原') === k ? 'on' : ''}"${h(() => { c.land = k; render(); })}><b>${k}<i>${ln}</i></b><span>${d}</span></button>`).join('')}</div>
+      <p class="note">生在哪一戶人家仍由天定，要等踏入江湖才知道。不同出身另有天資加成。</p>` : `<p class="note">出身由天：投胎到什麼人家、生在哪裡，要等踏入江湖才知道。不同出身另有天資加成。</p>`}
       <div class="field">天資 ${B('重擲', () => { c.stats = rollStats(); render(); }, 'mini')}</div>
       <div class="stats">${Object.keys(STAT_N).map(k => `<div><span>${ico(k)}${STAT_N[k]}</span><b>${st[k]}</b><small>${STAT_D[k]}</small></div>`).join('')}</div>
-      ${B('踏入江湖', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); newGame(c, c.legacy); }, 'primary big')}
+      ${B('踏入江湖', () => { c.name = (document.getElementById('nm').value || '').trim() || (c.gender === '男' ? '沈孤雁' : '葉輕眉'); if (c.year <= SEAL_YEAR && !c.land) c.land = '中原'; newGame(c, c.legacy); }, 'primary big')}
     </div>`;
   },
   game() {

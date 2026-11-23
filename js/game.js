@@ -48,8 +48,10 @@ function rollStats() {
   return st;
 }
 function newGame(c, legacy) {
-  const year = c.year || 1222, pool = originsFor(year);
-  const o = typeof c.origin === 'number' ? pool[c.origin % pool.length] : pick(pool);   // 投胎由天
+  const year = c.year || 1222, all = originsFor(year);
+  // 射鵰篇可選出身之地：選了就在那片土地上投胎（哪一戶人家仍由天定），並走對應的故事線
+  const land = year <= SEAL_YEAR && c.land ? c.land : null, pool = land ? all.filter(x => x.land === land) : all;
+  const o = land ? pick(pool) : typeof c.origin === 'number' ? pool[c.origin % pool.length] : pick(pool);   // 投胎由天
   const base = Object.assign({}, c.stats);
   for (const k in o.st) base[k] += o.st[k];
   S = {
@@ -63,6 +65,7 @@ function newGame(c, legacy) {
     weapon: null, armor: null, acc: null, inv: { jinchuang: 2 },
     npcs: {}, spouse: null, child: null, disciple: null, rival: 0,
     done: {}, flags: {}, log: [], journal: [], seen: {}, hist: null, chain: {}, wins: 0, losses: 0, legacyFrom: null,
+    line: land ? (land === '蒙古' ? 'guojing' : 'yangkang') : null, lineDone: {},
   };
   if (o.item) { S.inv[o.item] = 1; S.weapon = o.item; }
   if (o.herb) S.inv.herb = o.herb;
@@ -82,7 +85,7 @@ function newGame(c, legacy) {
   if (nx) S.flags.heardOf = { [nx.h.id]: 1 };
   const era = [...ERAS].reverse().find(x => x.y <= S.y0);
   log(`${reign(S.y0)}（${S.y0}年）。${S.name}，${o.n}，年方十六，${legacy ? `身上帶著${legacy.from}留下的遺澤，` : ''}在${LOCS[o.loc].n}踏上了江湖路。`);
-  Q.push({ type: '身世', title: o.n, art: LOCS[o.loc].art, pages: () => o.open(S), choices: o.choices });
+  Q.push({ type: '身世', title: o.n, art: LOCS[o.loc].art, pages: () => lineOpen(o.open(S)), choices: o.choices });
   if (era) log(era.d);
   UI = { screen: 'game', tab: 'world', ov: null };
   pump();
@@ -331,7 +334,7 @@ function pump(autoContinue = false) {
   if (S.life <= 0 && UI.screen === 'game' && !(UI.ov && UI.ov.k === 'battle')) { UI.ov = null; return retire('戰死'); }
   if (UI.ov && UI.ov.k !== 'menu') { render(); return; }
   if (Q.length) { UI.ov = null; showEvent(Q.shift()); return; }
-  const h = histDue();
+  const h = lineDue() || histDue();
   if (h) { UI.ov = null; save(); showEvent(h); return; }
   if (S.pts > 0) { UI.ov = { k: 'lvup', add: {} }; save(); render(); return; }
   save();

@@ -471,7 +471,7 @@ function resolveOpt(o) {
 /* ---------- 推進時間 ---------- */
 function histNow() {
   const t = today();
-  return HIST.some(h => h.loc && h.scene && !S.hist[h.id] && S.loc === h.loc && t >= hStart(h) && t < hEnd(h));
+  return lineNow() || HIST.some(h => h.loc && h.scene && !S.hist[h.id] && S.loc === h.loc && t >= hStart(h) && t < hEnd(h));
 }
 function advanceSteps(days) {
   let left = days;
@@ -539,7 +539,7 @@ function maybeMove() {
 
 function adventureMonth() {
   UI.ov = null;
-  const br = bridgeEvent();
+  const br = lineBridge() || bridgeEvent();
   if (br) { Q.push(br); return pump(); }
   maybeMove();
   const left = 30 - 0;
