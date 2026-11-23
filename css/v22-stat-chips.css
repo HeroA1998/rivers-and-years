@@ -1,0 +1,12 @@
+/* v22 首頁右上角六項屬性方塊：圖示原本固定 26px，方塊只有 37–39px，兩位數的數值（如「骨 12」）會被擠出方塊。
+   縮小圖示、數字不換行也不被壓縮，讓一位與兩位數都在框內。 */
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .mini-stat{
+  gap:2px;padding:1px 2px;
+}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .mini-stat-mark{
+  flex:0 0 18px;width:18px;height:18px;
+}
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .mini-stat b{
+  flex:0 0 auto;min-width:0;white-space:nowrap;
+  font-size:11.5px;letter-spacing:-.02em;
+}
