@@ -719,6 +719,22 @@ const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art].find(k => k && k !
 
 /* ---------- 簡潔戰鬥對話框（不取代原本的故事畫面） ---------- */
 /* ---------- 還原原版戰場和可拖動 3D 二十面骰 ---------- */
+// 點擊我方武功圖示：顯示這門武功是什麼、各招的解鎖層數、威力、耗內力與特效
+const PEEK_ROLE = { atk: "攻擊", nei: "內功", qing: "輕功", sup: "輔助" };
+function skillPeekHtml(id) {
+  const k = SKILLS[id], sk = S.skills[id], lv = sk ? sk.lv : 0;
+  const moves = (k.moves || []).map(m => {
+    const open = lv >= m[1];
+    return `<li class="${open ? 'open' : 'locked'}"><b>${esc(m[0])}</b><span>${open ? '' : `${m[1]} 層解鎖 · `}威力 ${m[3]} · 耗內力 ${m[2]}${m[4] ? ` · ${esc(FX_N[m[4]] || m[4])}` : ''}</span></li>`;
+  }).join('');
+  const sub = k.type === 'nei' || !k.moves ? '' : `<ul class="peek-moves">${moves}</ul>`;
+  return `<section class="skill-peek" aria-label="武功說明">
+    <header><b>${esc(k.n)}</b><em>${esc(TYPE_N[k.type] || '')}・${esc(TIER_N[k.tier] || '')}・${esc(PEEK_ROLE[artRole(id)] || '')}</em><span>第 ${cnNum(lv)} 層</span></header>
+    <p>${esc(k.d || '')}</p>${sub}
+    <small>${k.attr ? `屬性：${esc(ATTR_N[k.attr] || '')}　` : ''}點一下圖示可收起</small>
+  </section>`;
+}
+
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
   const fx = [...Object.keys(o.buff || {}).filter(k => o.buff[k]).map(k => `<span class="tag jade">${k === 'atk' ? '活血' : '鐵骨'}</span>`),
@@ -742,12 +758,12 @@ function battleView(o) {
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
   const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
   const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
-  const mine = S.eq.map(id => slot(artIcon(id), ROLE_COL[artRole(id)], S.skills[id].lv)).join('');
+  const mine = S.eq.map(id => `<button type="button" class="slot2 tap${o.peek === id ? ' on' : ''}" aria-label="${esc(SKILLS[id].n)}"${h(() => { o.peek = o.peek === id ? null : id; render(); })}>${PXI(artIcon(id), ROLE_COL[artRole(id)], 16)}<small>${S.skills[id].lv}</small></button>`).join('');
+  const peek = o.peek && S.skills[o.peek] ? skillPeekHtml(o.peek) : '';
   const theirs = e.moves.map(() => slot(foeIco, '#B0463F', '')).join('');
   const shield = `<img class="pxi shd" src="${pxIcon('shield', '#EDE7D3', 12)}" alt="">`;
   const pct = (v, m) => clamp(m ? v / m * 100 : 0, 0, 100);
   return `<div class="veil bveil battle-restored-overlay"><section class="sheet battle auto battle-restored" role="dialog" aria-modal="true" aria-label="江湖戰鬥">
-    ${gameHud(true)}
     <div class="bpanel">
       <div class="bhead">
         <div class="side-p"><b>${esc(S.name)}</b><span class="pw">${PXI('sword', '#6B6556', 12)}${pw.toFixed(1)}</span></div>
@@ -764,6 +780,7 @@ function battleView(o) {
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
         <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
+        ${peek}
       </div>
       <div class="srow"><div class="sl">${mine}</div><div class="sr">${fx}${theirs}</div>
         ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
