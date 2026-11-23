@@ -584,6 +584,7 @@ function battleStep(b) {
   const rg = fxSum('regen'), mr = fxSum('mpr');
   if (b.tick % 2 === 0 && S.hp > 0 && (rg || mr)) { const hv = Math.round(maxHp() * rg); S.hp = Math.min(maxHp(), S.hp + hv); S.mp = Math.min(maxMp(), S.mp + mr); line += `你運轉內功${hv ? `，回復 ${hv} 氣血` : ''}。`; }
   b.pop = { toE: Math.max(0, eh0 - e.hp), toP: Math.max(0, hp0 - S.hp) };
+  if (b.pop.toP > 0) b.sprN = (b.sprN || 0) + 1;   // 對方出招次數：精靈圖左右手輪流用
   bLog(line);
   if (e.hp <= 0) { e.hp = 0; b.over = 'win'; bLog(`${e.n}倒下了。你贏了。`); }
   else if (S.hp <= 0) { S.hp = 0; b.over = 'lose'; bLog('你眼前一黑，栽倒在地……'); }
