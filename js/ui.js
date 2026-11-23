@@ -9,7 +9,7 @@ const bar = (v, m, cls) => `<span class="bar ${cls}"><i style="width:${clamp(m ?
 const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
-const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
+const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}${SQFACES.includes(id) ? ' sq' : ''}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="${SQFACES.includes(id) ? 400 : 300}" height="400" alt="">` : '';
 const TYPE_CLS = { '身世': 'jade', '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey', '人物': 'jade' };
 
 function render() {

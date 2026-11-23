@@ -1,9 +1,10 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.19.1';
+const VERSION = 'v6.20.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
-const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
+const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei', 'guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];
+const SQFACES = ['guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];   // 方形頭像（其餘為 3:4 立繪）
 
 /* ---------- 地點（金庸世界；座標約略對應中國地圖，x 由西向東、y 由北向南） ---------- */
 const LOCS = {
@@ -352,6 +353,13 @@ const ITEMS = {
   wumu:      { n: '武穆遺書', kind: 'relic', price: 0, fx: { eye: 2, chk: { int: 1 }, d: '岳家兵法：戰力 +6%，事件中的悟性檢定 +1' } },
   jiuyin:    { n: '九陰真經殘卷', kind: 'relic', price: 0, fx: { attrUp: { yin: 0.15 }, d: '陰柔心法：陰柔武功威力 +15%' } },
   jianglong: { n: '降龍譜殘頁', kind: 'relic', price: 0, fx: { attrUp: { yang: 0.15 }, d: '陽剛掌力：陽剛武功威力 +15%' } },
+  yaopai:    { n: '王府腰牌', kind: 'relic', price: 0, fx: { chk: { cha: 2 }, d: '趙王府的腰牌，燕京城裡沒人敢攔：事件中的魅力檢定 +2' } },
+  mudao:     { n: '兒時的木刀', kind: 'relic', price: 0, fx: { crit: 3, chk: { luck: 1 }, d: '村口柳樹下挖出的舊木刀：暴擊率 +3%，事件中的福緣檢定 +1' } },
+  rongxiao:  { n: '黃蓉的玉簫', kind: 'relic', price: 0, fx: { foeWeak: 0.06, chk: { cha: 1 }, d: '簫音擾敵：對手攻擊 −6%，事件中的魅力檢定 +1' } },
+  ztbook:    { n: '老頑童的小冊', kind: 'relic', price: 0, fx: { chk: { int: 1, luck: 1 }, d: '胡亂寫的玩意兒，翻著翻著運氣也好起來：悟性、福緣檢定各 +1' } },
+  anda:      { n: '安答匕首', kind: 'off', price: 0, st: { con: 1 }, fx: { bleed: 18, block: 8, d: '蒙古安答的信物：18% 機率令對手流血，8% 機率擋下一擊' } },
+  baiyu:     { n: '白駝山扳指', kind: 'acc', price: 0, st: { agi: 1 }, fx: { crit: 3, d: '白駝山少主的信物：暴擊率 +3%' } },
+  muqiang:   { n: '穆家舊槍', kind: 'weapon', wt: 'spear', atk: 14, price: 0, st: { str: 1, agi: 1 }, hand: 2, fx: { block: 6, d: '穆家用了十八年的舊槍：槍路穩，6% 機率擋下一擊' } },
   r_map:     { n: '江湖路引', kind: 'relic', price: 160, fx: { chk: { int: 1, cha: 1 }, d: '通曉人情地理：事件中的悟性、魅力檢定 +1' } },
   bk_fist:   { n: '《太祖長拳譜》', kind: 'manual', skill: 'm_fist', price: 120 },
   bk_sword:  { n: '《青城劍訣》', kind: 'manual', skill: 'm_sword', price: 140 },

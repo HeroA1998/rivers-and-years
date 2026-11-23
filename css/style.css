@@ -753,3 +753,7 @@ html,body{background:#D7C2A1;color:var(--ink)}
   #app[data-page="world"] .bnav .nav-art-4{background-position:-120px -67px}
   #app[data-page="world"] .bnav .nav-art-5{background-position:-150px -67px}
 }
+
+/* 人脈頁頭像：高度交給比例決定（img 的 height 屬性會蓋掉 aspect-ratio，頭像被拉成窄長條）；方形頭像用 1:1 */
+.card.has-face .face{height:auto}
+.card.has-face .face.sq{aspect-ratio:1/1;object-position:center top}
