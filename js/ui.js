@@ -2,6 +2,30 @@
 'use strict';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/* 故事文字只放行本遊戲產生的少數標籤（骰點、換行），其餘一律跳脫。
+   靜態顯示（richHtml）與打字機逐字顯示（richTyped）共用同一份白名單；逐字顯示只數看得見的字，標籤整個放行並補上關閉。 */
+const richHtml = t => esc(t).replace(/&lt;(\/?)(span|b|em|br)((?: class=&quot;[a-z\- ]+&quot;)?)&gt;/g, (_, sl, tag, attr) => `<${sl}${tag}${attr.replace(/&quot;/g, '"')}>`);
+const RICH_SPLIT = /(<\/?(?:span|b|em)(?: class="[a-z\- ]+")?>|<br>)/;
+const richParts = t => String(t).split(RICH_SPLIT).map((p, i) => i % 2 ? { tag: p } : { chars: Array.from(p) }).filter(x => x.tag || x.chars.length);
+const richLen = t => richParts(t).reduce((n, x) => n + (x.chars ? x.chars.length : 0), 0);
+function richTyped(text, n) {
+  const total = richLen(text);
+  if (n >= total) return richHtml(text);
+  let out = '', left = n; const open = [];
+  for (const x of richParts(text)) {
+    if (x.tag) {
+      if (left <= 0) break;
+      out += x.tag;
+      const m = /^<(\/?)([a-z]+)/.exec(x.tag);
+      if (m[2] !== 'br') { if (m[1]) open.pop(); else open.push(m[2]); }
+    } else {
+      const take = x.chars.slice(0, left);
+      out += esc(take.join('')); left -= take.length;
+      if (take.length < x.chars.length) break;
+    }
+  }
+  return out + open.reverse().map(t => `</${t}>`).join('');
+}
 function h(fn) { H.push(fn); return ` data-h="${H.length - 1}"`; }
 function B(label, fn, cls = '', dis = false) { return `<button type="button" class="btn ${cls}"${dis ? ' disabled' : h(fn)}>${label}</button>`; }
 function A(label, sub, fn, dis = false) { return `<button type="button" class="act"${dis ? ' disabled' : h(fn)}><b>${label}</b><small>${sub}</small></button>`; }
@@ -431,7 +455,7 @@ function finishStoryAnimation() {
   state.chars = 0;
   const root = document.getElementById('app');
   const node = root.querySelector('.reader-line.is-typing .reader-visible');
-  if (node) node.textContent = state.lines[state.lines.length - 1].text;
+  if (node) node.innerHTML = richHtml(state.lines[state.lines.length - 1].text);
   const line = root.querySelector('.reader-line.is-typing');
   if (line) line.classList.remove('is-typing');
   root.classList.remove('story-typing');
@@ -445,9 +469,9 @@ function activateStoryAnimation(root) {
   const line = root.querySelector('.reader-line.is-typing');
   const span = line && line.querySelector('.reader-visible');
   if (!span) return;
-  const letters = Array.from(state.lines[state.lines.length - 1].text);
-  let shown = Math.max(0, Math.min(state.chars || 0, letters.length));
-  span.textContent = letters.slice(0, shown).join('');
+  const fullText = state.lines[state.lines.length - 1].text, total = richLen(fullText);
+  let shown = Math.max(0, Math.min(state.chars || 0, total));
+  span.innerHTML = richTyped(fullText, shown);
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     finishStoryAnimation();
     return;
@@ -457,10 +481,10 @@ function activateStoryAnimation(root) {
   const begun = performance.now(), offset = shown;
   const tick = now => {
     if (UI.story !== state || !line.isConnected) { storyFrame = 0; return; }
-    shown = Math.min(letters.length, offset + Math.floor((now - begun) / 23));
+    shown = Math.min(total, offset + Math.floor((now - begun) / 23));
     state.chars = shown;
-    span.textContent = letters.slice(0, shown).join('');
-    if (shown >= letters.length) { finishStoryAnimation(); return; }
+    span.innerHTML = richTyped(fullText, shown);
+    if (shown >= total) { finishStoryAnimation(); return; }
     storyFrame = requestAnimationFrame(tick);
   };
   storyFrame = requestAnimationFrame(tick);
@@ -505,8 +529,7 @@ function eventReader(o) {
   // 當成故事內容，造成正文前多出兩行空白。
   // Speaker-led dialogue receives a discreet visual cue; typewriter markup stays
   // identical and no narrative text is rewritten or removed.
-  // 故事文字只放行本遊戲產生的少數標籤（骰點、換行），其餘一律跳脫，避免輸入內容被當成 HTML
-  const rich = t => esc(t).replace(/&lt;(\/?)(span|b|em|br)((?: class=&quot;[a-z\- ]+&quot;)?)&gt;/g, (_, sl, tag, attr) => `<${sl}${tag}${attr.replace(/&quot;/g, '"')}>`);
+  const rich = richHtml;
   const transcript = lines.map((line, i) => {
     const text = String(line.text || '').trimStart();
     const dialogue = line.kind === 'prose' &&

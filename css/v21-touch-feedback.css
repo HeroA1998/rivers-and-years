@@ -1,0 +1,17 @@
+/* v21 事件選項的按下／懸停狀態。
+   舊規則（style.css 的 hover 簡寫 background、v9 的紅色 outline）會在手機點一下後卡在 :hover，
+   讓按鈕出現紅框、紅字，底圖還被重設成原始大小而「放大」。這裡把這些狀態還原成與平常相同。 */
+#app[data-page="world"] .story-options .btn.story-option:hover:not(:disabled),
+#app[data-page="world"] .story-options .btn.story-option:focus,
+#app[data-page="world"] .story-options .btn.story-option:focus-visible,
+#app[data-page="world"] .story-options .btn.story-option:active:not(:disabled) {
+  background: transparent url("../assets/ui/v9/story-button.webp") center center / 100% 100% no-repeat !important;
+  outline: 0 !important;
+  color: #3B291F !important;
+  filter: none !important;
+}
+/* 有滑鼠時才給很淡的提示；鍵盤操作時給一圈不搶眼的金色焦點 */
+@media (hover: hover) and (pointer: fine) {
+  #app[data-page="world"] .story-options .btn.story-option:hover:not(:disabled) { filter: brightness(1.04) !important; }
+  #app[data-page="world"] .story-options .btn.story-option:focus-visible { outline: 2px solid rgba(185, 133, 68, .6) !important; outline-offset: -4px; }
+}
