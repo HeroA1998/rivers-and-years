@@ -729,7 +729,11 @@ function eventReader(o) {
   const place = LOCS[S.loc] ? esc(LOCS[S.loc].n) : '';
   const character = o.who && FACES.includes(o.who)
     ? `<div class="reader-media reader-character">${face(o.who, 'reader-face')}</div>` : '';
-  // 玩家不需要兩幅山水；保留登場人物肖像與文字閱讀，不再生成場景背景。
+  // 只取消固定背景裝飾，不取消個別劇情的場景插畫。
+  // 保留原版 o.big + o.art 行為及無 JPG 場景的 canvas fallback。
+  const eventIllustration = !character && o.big && o.art
+    ? `<div class="reader-media reader-landscape" aria-label="事件場景插畫">${art(o.art, o.title)}</div>`
+    : '';
   let controls;
   if (o.result) {
     controls = B('繼續', closeEvent, 'story-option');
@@ -760,6 +764,7 @@ function eventReader(o) {
       <h2>〈${esc(String(o.title || '江湖紀事').replace(/[〈〉]/g, ''))}〉</h2>
     </div>
     ${character}
+    ${eventIllustration}
     <div class="story-prose" aria-label="當前故事" tabindex="-1"></div>
     <div class="reader-folio">
       <span></span><button type="button" class="reader-skip" data-story-skip>顯示全文</button>
