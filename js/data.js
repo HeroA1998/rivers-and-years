@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.18.0';
+const VERSION = 'v6.19.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -349,6 +349,9 @@ const ITEMS = {
   r_fistbook:{ n: '拳經殘卷', kind: 'relic', price: 300, fx: { bare: 0.25, d: '空手入白刃：不拿兵刃時，拳掌武功威力 +25%' } },
   r_flute:   { n: '玉簫', kind: 'relic', price: 420, fx: { foeWeak: 0.08, d: '簫音擾敵：對手攻擊 -8%' } },
   r_page:    { n: '真經殘頁', kind: 'relic', price: 0, fx: { regen: 0.02, eye: 1, d: '殘頁心法：每兩步回 2% 氣血，戰力 +3%' } },
+  wumu:      { n: '武穆遺書', kind: 'relic', price: 0, fx: { eye: 2, chk: { int: 1 }, d: '岳家兵法：戰力 +6%，事件中的悟性檢定 +1' } },
+  jiuyin:    { n: '九陰真經殘卷', kind: 'relic', price: 0, fx: { attrUp: { yin: 0.15 }, d: '陰柔心法：陰柔武功威力 +15%' } },
+  jianglong: { n: '降龍譜殘頁', kind: 'relic', price: 0, fx: { attrUp: { yang: 0.15 }, d: '陽剛掌力：陽剛武功威力 +15%' } },
   r_map:     { n: '江湖路引', kind: 'relic', price: 160, fx: { chk: { int: 1, cha: 1 }, d: '通曉人情地理：事件中的悟性、魅力檢定 +1' } },
   bk_fist:   { n: '《太祖長拳譜》', kind: 'manual', skill: 'm_fist', price: 120 },
   bk_sword:  { n: '《青城劍訣》', kind: 'manual', skill: 'm_sword', price: 140 },
