@@ -115,7 +115,7 @@ for(const dims of [[320,700],[390,844],[430,932]]){
    });
    check('390 all three ornate images loaded',art.fetched.every(x=>x.ok),{assets:art.fetched});
    check('390 real gilded option artwork enabled',art.background.includes('story-button.webp'));
-   check('390 actual decorative border enabled',art.panel.includes('story-border.webp'));
+   check('390 story panel is text-only (no square box)',!art.panel.includes('story-border.webp'));
  }
  await page.evaluate(()=>{
    showEvent({type:'江湖',title:'長篇故事的視覺驗收',
