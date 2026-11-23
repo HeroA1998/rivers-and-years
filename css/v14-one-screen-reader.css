@@ -238,7 +238,8 @@
   }
   #app[data-page="world"] .story-heading h2 {order:-1}
   #app[data-page="world"] .story-chapter {margin:0}
-  #app[data-page="world"] .reader-media.reader-landscape {height:18px;margin:0 0 1px}
+  /* 極矮橫屏讓長選項有完整閱讀空間；重回直向自動顯示事件插畫。 */
+  #app[data-page="world"] .reader-media.reader-landscape {display:none}
   #app[data-page="world"] .reader-character {
     align-self:flex-end;
     height:25px;
