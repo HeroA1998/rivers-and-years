@@ -33,7 +33,8 @@ function render() {
   if (DIE3) root.querySelectorAll('.tray[data-phase]').forEach(el => DIE3.mount(el, {
     seq: +el.dataset.seq, roll: el.dataset.roll === '' ? null : +el.dataset.roll, phase: el.dataset.phase, tick: +el.dataset.tick, tone: el.dataset.tone }));
   if (DIE3 && !root.querySelector('.tray')) DIE3.hide();
-  document.querySelectorAll('canvas.art').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
+  document.querySelectorAll('canvas.art[data-art]').forEach(c => paintArt(c, c.dataset.art, c.dataset.seed));
+  document.querySelectorAll('canvas[data-battle-bg]').forEach(c => paintBattleBg(c, c.dataset.battleBg, c.dataset.seed));
   const bl = document.querySelector('.blog:not(.recap)'); if (bl) bl.scrollTop = bl.scrollHeight;
   const ns = document.querySelector('.sheet'); if (ns && keep) ns.scrollTop = keep;
   activateStoryAnimation(root);
@@ -686,7 +687,7 @@ function gameNav(active, live) {
     }).join('') + '</nav>';
 }
 // 戰鬥背景：用事件或所在地的場景圖，不再固定同一張
-const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art, 'road'].find(k => k && k !== 'fight' && ART[k]) || 'road';
+const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art].find(k => k && k !== 'fight') || 'road';
 
 /* ---------- 簡潔戰鬥對話框（不取代原本的故事畫面） ---------- */
 /* ---------- 還原原版戰場和可拖動 3D 二十面骰 ---------- */
@@ -730,7 +731,7 @@ function battleView(o) {
         <div class="pxbar p">${shield}<i style="width:${pct(S.hp, maxHp())}%"></i><span>${Math.max(0, S.hp)}/${maxHp()}</span></div>
         <div class="pxbar e"><i style="width:${pct(e.hp, e.mhp)}%"></i><span>${Math.max(0, e.hp)}/${e.mhp}</span>${shield.replace('shd"', 'shd r"')}</div>
       </div>
-      <div class="arena">${art(battleBg(o), e.n, 'bg')}
+      <div class="arena"><canvas class="art bg" data-battle-bg="${battleBg(o)}" data-seed="${esc(e.n)}" width="800" height="420" aria-hidden="true"></canvas>
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
         <div class="${ecls}">${foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
