@@ -22,6 +22,8 @@ const RUMORS = [
 
 // 同陣營：主角所屬門派的陣營（1 正道、0 中立、-1 邪道）與指定陣營相同。無門無派視為中立
 const sameSide = (s, align) => { const a = s.sect && SECTS[s.sect] ? SECTS[s.sect].align : 0; return a === align; };
+// 能否一同學武：門派陣營相同，且行事與陣營相合（正道俠義值不為負、邪道不為正）
+const teachOK = (s, side) => sameSide(s, side) && (side === 1 ? (s.moral || 0) >= 0 : side === -1 ? (s.moral || 0) <= 0 : true);
 const win = (e, w, l, x) => Object.assign({ battle: e, win: w, lose: l }, x || {});
 const topNpc = min => { let b = null; for (const id in S.npcs) { const n = S.npcs[id]; if (n.met && loveOK(S, id) && n.fav >= min && (!b || n.fav > S.npcs[b].fav)) b = id; } return S.spouse || b; };
 
@@ -585,16 +587,16 @@ const EVENTS = [
   /* ================= 同陣營一同學習 ================= */
   // 範例：松林中老叫化示範降龍掌。同陣營（正道）的人可以一同學；其他陣營只能旁觀
   { id: 'k_pine', type: '傳承', title: '松林傳功', ctx: ['wild', 'travel'], w: 10, once: true, art: 'legacy', who: 'elder',
-    cond: s => sameSide(s, 1) && ad() >= 1200 && ad() <= 1260,
-    text: '松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身沒有倒下，只是從中間整齊地裂開，斷口平滑。\n\n老叫化回頭看見你，招了招手：「是丐幫的兄弟？過來。這掌法不傳外人，你我同幫，今天就讓你看看真的。」',
+    cond: s => teachOK(s, 1) && ad() >= 1200 && ad() <= 1260,
+    text: s => `松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身沒有倒下，只是從中間整齊地裂開，斷口平滑。\n\n老叫化回頭看見你，招了招手：「${s.sect === 'gaibang' ? '是丐幫的兄弟？' : '是正道的朋友？'}過來。這掌法不傳外人，${s.sect === 'gaibang' ? '你我同幫' : '你我同道'}，今天就讓你看看真的。」`,
     choices: [
       C('g', '跟著他一起練', () => { advance(10); return '你們在松林裡練了十天。他一邊演示，一邊讓你照著他的步法和發力，每一掌都要你自己感受「能發能收」。〔耗時十日〕' + learn('gb_ult'); }),
-      C('e', '練成之後，把他的行蹤賣給他的仇家', () => { advance(10); return '你學會了掌法，轉頭就把老叫化的落腳處賣了一百兩。後來聽說，他擺脫了追兵，但再也不肯收徒。〔耗時十日〕' + learn('gb_ult') + gain({ silver: 100, moral: -15, contrib: -50 }); }),
+      C('e', '練成之後，把他的行蹤賣給他的仇家', s => { advance(10); return '你假意跟他練了十天，轉頭就把老叫化的落腳處賣了一百兩。掌法你一招也沒學成——他看穿了你，連最後一掌都沒教。後來聽說，他擺脫了追兵，但再也不肯收徒。〔耗時十日〕' + gain({ silver: 100, moral: -15 }) + (s.sect === 'gaibang' ? gain({ contrib: -50 }) : ''); }),
       C('n', '站在一旁看，不敢出聲', () => '你只能在旁邊看。老叫化瞥了你一眼，沒有說話，但也沒有趕你。' + (xp(S.nei, 80) || '') + gain({ int: 1 })),
     ] },
   { id: 'k_pine_out', type: '傳承', title: '松林外', ctx: ['wild', 'travel'], w: 10, once: true, art: 'legacy', who: 'elder',
-    cond: s => !sameSide(s, 1) && ad() >= 1200 && ad() <= 1260,
-    text: '松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身從中間整齊地裂開。\n\n他看見你，皺了皺眉：「你不是丐幫的人。站遠點，看看可以，學可不行。」',
+    cond: s => !teachOK(s, 1) && ad() >= 1200 && ad() <= 1260,
+    text: s => `松林深處，一個白髮老叫化正對著一棵枯樹出掌。樹身從中間整齊地裂開。\n\n他看見你，皺了皺眉：${s.sect === 'gaibang' ? '「你身上的戾氣太重，這掌法不傳你。站遠點，看看可以，學可不行。」' : '「你不是丐幫的人。站遠點，看看可以，學可不行。」'}`,
     choices: [
       C('g', '退開幾步，靜靜看', () => '你記住了幾處發力的方向，但只能看，無法真正學到。' + (xp(S.nei, 60) || '') + gain({ int: 1 })),
       C('e', '「我自己也會幾招，讓我試試。」', () => ({ battle: foe('老叫化', 10, 0.5, 'master'), noFlee: true,
@@ -682,10 +684,10 @@ function teachEvent(d) {
   const observe = () => '你只能遠遠看著。招式記住了幾分，可門道沒人點破，終究學不到手。' + (xp(S.nei, 60) || '') + gain({ int: 1 });
   return { id: d.id, type: '傳承', title: d.title, ctx: d.ctx || ['wild', 'travel', 'city'], loc: d.loc, w: d.w || 14, once: true, art: d.art || 'legacy',
     cond: s => ad() >= d.y[0] && ad() <= d.y[1] && !knows(d.skill),
-    text: s => d.text + '\n\n' + (sameSide(s, d.side) ? d.inText : (d.outText || `${d.teacher}看了你一眼，搖了搖頭：「門戶有別，看看可以，學不行。」〔陣營不同：只有${ALIGN_N[d.side]}中人能一同學〕`)),
+    text: s => d.text + '\n\n' + (teachOK(s, d.side) ? d.inText : (d.outText || `${d.teacher}看了你一眼，搖了搖頭：「門戶有別，看看可以，學不行。」〔陣營不同：只有${ALIGN_N[d.side]}中人能一同學〕`)),
     choices: s => [
-      sameSide(s, d.side) ? C('g', '跟著一起學', () => { advance(d.days || 7); return `${d.learnText}〔耗時${cnNum(d.days || 7)}日〕` + learn(d.skill); }) : C('g', '守規矩，只在一旁看', observe),
-      C('e', '躲在暗處偷學口訣', s2 => s2.stats.int + R(8) >= 13 ? `你屏住呼吸記下了每一句。${d.teacher}始終沒有發現，至少，沒有說破。` + learn(d.skill) : `你剛探出頭，${d.teacher}就朝你的方向看了過來。你被一股勁力推出了老遠。` + gain({ hp: -Math.round(maxHp() * 0.25) })),
+      teachOK(s, d.side) ? C('g', '跟著一起學', () => { advance(d.days || 7); return `${d.learnText}〔耗時${cnNum(d.days || 7)}日〕` + learn(d.skill); }) : C('g', '守規矩，只在一旁看', observe),
+      C('e', '躲在暗處偷學口訣', s2 => s2.stats.int + R(8) >= 13 ? `你屏住呼吸記下了每一句。${d.teacher}始終沒有發現，至少，沒有說破。` + learn(d.skill) + gain({ moral: -4 }) : `你剛探出頭，${d.teacher}就朝你的方向看了過來。你被一股勁力推出了老遠。` + gain({ hp: -Math.round(maxHp() * 0.25) })),
       C('n', '悄悄離開', () => '你轉身走了。有些功夫，不是誰都能學的。')] };
 }
 EVENTS.push(...[
