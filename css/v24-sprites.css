@@ -8,5 +8,5 @@
 .fgt.e.down .spr{transform:rotate(80deg) translateY(30%);opacity:.5;transition:.5s}
 .fgt.god .spr{filter:drop-shadow(0 0 12px #E6C478)}
 /* 精靈圖本身已有前傾的畫格：整體前衝的距離縮短，不壓到玩家 */
-.fgt.e.hasspr.atk{animation:lungeSpr .5s ease .12s}
+.fgt.e.hasspr.atk{animation:lungeSpr var(--dur,.7s) ease .05s}
 @keyframes lungeSpr{0%,100%{transform:translateX(0)}40%{transform:translateX(-22%)}}

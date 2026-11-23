@@ -650,7 +650,7 @@ const spriteOf = e => { const k = e.fig || SPRITE_BY_NAME[e.n]; return k && SPRI
 function spriteHtml(k, n, atk, ready) {
   const d = SPRITES[k], idx = Math.max(0, (n || 0) - 1), sheet = d.sheets[idx % d.sheets.length], seq = idx % d.seqs.length;
   const pos = i => (d.frames > 1 ? i * 100 / (d.frames - 1) : 0) + '% 0';
-  const style = `background-image:url(${sheet});background-size:${d.frames * 100}% 100%;background-position:${pos(ready ? d.ready : d.idle)}` + (atk ? `;animation:spr-${k}-${seq} .4s steps(1,end) .05s 1 both` : '');
+  const style = `background-image:url(${sheet});background-size:${d.frames * 100}% 100%;background-position:${pos(ready ? d.ready : d.idle)}` + (atk ? `;animation:spr-${k}-${seq} var(--dur,.7s) steps(1,end) .05s 1 both` : '');
   return `<div class="spr" style="aspect-ratio:${d.ar}"><i class="sf" style="${style}"></i></div>`;
 }
 const foeFig = style => style === 'beast'
@@ -831,7 +831,7 @@ function battleView(o) {
       </div>
       <div class="arena"><canvas class="art bg" data-battle-bg="${battleBg(o)}" data-seed="${esc(e.n)}" width="800" height="420" aria-hidden="true"></canvas>
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
-        <div class="${ecls}"${spriteOf(e) ? ` style="--sw:${SPRITES[spriteOf(e)].w}%"` : ''}>${spriteOf(e) ? spriteHtml(spriteOf(e), o.sprN, fight && pop.toP, o.phase === 'roll') : foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
+        <div class="${ecls}"${spriteOf(e) ? ` style="--sw:${SPRITES[spriteOf(e)].w}%;--dur:${(0.85 * 0.85 / (o.speed || 1)).toFixed(2)}s"` : ''}>${spriteOf(e) ? spriteHtml(spriteOf(e), o.sprN, fight && pop.toP, o.phase === 'roll') : foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
         ${peek}
       </div>
