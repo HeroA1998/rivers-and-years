@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.23.4';
+const VERSION = 'v6.23.5';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei', 'guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];
 const SQFACES = ['guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];   // 方形頭像（其餘為 3:4 立繪）

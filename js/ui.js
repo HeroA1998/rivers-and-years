@@ -633,8 +633,10 @@ const SPRITES = {
   huangrong: { sheets: ['assets/sprites/huangrong.webp', 'assets/sprites/huangrong2.webp'], frames: 6, ar: 1, w: 34, ready: 0, idle: 5, seqs: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5]], ok: true },
   // 16 格連擊：1–8 出第一手並收招，9–16 轉身出另一手並回到起手式
   guojing: { sheets: ['assets/sprites/guojing.webp'], frames: 16, ar: 288 / 202, w: 50, ready: 0, idle: 0, seqs: [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15]], ok: true },
+  // 16 格連擊（持劍）：1–8 第一手、9–16 第二手
+  yangkang: { sheets: ['assets/sprites/yangkang.webp'], frames: 16, ar: 288 / 276, w: 46, ready: 0, idle: 0, seqs: [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15]], ok: true },
 };
-const SPRITE_BY_NAME = { '黃蓉': 'huangrong', '郭靖': 'guojing' };
+const SPRITE_BY_NAME = { '黃蓉': 'huangrong', '郭靖': 'guojing', '楊康': 'yangkang' };
 Object.keys(SPRITES).forEach(k => SPRITES[k].sheets.forEach(src => { const im = new Image(); im.onerror = () => { SPRITES[k].ok = false; }; im.src = src; }));
 const spriteOf = e => { const k = e.fig || SPRITE_BY_NAME[e.n]; return k && SPRITES[k] && SPRITES[k].ok ? k : null; };
 // 每個角色、每段出招各產生一組逐格播放的關鍵影格（一次性寫進 <style>）
