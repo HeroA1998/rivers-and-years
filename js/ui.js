@@ -624,17 +624,35 @@ function d20Svg(tone = 'red') {
 
 /* ---------- 全自動戰鬥畫面 ---------- */
 const hero = () => `<svg viewBox="0 0 64 80" aria-hidden="true"><ellipse cx="32" cy="76" rx="17" ry="3.5" fill="#000" opacity=".22"/><path d="M19 71L23 36Q32 24 41 36L45 71Z" fill="#4f8a6e"/><path d="M23 36Q32 24 41 36L39 44Q32 40 25 44Z" fill="#3d6f57"/><circle cx="32" cy="27" r="9.5" fill="#4f8a6e"/><circle cx="33" cy="29" r="5.2" fill="#ecd9bb"/><path d="M44 54L60 28" stroke="#e8edf0" stroke-width="3.4" stroke-linecap="round"/><path d="M43 56L47 51" stroke="#7a4f27" stroke-width="4.5" stroke-linecap="round"/></svg>`;
-/* 精靈圖：一條橫向的連續圖（每格方形、腳底與水平中心已對齊、面向右）。
-   idle：待機格　ready：擲骰前　atk：出招時依序播放的格　載入失敗就退回原本的人形 */
+/* 精靈圖：一條橫向的連續圖（每格腳底與水平中心已對齊、面向右）。
+   sheets：圖檔；每次出招依序輪流使用（sheets 與 seqs 以出招次數輪替）
+   frames：每張圖的格數　ar：每格長寬比　w：站在戰場上時的寬度（佔戰場寬的 %）
+   ready：擲骰前的格　idle：待機的格　seqs：出招時依序播放的格（從 0 起算）
+   載入失敗就退回原本的人形 */
 const SPRITES = {
-  // sheets：每次出招輪流使用（左右手交替，形成連擊）；格 1（從 0 起算）～5 為出招，第 5 格也是待機
-  huangrong: { sheets: ['assets/sprites/huangrong.webp', 'assets/sprites/huangrong2.webp'], frames: 6, ready: 0, idle: 5, ok: true },
+  huangrong: { sheets: ['assets/sprites/huangrong.webp', 'assets/sprites/huangrong2.webp'], frames: 6, ar: 1, w: 34, ready: 0, idle: 5, seqs: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5]], ok: true },
+  // 16 格連擊：1–8 出第一手並收招，9–16 轉身出另一手並回到起手式
+  guojing: { sheets: ['assets/sprites/guojing.webp'], frames: 16, ar: 288 / 202, w: 50, ready: 0, idle: 0, seqs: [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15]], ok: true },
 };
-const SPRITE_BY_NAME = { '黃蓉': 'huangrong' };
+const SPRITE_BY_NAME = { '黃蓉': 'huangrong', '郭靖': 'guojing' };
 Object.keys(SPRITES).forEach(k => SPRITES[k].sheets.forEach(src => { const im = new Image(); im.onerror = () => { SPRITES[k].ok = false; }; im.src = src; }));
 const spriteOf = e => { const k = e.fig || SPRITE_BY_NAME[e.n]; return k && SPRITES[k] && SPRITES[k].ok ? k : null; };
-// n：這場戰鬥對方已出招的次數；第 n 次出招用第 (n-1) 組圖，待機停在最近用過的那組
-const spriteHtml = (k, n) => `<div class="spr"><i class="sf" style="background-image:url(${SPRITES[k].sheets[Math.max(0, (n || 0) - 1) % SPRITES[k].sheets.length]})"></i></div>`;
+// 每個角色、每段出招各產生一組逐格播放的關鍵影格（一次性寫進 <style>）
+(function () {
+  let css = '';
+  Object.keys(SPRITES).forEach(k => { const d = SPRITES[k], pos = i => (d.frames > 1 ? i * 100 / (d.frames - 1) : 0).toFixed(3) + '% 0';
+    d.seqs.forEach((seq, s) => { const all = [...seq, d.idle], step = 100 / all.length;
+      css += `@keyframes spr-${k}-${s}{${all.map((f, i) => `${(i * step).toFixed(2)}%{background-position:${pos(f)}}`).join('')}100%{background-position:${pos(d.idle)}}}`; });
+  });
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+// n：這場戰鬥對方已出招的次數；第 n 次出招用第 (n-1) 組圖與出招序列，待機停在待機格
+function spriteHtml(k, n, atk, ready) {
+  const d = SPRITES[k], idx = Math.max(0, (n || 0) - 1), sheet = d.sheets[idx % d.sheets.length], seq = idx % d.seqs.length;
+  const pos = i => (d.frames > 1 ? i * 100 / (d.frames - 1) : 0) + '% 0';
+  const style = `background-image:url(${sheet});background-size:${d.frames * 100}% 100%;background-position:${pos(ready ? d.ready : d.idle)}` + (atk ? `;animation:spr-${k}-${seq} .4s steps(1,end) .05s 1 both` : '');
+  return `<div class="spr" style="aspect-ratio:${d.ar}"><i class="sf" style="${style}"></i></div>`;
+}
 const foeFig = style => style === 'beast'
   ? `<svg viewBox="0 0 80 64" aria-hidden="true"><ellipse cx="40" cy="60" rx="26" ry="3.5" fill="#000" opacity=".22"/><ellipse cx="38" cy="38" rx="22" ry="13" fill="#8a5a3a"/><circle cx="62" cy="30" r="10" fill="#9a6642"/><path d="M58 22l-2-8 6 5zM66 21l3-7 2 8z" fill="#7a4a2c"/><circle cx="65" cy="29" r="1.8" fill="#f2d35a"/><path d="M22 46v12M32 48v10M46 48v10M56 46v12" stroke="#6e4528" stroke-width="5" stroke-linecap="round"/><path d="M17 36q-9-6-9-16" stroke="#8a5a3a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`
   : style === 'puppet'
@@ -813,7 +831,7 @@ function battleView(o) {
       </div>
       <div class="arena"><canvas class="art bg" data-battle-bg="${battleBg(o)}" data-seed="${esc(e.n)}" width="800" height="420" aria-hidden="true"></canvas>
         <div class="${pcls}">${hero()}${fight && pop.toP ? `<em class="pop">-${pop.toP}</em>` : ''}</div>
-        <div class="${ecls}">${spriteOf(e) ? spriteHtml(spriteOf(e), o.sprN) : foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
+        <div class="${ecls}"${spriteOf(e) ? ` style="--sw:${SPRITES[spriteOf(e)].w}%"` : ''}>${spriteOf(e) ? spriteHtml(spriteOf(e), o.sprN, fight && pop.toP, o.phase === 'roll') : foeFig(e.style)}${fight && pop.toE ? `<em class="pop">-${pop.toE}</em>` : ''}</div>
         ${o.god ? '<div class="godtag">無敵</div>' : ''}
         ${peek}
       </div>
