@@ -735,6 +735,28 @@ function skillPeekHtml(id) {
   </section>`;
 }
 
+// 敵人武功說明：每一招的名稱、威力倍率與出手機率（與戰鬥中實際的選招規則一致）
+const FOE_STYLE_N = { thug: '江湖混混', blade: '刀客', sword: '劍客', beast: '猛獸', master: '宗師', demon: '魔頭', puppet: '機關傀儡' };
+function foeMoveOdds(n) {
+  const L = n, odds = Array(L).fill(0);
+  if (L === 1) return [1];
+  odds[L - 1] += 0.14;                       // chance(14)：最後一招（絕招）
+  const rest = 0.86;
+  odds[1] += rest * 0.45;                    // chance(45)：第二招
+  odds[0] += rest * 0.55;                    // 其餘：第一招
+  return odds;
+}
+function foePeekHtml(e) {
+  const odds = foeMoveOdds(e.moves.length);
+  const label = (i, L) => i === L - 1 && L > 1 ? '絕招' : i === 1 ? '次招' : '常用';
+  const rows = e.moves.map((m, i) => `<li class="open foe"><b>${esc(m[0])}</b><span>${label(i, e.moves.length)} · 威力 ×${(+m[1]).toFixed(1)} · 約 ${Math.round(odds[i] * 100)}%</span></li>`).join('');
+  return `<section class="skill-peek foe-peek" aria-label="敵人武功">
+    <header><b>${esc(e.n)}</b><em>${esc(FOE_STYLE_N[e.style] || '')}</em><span>戰力 ${e.P.toFixed(1)}</span></header>
+    <ul class="peek-moves">${rows}</ul>
+    <small>點一下敵人的圖示可收起</small>
+  </section>`;
+}
+
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
   const fx = [...Object.keys(o.buff || {}).filter(k => o.buff[k]).map(k => `<span class="tag jade">${k === 'atk' ? '活血' : '鐵骨'}</span>`),
@@ -757,10 +779,11 @@ function battleView(o) {
   const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
   const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
+  const foePeek = o.foePeek ? foePeekHtml(e) : '';
   const foeIco = e.style === 'beast' ? 'fist' : e.style === 'blade' || e.style === 'demon' ? 'blade' : e.style === 'puppet' ? 'staff' : 'sword';
-  const mine = S.eq.map(id => `<button type="button" class="slot2 tap${o.peek === id ? ' on' : ''}" aria-label="${esc(SKILLS[id].n)}"${h(() => { o.peek = o.peek === id ? null : id; render(); })}>${PXI(artIcon(id), ROLE_COL[artRole(id)], 16)}<small>${S.skills[id].lv}</small></button>`).join('');
-  const peek = o.peek && S.skills[o.peek] ? skillPeekHtml(o.peek) : '';
-  const theirs = e.moves.map(() => slot(foeIco, '#B0463F', '')).join('');
+  const mine = S.eq.map(id => `<button type="button" class="slot2 tap${o.peek === id ? ' on' : ''}" aria-label="${esc(SKILLS[id].n)}"${h(() => { o.peek = o.peek === id ? null : id; o.foePeek = false; render(); })}>${PXI(artIcon(id), ROLE_COL[artRole(id)], 16)}<small>${S.skills[id].lv}</small></button>`).join('');
+  const peek = foePeek || (o.peek && S.skills[o.peek] ? skillPeekHtml(o.peek) : '');
+  const theirs = e.moves.map(() => `<button type="button" class="slot2 tap foe${o.foePeek ? ' on' : ''}" aria-label="${esc(e.n)}的武功"${h(() => { o.foePeek = !o.foePeek; o.peek = null; render(); })}>${PXI(foeIco, '#B0463F', 16)}</button>`).join('');
   const shield = `<img class="pxi shd" src="${pxIcon('shield', '#EDE7D3', 12)}" alt="">`;
   const pct = (v, m) => clamp(m ? v / m * 100 : 0, 0, 100);
   return `<div class="veil bveil battle-restored-overlay"><section class="sheet battle auto battle-restored" role="dialog" aria-modal="true" aria-label="江湖戰鬥">

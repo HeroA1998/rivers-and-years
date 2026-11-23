@@ -22,6 +22,24 @@
 /* 說明面板蓋在戰場上方，不推動下方的骰子與按鈕 */
 #app .battle-restored .arena{position:relative}
 #app .battle-restored .arena > .skill-peek{
-  position:absolute;left:8px;right:8px;top:50%;transform:translateY(-50%);z-index:6;
-  max-height:92%;overflow:auto;margin:0;box-shadow:0 6px 18px rgba(40,28,18,.28);
+  position:absolute;left:8px;right:8px;top:8px;bottom:8px;z-index:6;
+  overflow:auto;margin:0;box-shadow:0 6px 18px rgba(40,28,18,.28);
 }
+
+#app .battle-restored .peek-moves li.foe{border-left-color:#B0463F}
+#app .battle-restored .foe-peek header em{color:#8A3A32}
+/* 戰場上的說明面板較矮：清單行距收緊，三招都能不捲動看完 */
+#app .battle-restored .skill-peek{padding:7px 9px}
+#app .battle-restored .skill-peek header b{font-size:15px}
+#app .battle-restored .peek-moves{gap:3px;margin-top:4px}
+#app .battle-restored .peek-moves li{padding:3px 6px}
+#app .battle-restored .peek-moves li b{font-size:12.5px}
+#app .battle-restored .peek-moves li span{font-size:11px}
+/* 戰場區域只有約 170px 高：武功清單每招壓成一行，才放得下三招 */
+#app .battle-restored .arena > .skill-peek{padding:6px 8px}
+#app .battle-restored .arena > .skill-peek header{gap:2px 6px}
+#app .battle-restored .arena > .skill-peek header span{font-size:11px}
+#app .battle-restored .arena > .skill-peek .peek-moves{gap:3px}
+#app .battle-restored .arena > .skill-peek .peek-moves li{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:3px 6px}
+#app .battle-restored .arena > .skill-peek .peek-moves li b{font-size:12.5px}
+#app .battle-restored .arena > .skill-peek small{display:none}
