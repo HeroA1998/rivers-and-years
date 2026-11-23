@@ -15,3 +15,5 @@
 }
 /* 移除段落頁碼區塊上方的山水背景圖與預留的空白 */
 #app[data-page="world"] .reader-folio{background:none!important;padding-top:0!important;margin:10px 0 3px!important}
+/* 頭像頂端與名字對齊 */
+#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hport{align-self:start!important;margin-top:0!important}
