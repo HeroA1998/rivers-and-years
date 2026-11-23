@@ -49,7 +49,7 @@ const CHAINS = {
              C('e', '「入夥，地宮裡的東西分我一份。」', () => '盜魁大笑著拍你的肩。那車出土的東西，你分到了三成。' + gain({ silver: 160, moral: -8 })),
              C('n', '賠個不是，繞道走', () => '盜魁哼了一聲，讓開了路。')]
           : v.who === 'widow'
-            ? [C('g', '在山道上等債主', () => s.silver >= 120 ? (v.end = 'good', '你把一百二十兩拍在債主面前。債主數完銀子，撕了借據。孩子們躲在婦人身後看你，最小的那個忽然跑過來，往你手裡塞了一個烤得焦黑的紅薯。' + gain({ silver: -120, moral: 10, fame: 10 })) : fightThen(foe('債主的打手', 3, 0.6, 'thug'), () => { v.end = 'good'; return '打手們抬著債主下了山。你讓他帶句話：這座廟，以後有人罩著。' + gain({ moral: 8, fame: 15 }); }, s2 => { return '你沒能攔住他們。等你醒來，廟裡已經空了。' + gain({ moral: -2 }); })),
+            ? [C('g', '在山道上等債主', () => S.silver >= 120 ? (v.end = 'good', '你把一百二十兩拍在債主面前。債主數完銀子，撕了借據。孩子們躲在婦人身後看你，最小的那個忽然跑過來，往你手裡塞了一個烤得焦黑的紅薯。' + gain({ silver: -120, moral: 10, fame: 10 })) : fightThen(foe('債主的打手', 3, 0.6, 'thug'), () => { v.end = 'good'; return '打手們抬著債主下了山。你讓他帶句話：這座廟，以後有人罩著。' + gain({ moral: 8, fame: 15 }); }, s2 => { return '你沒能攔住他們。等你醒來，廟裡已經空了。' + gain({ moral: -2 }); })),
                C('e', '把孩子們的下落賣給債主', () => '債主給了你五十兩。三天後，山上的破廟又傳出了哭聲。' + gain({ silver: 50, moral: -12 })),
                C('n', '這是別人的家事', () => '你把口信退了回去。後來聽說，那座廟空了。' + gain({ moral: -3 }))]
             : [C('g', '連夜上山，送他出關', () => { v.end = 'good'; advance(6); return '你背著他翻了兩座山，把他交給關外的馬幫。臨別時他把一塊軍中腰牌塞給你：「我這條命是你的。哪天你要用得著當兵的，拿這個到雁門找我。」〔耗時六日〕' + addItem('junpai') + gain({ moral: 10, con: 1 }); }),
@@ -103,7 +103,7 @@ const CHAINS = {
         pages: ['楚狂在城外的破亭子裡等你，面前擺著兩個碗，一罈沒開封的酒。他今天沒有笑。', { fugitive: '「我是朝廷欽犯。三年前有個知府強佔民田，逼死了一家七口。我殺了他。」他倒滿兩碗酒，「追我的官差沒有錯，他們吃的是這碗飯。我躲累了。你把我交出去，賞銀三百兩，夠你花一陣子。」',
           master: '「二十年前，江湖上有個人，三十歲就打遍天下。他太狂了，一場比劍誤殺了最好的朋友。」他攤開右手，掌心一道橫貫的舊疤，「他自己挑斷了手筋。那些追著我打的年輕人，是那位朋友的後輩。他們該打。」',
           killer: '「有人出五百兩，買你的命。」他把酒碗推到你面前，「我接了。第一碗酒是為了看清你的身手，第二回是想等你跟人動完手再撿便宜。」\n\n「可你站到我身邊來了。」他苦笑，「做我們這行的，最怕這個。」' }[v.secret]],
-        choices: { fugitive: [C('g', '「我送你出關。」', () => { advance(8); return '你們走了八天山路。出關那天，他把那柄草繩纏柄的劍解下來給你：「劍我用不著了。劍法在這裡，」他點了點你的額頭，「這八天，我都教給你了。」〔耗時八日〕' + (battleXp(380) || '') + gain({ moral: 12, agi: 1 }); }),
+        choices: { fugitive: [C('g', '「我送你出關。」', () => { advance(8); return '你們走了八天山路。出關那天，他把那柄草繩纏柄的劍解下來給你：「劍我用不著了。劍法在這裡，」他點了點你的額頭，「這八天，我都教給你了。」〔耗時八日〕' + addItem('chu_sword') + (battleXp(380) || '') + gain({ moral: 12, agi: 1 }); }),
             C('e', '把他交給官府', () => '楚狂伸出雙手讓你綁，一路上沒有再看你一眼。三百兩賞銀到手那天，你喝了很多酒，一點也不醉。' + gain({ silver: 300, moral: -18, fame: 10 })),
             C('n', '「我什麼也沒聽見。」', () => '你們喝完了那罈酒。天亮時，他已經走了。' + gain({ cha: 1 }))],
           master: [C('g', '「教我。你不能用的劍，我替你用。」', () => { advance(10); return '他用左手握著樹枝，教了你十天。最後一天他說：「我這輩子就錯在一個狂字。你記著，劍越快，心要越慢。」〔耗時十日〕' + (battleXp(450) || '') + (xp(S.nei, 250) || '') + gain({ int: 1, bonusMp: 30 }); }),
@@ -115,6 +115,27 @@ const CHAINS = {
     ] },
 };
 
+/* ---- 藥箱（示範：物件在段落間進出行囊）----
+   第一段：郎中託你送藥箱 → 藥箱進行囊（任務物，不能賣）。
+   第二段：在指定城鎮，把藥送進病人家 → 藥箱收回（不論選擇）。
+   第三段：郎中回來道謝，依前一段的結果給報酬。 */
+CHAINS.yaoxiang = { title: '藥箱', roll: () => ({ town: pick(['linan', 'jiaxing', 'xiangyang']) }),
+  steps: [
+    { ctx: ['city', 'travel'], log: '郎中託你送一個藥箱。', scene: (s, v) => ({ title: '藥箱', art: 'road',
+      pages: ['路邊的老槐樹下，一個揹著藥箱的郎中正揉著腿。見你過來，他苦笑：「我要趕去城裡另一頭給一個發熱的孩子看病，腿腳卻不聽使喚了。」', `「你替我把這藥箱送到${LOCS[v.town].n}城南的破屋，找一個叫阿七的孩子的娘。藥箱別打開，裡頭是我的家當，也是救命的藥。」`],
+      choices: [C('g', '「我替你送去。」', () => '郎中把藥箱交到你手裡，鄭重地道了謝。' + addItem('yaoxiang') + gain({ moral: 2 })),
+        C('e', '「先打開看看，裡頭有什麼值錢的？」', () => { S.chain.yaoxiang.st = 99; return '你打開藥箱，抽出幾包銀子揣進懷裡。郎中沒有看見，只是腿腳慢慢地走遠了。' + gain({ silver: 60, moral: -5 }); }),
+        C('n', '「我沒空。」', () => { S.chain.yaoxiang.st = 99; return '郎中嘆了口氣，一瘸一拐地走了。'; })] }) },
+    { ctx: ['city', 'travel', 'wild'], loc: v => v.town, cond: (s, v) => has('yaoxiang'), hint: v => `把藥箱送到${LOCS[v.town].n}城南的破屋`, log: '把藥箱送到了病孩子的家。', scene: (s, v) => ({ title: '破屋', art: 'city', who: 'kid',
+      text: '城南的破屋裡，一個婦人抱著發燒的孩子，見你進來，忙把孩子往身後藏：「你是誰？」你把郎中的話說了，婦人愣了一下，哭了出來。',
+      choices: [C('g', '打開藥箱，取出藥來餵孩子', () => { v.ok = true; return '孩子喝了藥，漸漸睡穩了。婦人一直拉著你的袖子道謝。' + addItem('yaoxiang', -1) + gain({ moral: 6, fame: 5 }); }),
+        C('e', '趁婦人不注意，把藥箱裡的銀子拿走', () => { v.ok = false; return '你摸走了藥箱裡的銀子，把空箱子放在門口。婦人後來才發現，只能抱著孩子哭。' + addItem('yaoxiang', -1) + gain({ silver: 80, moral: -8 }); }),
+        C('n', '把藥箱放下，留下幾文錢就走', () => { v.ok = false; return '婦人把錢推還給你，說藥錢她付不起。你把藥箱留在了屋裡。' + addItem('yaoxiang', -1) + gain({ moral: 2 }); })] }) },
+    { ctx: ['city', 'travel'], loc: v => v.town, cond: (s, v) => v.ok, log: '郎中謝了你。', scene: (s, v) => ({ title: '郎中道謝', art: 'city',
+      text: '郎中在街口等著你，聽完你的話，把一包曬乾的草藥塞進你手裡：「孩子保住了，多謝你。這些草藥你留著，遇上受傷的人，比什麼都有用。」',
+      choices: [C('g', '收下草藥', () => { S.chain.yaoxiang.st = 99; return addItem('herb', 4) + gain({ fame: 8 }); })] }) },
+  ] };
+
 /* 觸發規則：同時只進行一個奇緣；每段之間至少相隔一段時日 */
 function chainCandidates(ctx) {
   S.chain = S.chain || {};
@@ -122,6 +143,8 @@ function chainCandidates(ctx) {
   const ok = (id, c) => { const st = CHAINS[id].steps[c.st]; if (!st) return false;
     const loc = typeof st.loc === 'function' ? st.loc(c.v) : st.loc;
     return (!st.ctx || st.ctx.includes(ctx)) && (!loc || loc === S.loc) && (!st.cond || st.cond(S, c.v)); };
+  // 閒置太久（下一段的條件一直不成立）的任務自動結束，免得擋住之後所有新的奇緣
+  Object.keys(S.chain).forEach(id => { if (CHAINS[id] && S.chain[id].st < CHAINS[id].steps.length && today - S.chain[id].day > 120) S.chain[id].st = 99; });
   const active = Object.keys(S.chain).filter(id => CHAINS[id] && S.chain[id].st < CHAINS[id].steps.length);
   const last = Math.max(0, ...Object.keys(S.chain).map(id => S.chain[id].day));
   active.forEach(id => { if (today - S.chain[id].day >= 20 && ok(id, S.chain[id])) out.push({ chain: id, w: 30, type: '奇緣' }); });

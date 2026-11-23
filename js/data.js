@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.20.4';
+const VERSION = 'v6.21.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei', 'guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];
 const SQFACES = ['guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];   // 方形頭像（其餘為 3:4 立繪）
@@ -354,6 +354,8 @@ const ITEMS = {
   jiuyin:    { n: '九陰真經殘卷', kind: 'relic', price: 0, fx: { attrUp: { yin: 0.15 }, d: '陰柔心法：陰柔武功威力 +15%' } },
   jianglong: { n: '降龍譜殘頁', kind: 'relic', price: 0, fx: { attrUp: { yang: 0.15 }, d: '陽剛掌力：陽剛武功威力 +15%' } },
   junpai:    { n: '軍中腰牌', kind: 'quest', price: 0, d: '雁門的軍中腰牌，憑它可以到雁門找當年的老兵。（任務物，不能賣）' },
+  chu_sword: { n: '草繩纏柄的劍', kind: 'weapon', wt: 'sword', atk: 13, price: 0, st: { agi: 1 }, d: '楚狂的佩劍，草繩纏著劍柄，磨得發亮。（不能賣）' },
+  yaoxiang:  { n: '郎中的藥箱', kind: 'quest', price: 0, d: '郎中託付的藥箱，要送到城南破屋。（任務物，不能賣）' },
   luo_letter:{ n: '駱寒的信', kind: 'quest', price: 0, d: '劍客駱寒託付的信，要親手交給他女兒阿蘅。（任務物，不能賣）' },
   luo_sword: { n: '駱寒的劍', kind: 'weapon', wt: 'sword', atk: 12, price: 0, st: { agi: 1 }, d: '劍客駱寒的佩劍，劍身上還留著舊痕。（任務物，不能賣）' },
   yaopai:    { n: '王府腰牌', kind: 'relic', price: 0, fx: { chk: { cha: 2 }, d: '趙王府的腰牌，燕京城裡沒人敢攔：事件中的魅力檢定 +2' } },
