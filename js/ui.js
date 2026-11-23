@@ -447,7 +447,7 @@ function stopStoryAnimation() {
   if (storyFrame) cancelAnimationFrame(storyFrame);
   storyFrame = 0;
 }
-function finishStoryAnimation() {
+function finishStoryAnimation(rerender = false) {
   stopStoryAnimation();
   const state = UI.story;
   if (!state || !state.lines.length) return;
@@ -459,6 +459,7 @@ function finishStoryAnimation() {
   const line = root.querySelector('.reader-line.is-typing');
   if (line) line.classList.remove('is-typing');
   root.classList.remove('story-typing');
+  if (rerender) render();   // 文字看完後，選項與「繼續」才變成可按
 }
 function activateStoryAnimation(root) {
   stopStoryAnimation();
@@ -473,7 +474,7 @@ function activateStoryAnimation(root) {
   let shown = Math.max(0, Math.min(state.chars || 0, total));
   span.innerHTML = richTyped(fullText, shown);
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    finishStoryAnimation();
+    finishStoryAnimation(true);
     return;
   }
   root.classList.add('story-typing');
@@ -481,10 +482,10 @@ function activateStoryAnimation(root) {
   const begun = performance.now(), offset = shown;
   const tick = now => {
     if (UI.story !== state || !line.isConnected) { storyFrame = 0; return; }
-    shown = Math.min(total, offset + Math.floor((now - begun) / 23));
+    shown = Math.min(total, offset + Math.floor((now - begun) / 11));
     state.chars = shown;
     span.innerHTML = richTyped(fullText, shown);
-    if (shown >= total) { finishStoryAnimation(); return; }
+    if (shown >= total) { finishStoryAnimation(true); return; }
     storyFrame = requestAnimationFrame(tick);
   };
   storyFrame = requestAnimationFrame(tick);
@@ -506,19 +507,19 @@ function eventReader(o) {
     : '';   // 不再顯示事件風景圖，只在有登場人物時顯示人物
   let controls;
   if (o.result) {
-    controls = B('繼續', closeEvent, 'story-option');
+    controls = B('繼續', closeEvent, 'story-option', typing);
   } else if (pendingPage) {
     controls = B('繼續', () => {
       o.pi++;
       storyAppend('prose', o.pages[o.pi]);
       render();
-    }, 'story-option');
+    }, 'story-option', typing);
   } else if (!o.choices || !o.choices.length) {
-    controls = B('繼續', closeEvent, 'story-option');
+    controls = B('繼續', closeEvent, 'story-option', typing);
   } else {
     controls = o.choices.map((c, i) =>
       `<button type="button" class="btn story-option event-choice side-${c.s || 'n'}"
-        ${c.dis ? ' disabled' : h(() => choose(i))}>
+        ${c.dis || typing ? ' disabled' : h(() => choose(i))}>
         ${c.plain ? '' : `<span class="choice-kind">${SIDE_LABEL[c.s] || '選擇'}</span>`}
         <span class="choice-content">${esc(c.t)}
           ${c.dis && c.reqT ? `<small>（${esc(c.reqT)}）</small>` : ''}
@@ -820,7 +821,7 @@ function battleView(o) {
 /* ---------- 啟動 ---------- */
 document.addEventListener('click', ev => {
   if (ev.target.closest('[data-story-skip], .reader-line.is-typing')) {
-    finishStoryAnimation(); return;
+    finishStoryAnimation(true); return;
   }
   const b = ev.target.closest('[data-h]');
   if (!b || b.disabled) return;
