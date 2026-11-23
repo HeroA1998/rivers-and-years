@@ -260,7 +260,7 @@ function recruitCard(s) {
     : `路邊茶棚裡，${k.n}的${k.master}正帶著幾個弟子歇腳。他聽說你一路的事，捋鬚道：「${k.n}正在收門人。你若有意，跟我回${LOCS[k.loc].n}。」`;
   const text = `${intro}\n\n${k.d}\n武學：${k.style}　入門條件：${k.reqT}`;
   const go = () => { if (!home) { S.loc = '_road'; advance(travelDays(k.loc)); S.loc = k.loc; } return joinSectNow(id); };
-  const steal = O(`假意拜師，偷學一招就走`, 'agi', 13, ['你在山上待了七天，偷看了入門功夫的練法，第八天一早就溜了。', {}, () => learn(k.teach[0][0])], ['你剛翻上牆頭，就被巡山的弟子揪了下來，一頓好打。', { fame: -3 }, HURT(0.2)]);
+  const steal = O(`假意拜師，偷學一招就走`, 'agi', 13, ['你在山上待了七天，偷看了入門功夫的練法，第八天一早就溜了。你沒有學成，只記住了幾處發力的訣竅。', { moral: -4 }, () => battleXp(100) || ''], ['你剛翻上牆頭，就被巡山的弟子揪了下來，一頓好打。', { fame: -3 }, HURT(0.2)]);
   let opts;
   if (k.align > 0) opts = [$g(P(`恭恭敬敬拜師入門${home ? '' : `，隨他回${LOCS[k.loc].n}`}`, ['', {}, go], { req: k.req, reqT: k.reqT })), $e(steal), $n(P('婉言謝絕', [`${k.master}點點頭，也不強求。`]))];
   else if (k.align === 0) opts = [$g(P('入教，替窮苦百姓出頭', ['', {}, go], { req: k.req, reqT: k.reqT })), $e(O('假意入教，探聽虛實後去官府領賞', 'cha', 12, ['官府給了你一百兩。你沒問那些人後來怎麼樣了。', { silver: 100, moral: -10 }], ['他們早看出你不對勁，把你打了出去。', {}, HURT(0.2)])), $n(P('婉言謝絕', ['對方也不勉強。']))];
