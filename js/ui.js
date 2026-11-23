@@ -10,7 +10,7 @@ const art = (kind, seed, cls = '') => ART[kind]
   ? `<img class="art ${cls}" src="${(window.ART_INLINE || {})[kind] || `assets/art/${kind}.jpg`}" width="800" height="375" alt="${esc(ART[kind].t)}">`
   : `<canvas class="art ${cls}" data-art="${kind}" data-seed="${esc(seed)}" width="640" height="300" aria-hidden="true"></canvas>`;
 const face = (id, cls = '') => FACES.includes(id) ? `<img class="face ${cls}" src="${(window.FACE_INLINE || {})[id] || `assets/chars/${id}.webp`}" width="300" height="400" alt="">` : '';
-const TYPE_CLS = { '身世': 'jade', '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey' };
+const TYPE_CLS = { '身世': 'jade', '歷史': 'gold', '奇緣': 'jade', '主線': 'seal', '奇遇': 'gold', '戰鬥': 'seal', '戀愛': 'rose', '傳承': 'jade', '江湖': 'grey', '人物': 'jade' };
 
 function render() {
   H = [];
@@ -310,8 +310,8 @@ const TABS = {
     const met = Object.keys(NPCS).filter(id => S.npcs[id] && S.npcs[id].met);
     let s = met.map(id => {
       const k = NPCS[id], n = S.npcs[id];
-      const st = S.spouse === id ? '結髮' : ['相識', '初識', '相知', '定情'][n.stage];
-      return `<article class="card has-face">${face(id)}<div class="card-h"><b>${k.n}</b><span class="tag rose">${st}</span><span class="tag grey">${LOCS[k.loc].n}</span></div>
+      const st = S.spouse === id ? '結髮' : k.friend ? k.rel[n.stage] : ['相識', '初識', '相知', '定情'][n.stage];
+      return `<article class="card${FACES.includes(id) ? ' has-face' : ''}">${face(id)}<div class="card-h"><b>${k.n}</b><span class="tag ${k.friend ? 'jade' : 'rose'}">${st}</span><span class="tag grey">${LOCS[k.loc].n}</span></div>
         <div class="lvrow">好感 ${bar(n.fav, 100, 'fav')}<em>${n.fav}/100</em></div><p>${k.title}。${k.d}</p></article>`;
     }).join('');
     if (met.length < Object.keys(NPCS).length) s += `<p class="empty">江湖上還有 ${Object.keys(NPCS).length - met.length} 位有緣人尚未相遇。歷練時走到不同的地方，自然會遇上。</p>`;
@@ -320,7 +320,7 @@ const TABS = {
     if (S.child) fam += `<p>子女：${S.child}</p>`;
     if (S.disciple) fam += `<p>弟子：${S.disciple.n}${S.disciple.done ? '（已出師）' : '（學藝中）'}</p>`;
     if (S.rival) fam += `<p>對手：秦昭（已交手 ${S.rival} 次）</p>`;
-    return (fam ? `<section class="group"><h3>親近之人</h3><div class="desc">${fam}</div></section>` : '') + `<section class="group"><h3>情緣</h3>${s}</section>`;
+    return (fam ? `<section class="group"><h3>親近之人</h3><div class="desc">${fam}</div></section>` : '') + `<section class="group"><h3>人脈</h3>${s}</section>`;
   },
 };
 
