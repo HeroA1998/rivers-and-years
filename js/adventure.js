@@ -315,13 +315,22 @@ const $p = o => Object.assign(o, { s: 'n', plain: true });
 const sellPrice = id => Math.max(1, Math.round(ITEMS[id].price * 0.5));
 const gearUsed = id => GEAR_SLOTS.some(x => S[x[0]] === id);
 const shuf = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+// 各城主打的貨：藥、戰前藥、補品與心得，每回逛到的是其中隨機兩三樣
+const CITY_STOCK = {
+  yanjing: ['huoxue', 'tiegu', 'menghan', 'xinde'],
+  linan: ['huichun', 'renshen', 'shouwu', 'xinde'],
+  jiaxing: ['xuelian', 'duyan', 'menghan', 'neijing'],
+  xiangyang: ['tiegu', 'shangjin', 'juqi', 'neijing'],
+};
 function townStock(s) {
   // 同一種藥只列一筆，用 qty 表示數量
   const med = [{ id: 'jinchuang', qty: 2 }, { id: 'huiqi', qty: 1 }];
   if (chance(25)) med.push({ id: 'dahuan', qty: 1 });
-  const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc', 'off', 'relic'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 4);
+  const pool = CITY_STOCK[s.loc] || Object.keys(ITEMS).filter(id => ['buff', 'tonic', 'page'].includes(ITEMS[id].kind));
+  const local = shuf(pool).slice(0, 3).map(id => ({ id, qty: 1 }));
+  const gear = shuf(Object.keys(ITEMS).filter(id => ['weapon', 'armor', 'acc', 'off', 'relic'].includes(ITEMS[id].kind) && ITEMS[id].price && !has(id))).slice(0, 3);
   const arts = shuf(artShop(s).filter(id => ITEMS[id].price)).slice(0, 2);
-  return [...med, ...gear.map(id => ({ id, qty: 1 })), ...arts.map(id => ({ id, qty: 1 }))].map(e => ({ id: e.id, sold: false, qty: e.qty }));
+  return [...med, ...local, ...gear.map(id => ({ id, qty: 1 })), ...arts.map(id => ({ id, qty: 1 }))].map(e => ({ id: e.id, sold: false, qty: e.qty }));
 }
 function townMedCard(s) {
   goTown();
@@ -376,7 +385,7 @@ function autoGear(id) {
   return '〔可在行囊頁裝備〕';
 }
 function marketCard(s) {
-  const pool = (SHOPS[s.loc] || SHOPS.linan).filter(id => ['med', 'gift', 'armor', 'manual'].includes(ITEMS[id].kind) && !(ITEMS[id].kind === 'manual' && knows(ITEMS[id].skill)));
+  const pool = (SHOPS[s.loc] || SHOPS.linan).filter(id => ['med', 'buff', 'tonic', 'page', 'gift', 'armor', 'manual'].includes(ITEMS[id].kind) && !(ITEMS[id].kind === 'manual' && knows(ITEMS[id].skill)));
   const id = !has('jinchuang') ? 'jinchuang' : pick(pool);
   const it = ITEMS[id];
   return { title: '市集', art: 'city', text: `市集上人來人往。一個攤子上擺著${it.n}，${it.d ? it.d + '，' : ''}攤主吆喝著：「${it.price} 兩，童叟無欺！」`, opts: buyOpts(id) };

@@ -1,7 +1,7 @@
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v6.16.0';
+const VERSION = 'v6.17.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei'];
 
@@ -287,15 +287,27 @@ const sectOpen = id => { const k = SECTS[id], y = typeof ad === 'function' && S 
 /* ---------- 物品 ---------- */
 const ITEMS = {
   jinchuang: { n: '金創藥', kind: 'med', price: 30, hp: 70, life: 1, d: '回復 1 點氣血（戰鬥中回復 70 鬥氣）' },
+  shangjin:  { n: '上品金創藥', kind: 'med', price: 90, hp: 160, life: 2, d: '回復 2 點氣血（戰鬥中回復 160 鬥氣）' },
+  juqi:      { n: '聚氣丹', kind: 'med', price: 110, mp: 100, qi: 4, d: '回復 4 點內力（戰鬥中回復 100）' },
+  huichun:   { n: '回春散', kind: 'med', price: 140, hp: 110, mp: 50, life: 2, qi: 2, d: '回復 2 點氣血與 2 點內力（戰鬥中回復 110 鬥氣、50 內力）' },
+  huoxue:    { n: '活血丸', kind: 'buff', price: 80, buff: { atk: 0.15 }, tag: '活血', use: '藥力化開，渾身氣血翻湧，出手又快又重。', d: '戰鬥中服用：本場傷害 +15%' },
+  tiegu:     { n: '鐵骨散', kind: 'buff', price: 80, buff: { red: 0.15 }, tag: '鐵骨', use: '藥力入骨，筋肉繃得像鐵一般硬。', d: '戰鬥中服用：本場受傷 −15%' },
+  menghan:   { n: '蒙汗藥', kind: 'buff', price: 70, act: 'stun', d: '戰鬥中使用：七成機率令對手下一手使不出來' },
+  duyan:     { n: '毒餌', kind: 'buff', price: 70, act: 'poison', d: '戰鬥中使用：對手中毒三手，每手損失一成不到的氣血' },
   huiqi:     { n: '回氣散', kind: 'med', price: 40, mp: 45, qi: 2, d: '回復 2 點內力（戰鬥中回復 45）' },
   dahuan:    { n: '大還丹', kind: 'med', price: 320, hp: 9999, mp: 9999, life: 99, qi: 99, d: '氣血與內力全滿' },
   herb:      { n: '草藥', kind: 'misc', price: 16, d: '藥舖收購；三株可請藥舖煉成金創藥' },
-  lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, d: '服下後根骨+1、氣血上限+1（多一顆命）' },
-  wine:      { n: '陳年花雕', kind: 'gift', price: 60, d: '贈禮' },
-  rouge:     { n: '蘇州胭脂', kind: 'gift', price: 60, d: '贈禮' },
-  hairpin:   { n: '白玉簪', kind: 'gift', price: 150, d: '贈禮' },
-  book:      { n: '前朝孤本', kind: 'gift', price: 120, d: '贈禮' },
-  qin:       { n: '古琴譜', kind: 'gift', price: 120, d: '贈禮' },
+  lingzhi:   { n: '千年靈芝', kind: 'tonic', price: 500, gain: { con: 1, bonusLife: 1 }, d: '服下後根骨+1、氣血上限+1（多一顆命）' },
+  renshen:   { n: '百年人參', kind: 'tonic', price: 420, gain: { str: 1, bonusHp: 20 }, d: '服下後臂力+1、鬥氣上限+20' },
+  shouwu:    { n: '何首烏', kind: 'tonic', price: 420, gain: { int: 1, bonusMp: 20 }, d: '服下後悟性+1、內力上限+20' },
+  xuelian:   { n: '天山雪蓮', kind: 'tonic', price: 560, gain: { agi: 1, luck: 1 }, d: '服下後身法+1、福緣+1' },
+  xinde:     { n: '武學心得', kind: 'page', price: 160, d: '研讀後，裝備中的武功各得 150 經驗（內功六成）' },
+  neijing:   { n: '內功心法殘頁', kind: 'page', price: 180, d: '研讀後，主修內功得 400 經驗' },
+  wine:      { n: '陳年花雕', kind: 'gift', price: 60, d: '贈禮：江湖兒女多愛此物。送給人，好感+6；正合對方心意，好感+14' },
+  rouge:     { n: '蘇州胭脂', kind: 'gift', price: 60, d: '贈禮：女兒家的心頭好。送給人，好感+6；正合對方心意，好感+14' },
+  hairpin:   { n: '白玉簪', kind: 'gift', price: 150, d: '贈禮：貴重的信物。送給人，好感+6；正合對方心意，好感+14' },
+  book:      { n: '前朝孤本', kind: 'gift', price: 120, d: '贈禮：讀書人的珍藏。送給人，好感+6；正合對方心意，好感+14' },
+  qin:       { n: '古琴譜', kind: 'gift', price: 120, d: '贈禮：知音難求。送給人，好感+6；正合對方心意，好感+14' },
   w_sword1:  { n: '鐵劍', kind: 'weapon', wt: 'sword', atk: 6, price: 80, st: { agi: 1 } },
   w_sword2:  { n: '青鋼劍', kind: 'weapon', wt: 'sword', atk: 14, price: 420, st: { agi: 2 } },
   w_sword3:  { n: '寒玉劍', kind: 'weapon', wt: 'sword', atk: 26, price: 0, st: { agi: 2, int: 1 } },
@@ -348,10 +360,10 @@ const ITEMS = {
   bk_dart:   { n: '《袖箭圖解》', kind: 'manual', skill: 'm_dart', price: 150 },
 };
 const SHOPS = {
-  yanjing: ['w_whip1', 'w_whip2', 'w_spear1', 'w_spear2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
-  linan:   ['w_staff1', 'jinchuang', 'huiqi', 'dahuan', 'w_dart1', 'w_dart2', 'w_sword1', 'a_cloth', 'a_gold', 'rouge', 'hairpin', 'qin', 'wine', 'bk_dart'],
-  jiaxing: ['w_whip1', 'w_staff1', 'w_spear1', 'jinchuang', 'huiqi', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
-  xiangyang: ['w_spear1', 'w_spear2', 'w_staff2', 'jinchuang', 'huiqi', 'dahuan', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'a_cloth', 'a_gold', 'wine', 'book', 'bk_blade'],
+  yanjing: ['w_whip1', 'w_whip2', 'w_spear1', 'w_spear2', 'jinchuang', 'huiqi', 'dahuan', 'huoxue', 'tiegu', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'w_fist1', 'w_fist2', 'a_cloth', 'wine', 'book', 'bk_blade'],
+  linan:   ['w_staff1', 'jinchuang', 'huichun', 'huiqi', 'dahuan', 'renshen', 'shouwu', 'w_dart1', 'w_dart2', 'w_sword1', 'a_cloth', 'a_gold', 'rouge', 'hairpin', 'qin', 'wine', 'bk_dart'],
+  jiaxing: ['w_whip1', 'w_staff1', 'w_spear1', 'jinchuang', 'huiqi', 'menghan', 'duyan', 'xuelian', 'w_sword1', 'w_blade1', 'a_cloth', 'rouge', 'wine', 'book'],
+  xiangyang: ['w_spear1', 'w_spear2', 'w_staff2', 'jinchuang', 'shangjin', 'juqi', 'huiqi', 'dahuan', 'tiegu', 'neijing', 'w_sword1', 'w_sword2', 'w_blade1', 'w_blade2', 'a_cloth', 'a_gold', 'wine', 'book', 'bk_blade'],
 };
 
 /* ---------- 出身：開局隨機投胎，依年代不同 ----------

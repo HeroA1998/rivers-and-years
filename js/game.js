@@ -488,7 +488,7 @@ function hitFoe(b, label, k, lv, pow, mul, fx) {
   if (chance(clamp((e.agi - S.stats.agi) * 1.5, 0, 20))) return `你的「${label}」被${e.n}閃開。`;
   const w = weaponAtk(k.type), res = resOf(e, k.type), wi = S.weapon && ITEMS[S.weapon];
   const bare = !S.weapon && k.type === 'fist' ? 1 + gearFx('bare') : 1;
-  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * (1 + gearAttrUp(k.attr)) * bare * res * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1) * (b.esc || 1);
+  let dmg = (S.stats.str * 1.2 + pow * (1 + 0.15 * (lv - 1)) + w) * neiFactor() * attrMul(k.attr) * (1 + gearAttrUp(k.attr)) * bare * res * rnd(0.9, 1.1) * mul * DMG_K * (activeCombo() ? activeCombo().mul : 1) * (b.esc || 1) * (1 + ((b.buff && b.buff.atk) || 0));
   const crit = chance(S.stats.luck * 1.3 + fxSum('crit'));
   if (crit) dmg *= 1.6;
   const heavy = wi && wi.wt === k.type && wi.fx && wi.fx.pierce ? 0.7 : 1;
@@ -507,7 +507,7 @@ function hitMe(b, label, mult, mul = 1) {
   const e = b.e;
   if (chance(clamp((pDodge() - e.agi) * 1.2 + 4, 0, 30))) return `${e.n}的「${label}」被你閃身避過。`;
   if (gearFx('block') && chance(gearFx('block'))) return `你舉臂格擋，${e.n}的「${label}」沒能打中你。`;
-  const red = (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15)) * (1 - fxSum('foeWeak'));
+  const red = (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15 + ((b.buff && b.buff.red) || 0))) * (1 - fxSum('foeWeak'));
   const dmg = Math.max(1, Math.round((e.atk * mult * (b.fx.weak ? 0.75 : 1) * rnd(0.88, 1.12) * DMG_K - pDef() * 0.25) * mul * red * (b.esc || 1)));
   S.hp -= dmg;
   const th = gearFx('thorns');
@@ -555,8 +555,8 @@ function battleSpeed() { const b = UI.ov; if (!b || b.k !== 'battle') return; b.
 function advPct(b) {
   if (b.god) return 99.9;
   const e = b.e, bm = basicMove(), dm = b.roll ? b.mult : 1, tk = b.roll ? b.take : 1;
-  const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + weaponAtk(bm.k.type)) * neiFactor() * resOf(e, bm.k.type) * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006));
-  const op = Math.max(1, (e.atk * 1.15 * DMG_K * (1 - fxSum('foeWeak')) - pDef() * 0.25) * (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15)));
+  const my = Math.max(1, ((S.stats.str * 1.2 + bm.pw + weaponAtk(bm.k.type)) * neiFactor() * resOf(e, bm.k.type) * DMG_K - e.def * 0.25) * (1 + S.stats.luck * 0.006) * (1 + ((b.buff && b.buff.atk) || 0)));
+  const op = Math.max(1, (e.atk * 1.15 * DMG_K * (1 - fxSum('foeWeak')) - pDef() * 0.25) * (1 - Math.min(0.5, fxSum('dmgRed') + fxSum('guard') * 0.15 + ((b.buff && b.buff.red) || 0))));
   const pe = my * dm / Math.max(1, e.hp), pp = op * tk / Math.max(1, S.hp);
   return clamp(Math.round(pe / (pe + pp) * 1000) / 10, 0.1, 99.9);
 }
@@ -621,6 +621,7 @@ function endBattle() {
     r = b.win ? b.win(S) : `你擊敗了${b.e.n}。`;
     if (r && typeof r === 'object') { if (r.battle && !r.title) r.title = b.title; return handleResult(r); }
     r += x;
+    if (chance(14)) { const d = pick(['jinchuang', 'huiqi', 'huoxue', 'tiegu', 'menghan', 'duyan']); r += `\n\n你在${b.e.n}身上摸出一份${ITEMS[d].n}。` + addItem(d); }
   } else if (b.over === 'lose') {
     S.losses++; hurtQ();
     r = b.lose ? b.lose(S) : defeat();
@@ -645,14 +646,39 @@ function useMed(id) {
   if (it.hp) S.hp = Math.min(maxHp(), S.hp + Math.round(it.hp * (healer() && it.hp < 999 ? 1.5 : 1)));
   if (it.mp) S.mp = Math.min(maxMp(), S.mp + it.mp);
 }
-// 戰鬥中用藥：在戰鬥的畫面上直接服用，回復的是本場的鬥氣與內力
+// 戰鬥中用藥：在戰鬥的畫面上直接服用，回復的是本場的鬥氣與內力；戰前藥只管這一場
+const BATTLE_ITEM = id => ITEMS[id] && (ITEMS[id].kind === 'med' || ITEMS[id].kind === 'buff');
+// 目前這件道具在這場戰鬥裡派不派得上用場（滿血、已生效的都不必再用）
+function battleUsable(b, id) {
+  const it = ITEMS[id];
+  if (!b || b.over || b.phase !== 'fight' || !has(id)) return false;
+  if (it.kind === 'med') return !((!it.hp || S.hp >= maxHp()) && (!it.mp || S.mp >= maxMp()));
+  if (it.buff) return !Object.keys(it.buff).some(k => b.buff && b.buff[k]);
+  if (it.act === 'stun') return !(b.fx.stun > 0);
+  if (it.act === 'poison') return !(b.fx.poison > 0);
+  return false;
+}
 function battleUse(id) {
   const b = UI.ov;
-  if (!b || b.k !== 'battle' || b.over || b.phase !== 'fight' || !has(id)) return;
-  const it = ITEMS[id], hp0 = S.hp, mp0 = S.mp;
-  useMed(id);
-  const got = [it.hp ? `氣血+${Math.max(0, S.hp - hp0)}` : '', it.mp ? `內力+${Math.max(0, S.mp - mp0)}` : ''].filter(Boolean).join('　');
-  bLog(`你趁空檔服下${it.n}。${got}`);
+  if (!b || b.k !== 'battle' || !BATTLE_ITEM(id) || !battleUsable(b, id)) return;
+  const it = ITEMS[id];
+  let msg;
+  if (it.kind === 'med') {
+    const hp0 = S.hp, mp0 = S.mp;
+    useMed(id);
+    msg = `你趁空檔服下${it.n}。` + [it.hp ? `氣血+${Math.max(0, S.hp - hp0)}` : '', it.mp ? `內力+${Math.max(0, S.mp - mp0)}` : ''].filter(Boolean).join('　');
+  } else if (it.buff) {
+    addItem(id, -1); b.buff = Object.assign(b.buff || {}, it.buff);
+    msg = `你服下${it.n}。${it.use}`;
+  } else if (it.act === 'stun') {
+    addItem(id, -1);
+    if (chance(70)) { b.fx.stun = 1; msg = `你彈出一撮${it.n}，${b.e.n}吸入少許，腳下一軟，下一手使不出來。`; }
+    else msg = `你彈出一撮${it.n}，可${b.e.n}屏住了氣，沒中招。`;
+  } else {
+    addItem(id, -1); b.fx.poison = 3; b.fx.poisonV = Math.max(6, Math.round(b.e.mhp * 0.04));
+    msg = `你把${it.n}彈進${b.e.n}的口中，毒性隨即發作。`;
+  }
+  bLog(msg);
   save(); render();
 }
 function useItem(id) {
@@ -661,7 +687,12 @@ function useItem(id) {
     if (!(S.life < lifeMax() && it.life) && !(S.qi < qiMax() && it.qi)) return toast('氣血與內力都是滿的，用不著');
     toast(`服下${it.n}` + useMed(id));
   }
-  else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain({ con: 1, bonusLife: 1 })); }
+  else if (it.kind === 'tonic') { addItem(id, -1); toast(`服下${it.n}` + gain(it.gain || { con: 1, bonusLife: 1 })); }
+  else if (it.kind === 'page') {
+    if (id === 'neijing' && !S.nei) return toast('你還沒有內功可以研讀');
+    addItem(id, -1);
+    toast(`你把${it.n}反覆研讀了幾遍。` + (id === 'neijing' ? xp(S.nei, 400) : battleXp(150)) + '〔武學領悟加深〕');
+  }
   else if (GEAR_KIND[it.kind]) { toast(equipGear(id)); }
   else if (it.kind === 'manual') {
     if (knows(it.skill)) return toast('這門功夫你已經會了');

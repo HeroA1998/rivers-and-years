@@ -753,3 +753,10 @@ html,body{background:#D7C2A1;color:var(--ink)}
   #app[data-page="world"] .bnav .nav-art-4{background-position:-120px -67px}
   #app[data-page="world"] .bnav .nav-art-5{background-position:-150px -67px}
 }
+
+/* 戰鬥中的行囊：服藥、戰前藥（兩欄緊湊排列，不把下方的骰子與投降擠出畫面） */
+.bagrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px 0 0}
+.bagrow .pxbtn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-height:30px;height:30px;padding:0 6px;font-size:12px;line-height:1;white-space:nowrap}
+.bagrow .pxbtn span{overflow:hidden;text-overflow:ellipsis}
+.bagrow .pxbtn[disabled]{opacity:.45}
+.bagrow .bi{width:16px;height:16px;flex:none}

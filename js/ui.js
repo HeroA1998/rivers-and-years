@@ -262,7 +262,7 @@ const TABS = {
     // 參考手遊的背包：上方道具詳情卡、深褐色背包面板（總覽＋裝備欄＋屬性條＋物品格）
     const sel = UI.bagSel && ITEMS[UI.bagSel] && (S.inv[UI.bagSel] || GEAR_SLOTS.some(x => S[x[0]] === UI.bagSel)) ? UI.bagSel : null;
     const kindName = it => it.kind === 'weapon' ? (it.hand === 2 ? '雙手' : '單手') + ' ' + TYPE_N[it.wt]
-      : { armor: '護甲', acc: '飾品', off: '副手', relic: '奇物', med: '藥品', tonic: '補品', manual: '武功秘笈', gift: '禮物' }[it.kind] || '物品';
+      : { armor: '護甲', acc: '飾品', off: '副手', relic: '奇物', med: '藥品', buff: '戰前藥', tonic: '補品', page: '心得', manual: '武功秘笈', gift: '禮物' }[it.kind] || '物品';
     const stClass = k => 'bk-' + (k || 'misc');
     const cell = (id, extra, fn, badge) => '<button type="button" class="bk-cell ' + stClass(ITEMS[id].kind) + (extra || '') + '"' + h(fn) + ' aria-label="' + esc(ITEMS[id].n) + '">' +
       ico(itemIc(ITEMS[id]), 'bk-ico') + (badge > 1 ? '<small>' + badge + '</small>' : '') + '</button>';
@@ -274,11 +274,11 @@ const TABS = {
       const it = ITEMS[sel], eqd = GEAR_SLOTS.some(x => S[x[0]] === sel);
       const main = it.kind === 'weapon' ? '<b>威力 ' + it.atk + '</b><small>' + ATK_TN[ATK_T[it.wt]] + '擊・看' + STAT_N[it.stat || ART_ST[it.wt]] + '</small>'
         : it.kind === 'armor' ? '<b>防禦 ' + it.def + '</b>'
-        : it.kind === 'med' ? '<b>' + esc(it.d || '') + '</b>' : it.kind === 'manual' ? '<b>可習得「' + esc(SKILLS[it.skill].n) + '」</b>' : '';
+        : ['med', 'tonic', 'buff', 'page', 'gift'].includes(it.kind) ? '<b>' + esc(it.d || '') + '</b>' : it.kind === 'manual' ? '<b>可習得「' + esc(SKILLS[it.skill].n) + '」</b>' : '';
       const stats = Object.keys(it.st || {}).map(k => '<span class="bk-chip">' + esc(STAT_N[k]) + (it.st[k] > 0 ? ' +' : ' ') + it.st[k] + '</span>').join('');
       const req = it.req ? '<span class="bk-chip warn' + (reqOk(it) ? '' : ' bad') + '">' + esc(reqText(it)) + '</span>' : '';
       const trait = it.fx && it.fx.d ? '<div class="bk-trait">' + ico('star', 'bk-tico') + '<p>' + esc(it.fx.d) + '</p></div>' : '';
-      const lab = { med: '服用', tonic: '服用', manual: '研讀', weapon: '裝備', off: '裝備', armor: '穿上', acc: '戴上', relic: '佩帶' }[it.kind];
+      const lab = { med: '服用', tonic: '服用', page: '研讀', manual: '研讀', weapon: '裝備', off: '裝備', armor: '穿上', acc: '戴上', relic: '佩帶' }[it.kind];
       card = '<section class="bk-card"><div class="bk-head"><span class="bk-big ' + stClass(it.kind) + '">' + ico(itemIc(it), 'bk-ico') + '</span>' +
         '<div class="bk-title"><h3>' + esc(it.n) + (S.inv[sel] > 1 ? ' ×' + S.inv[sel] : '') + (eqd ? '<em>使用中</em>' : '') + '</h3><span class="bk-kind">' + esc(kindName(it)) + '</span></div></div>' +
         (main ? '<div class="bk-main">' + main + '</div>' : '') + ((stats || req) ? '<div class="bk-chips">' + stats + req + '</div>' : '') + trait +
@@ -300,7 +300,7 @@ const TABS = {
     const strip = [['agi', '閃避', Math.round(pDodge())], ['luck', '暴擊', crit.toFixed(1) + '%'], ['shield', '減傷', red.toFixed(1) + '%'], ['coin', '銀兩', S.silver]]
       .map(x => '<span class="bk-stat" title="' + x[1] + '">' + ico(x[0], 'bk-sico') + '<b>' + x[2] + '</b><small>' + x[1] + '</small></span>').join('');
     // 物品格：已穿戴且只有一件的不重複顯示
-    const order = ['weapon', 'off', 'armor', 'acc', 'relic', 'med', 'tonic', 'manual', 'gift'];
+    const order = ['weapon', 'off', 'armor', 'acc', 'relic', 'med', 'buff', 'tonic', 'page', 'manual', 'gift'];
     const ids = Object.keys(S.inv).filter(id => ITEMS[id] && !(GEAR_SLOTS.some(x => S[x[0]] === id) && S.inv[id] === 1))
       .sort((x, y) => (order.indexOf(ITEMS[x].kind) + 1 || 99) - (order.indexOf(ITEMS[y].kind) + 1 || 99));
     const total = Math.max(14, Math.ceil(ids.length / 7) * 7 + (ids.length % 7 === 0 && ids.length ? 0 : 0));
@@ -698,7 +698,8 @@ const battleBg = o => [o.art, LOCS[S.loc] && LOCS[S.loc].art].find(k => k && k !
 /* ---------- 還原原版戰場和可拖動 3D 二十面骰 ---------- */
 function battleView(o) {
   const e = o.e, adv = o.over ? null : advPct(o), pw = power() * (o.roll ? o.mult : 1), bm = basicMove();
-  const fx = [o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`).join('');
+  const fx = [...Object.keys(o.buff || {}).filter(k => o.buff[k]).map(k => `<span class="tag jade">${k === 'atk' ? '活血' : '鐵骨'}</span>`),
+    ...[o.fx.bleed ? '流血' : '', o.fx.poison ? '中毒' : '', o.fx.stun ? '震暈' : '', o.fx.weak ? '破勢' : ''].filter(Boolean).map(x => `<span class="tag seal">${x}</span>`)].join('');
   const chips = ids => ids.map(id => `<i class="ac r-${artRole(id)} tier-${SKILLS[id].tier}" title="${SKILLS[id].n}">${ico(artIcon(id))}<small>${SKILLS[id].n.slice(0, 2)}</small></i>`).join('');
   const pop = o.pop || { toE: 0, toP: 0 }, fight = o.phase === 'fight';
   const pcls = `fgt p${fight && pop.toE ? ' atk' : ''}${fight && pop.toP ? ' hit' : ''}${o.god ? ' god' : ''}`;
@@ -713,12 +714,9 @@ function battleView(o) {
   let side;
   if (o.over) side = `<div class="col">${PB(o.over === 'win' ? '收招' : '繼續', endBattle)}</div>`;
   else if (o.phase === 'roll') side = `<div class="col">${PB('擲骰子（1~20）', () => rollBattle(false))}${PB('跳過投擲（10）', () => rollBattle(true))}</div>`;
-  else if (o.phase === 'fight') {
-    const meds = Object.keys(S.inv).filter(id => S.inv[id] > 0 && ITEMS[id] && ITEMS[id].kind === 'med');
-    side = `<div class="col">${meds.map(id => { const it = ITEMS[id], full = (!it.hp || S.hp >= maxHp()) && (!it.mp || S.mp >= maxMp());
-      return `<button type="button" class="pxbtn"${full ? ' disabled' : h(() => battleUse(id))}>${it.n} ×${S.inv[id]}</button>`; }).join('')}</div>`;
-  }
-  else side = '';
+  const usable = o.phase === 'fight' && !o.over ? Object.keys(S.inv).filter(id => S.inv[id] > 0 && BATTLE_ITEM(id)) : [];
+  if (!o.over && o.phase === 'fight') side = usable.length ? `<div class="col">${PB(o.bagOpen ? '收起行囊' : `行囊（${usable.reduce((t, id) => t + S.inv[id], 0)}）`, () => { o.bagOpen = !o.bagOpen; render(); })}</div>` : '';
+  const bagrow = o.bagOpen && usable.length ? `<div class="bagrow">${usable.map(id => `<button type="button" class="pxbtn"${battleUsable(o, id) ? h(() => battleUse(id)) : ' disabled'} title="${esc(ITEMS[id].d || '')}">${ico(itemIc(ITEMS[id]), 'bi')}<span>${ITEMS[id].n} ×${S.inv[id]}</span></button>`).join('')}</div>` : '';
   const PXI = (name, color, n) => `<span class="battle-ic" style="color:${color}">${ico(name)}</span>`;
   const ROLE_COL = { atk: '#C0453D', nei: '#2E8F7D', qing: '#C9A24A', sup: '#A8508A' };
   const slot = (name, color, badge) => `<span class="slot2">${PXI(name, color, 16)}${badge ? `<small>${badge}</small>` : ''}</span>`;
@@ -748,6 +746,7 @@ function battleView(o) {
       </div>
       <div class="srow"><div class="sl">${mine}</div><div class="sr">${fx}${theirs}</div>
         ${o.over ? '' : `<button type="button" class="spd"${h(battleSpeed)}>▷▷ x${o.speed === 1 ? 1 : 2}</button>`}</div>
+      ${bagrow}
     </div>
     <div class="bdock">
       <div class="surr">${o.over || o.phase !== 'roll' && o.phase !== 'fight' ? '' : `<button type="button" class="pxbtn"${h(pSurrender)}>${ico('flag')}<span>投降</span></button>`}</div>
