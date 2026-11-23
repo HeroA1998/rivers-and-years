@@ -502,11 +502,13 @@ function eventReader(o) {
   // 當成故事內容，造成正文前多出兩行空白。
   // Speaker-led dialogue receives a discreet visual cue; typewriter markup stays
   // identical and no narrative text is rewritten or removed.
+  // 故事文字只放行本遊戲產生的少數標籤（骰點、換行），其餘一律跳脫，避免輸入內容被當成 HTML
+  const rich = t => esc(t).replace(/&lt;(\/?)(span|b|em|br)((?: class=&quot;[a-z\- ]+&quot;)?)&gt;/g, '<$1$2$3>');
   const transcript = lines.map((line, i) => {
     const text = String(line.text || '').trimStart();
     const dialogue = line.kind === 'prose' &&
       (/^「/.test(text) || /^(?:[^\s，。！？；：]{1,12})(?:道|問|說|答|喊|喝|笑道|低聲道|冷笑道)\s*[:：]?\s*「/.test(text));
-    return `<p class="reader-line reader-${line.kind}${dialogue ? ' reader-dialogue' : ''}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${esc(line.text)}</span><span class="reader-visible" aria-hidden="true">${esc(line.text)}</span></p>`;
+    return `<p class="reader-line reader-${line.kind}${dialogue ? ' reader-dialogue' : ''}${typing && i === lines.length - 1 ? ' is-typing' : ''}" data-line-index="${i}"><span class="reader-screenreader">${rich(line.text)}</span><span class="reader-visible" aria-hidden="true">${rich(line.text)}</span></p>`;
   }).join('');
   return `<article class="story-stage event-reader" aria-label="江湖事件">
     <div class="story-heading">
