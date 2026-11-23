@@ -185,8 +185,10 @@ async function verifyScenery(page, width) {
     }));
     return {
       eventIllustration:image?.complete && image.naturalWidth>0 &&
-        image.src.includes('/assets/art/mountain.jpg') &&
-        frame && frame.height>0 && frame.height<=83,
+        image.src.includes('/assets/art/mountain.jpg') && frame &&
+        (innerHeight<=350
+          ? getComputedStyle(illustration).display==='none'
+          : frame.height>0 && frame.height<=83),
       noFixedScenery:!stage.querySelector('.reader-scenery') &&
         (stageAfter.content==='none'||stageAfter.content==='normal') &&
         stageAfter.backgroundImage==='none' &&
