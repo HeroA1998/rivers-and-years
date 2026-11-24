@@ -670,9 +670,8 @@ const STAT_COL = { str: '#B8453F', con: '#4C7BA8', int: '#8A55A8', agi: '#C9A24A
 /* 主角男女使用獨立繪製的高清肖像，不再顯示姓名字牌。 */
 function playerAvatar(dim = false) {
   const female = S.gender === '女';
-  const image = '<img class="hero-portrait" src="assets/ui/v12/' +
-    (female ? 'hero_female.webp' : 'hero_male.webp') +
-    '" alt="" loading="eager" decoding="async">';
+  const heroFile = female ? 'hero_female.webp' : 'hero_male.webp';
+  const image = `<img class="hero-portrait" src="${(window.HERO_INLINE || {})[heroFile] || 'assets/ui/v12/' + heroFile}" alt="" loading="eager" decoding="async">`;
   const label = (female ? '女性' : '男性') + '主角肖像，查看人物資料';
   return dim
     ? '<span class="hport" aria-hidden="true">' + image + '</span>'
