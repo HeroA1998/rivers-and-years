@@ -1,4 +1,0 @@
-/* v18 頂部資訊：隱藏「無名小卒」稱號行，其餘內容往上對齊。 */
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hfame{display:none!important}
-/* 能力值方塊頂端與名字、頭像同一條上緣 */
-#app:is([data-page="world"],[data-page="me"],[data-page="bag"]) .hud-stats-mini{align-self:start!important;margin-top:0!important}

@@ -1,4 +1,0 @@
-/* v20 事件閱讀區：去掉正方框（金框、紙面底色與頁首裝飾），文字直接落在頁面底色上。 */
-#app[data-page="world"] main#main-content{background:none!important;border:0!important;border-image:none!important;box-shadow:none!important;padding:0 2px!important}
-#app[data-page="world"] main#main-content::before{display:none!important}
-#app[data-page="world"] .reader-folio{background:none!important}

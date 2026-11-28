@@ -1,5 +1,0 @@
-/* v19 事件正文字級縮小，減少上下拉動。 */
-#app[data-page="world"] .story-prose .reader-line,
-#app[data-page="world"] .story-prose p,
-#app[data-page="world"] .story-prose .reader-dialogue{font-size:14.5px!important;line-height:1.62!important}
-#app[data-page="world"] .story-prose{gap:7px!important}

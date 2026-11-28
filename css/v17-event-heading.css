@@ -1,2 +1,0 @@
-/* v17 事件頁：隱藏標題上方的「身世 · 臨安城 · 日期」一行，只留事件名稱。 */
-#app[data-page="world"] .event-reader .story-heading .story-chapter{display:none!important}
