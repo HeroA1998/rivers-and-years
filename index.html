@@ -1927,7 +1927,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v9.9.0';
+const VERSION = 'v10.0.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei', 'guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];
 const SQFACES = ['guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];   // 方形頭像（其餘為 3:4 立繪）
@@ -4607,7 +4607,7 @@ const HIST = [
 
 /* ---------- 封印：目前只開放射鵰篇 ----------
    神鵰篇、倚天篇的事件與年表資料都還在，只是暫時不開放。把 SEAL_YEAR 調大就能解封。 */
-const SEAL_YEAR = 184;   // v8：黃巾篇到中平元年為止
+const SEAL_YEAR = 192;   // v10：漢末篇，到初平三年（董卓死）為止
 const HIST_SEALED = HIST.filter(h => h.y > SEAL_YEAR);
 HIST.splice(0, HIST.length, ...HIST.filter(h => h.y <= SEAL_YEAR));
 
@@ -7185,7 +7185,7 @@ const REF = {
       全自動戰鬥。開打前先擲 d20 決定這一戰的戰力：<b>10 點＝100% 戰力</b>，點數越高越強、越低越弱（戰力＝點數 ÷ 10，擲 5 點只有 50%）；<b>擲出 20 無敵</b>，對手傷不了你。也可以「跳過投擲」，直接以 10 點計。之後雙方自動對打，每隔幾手會使出兵器的絕招，一直打到一方血量歸零。每場新戰鬥開始都是滿血，輸了扣一顆命，打不過可以投降。</p>
       <h4>道具與詞條</h4><p>麻繩、火把、乾糧、鐵鎬這類雜物是「鑰匙」：有它，繞過戰鬥和某些事件時就多一條路，成功率高或不必檢定（麻繩、鐵鎬用不壞，火把和乾糧用一次就沒了）。裝備還有四種詞條：威嚇讓攔路的敵人少遇到、嚇退更容易；隱匿讓潛行更容易；識謊讓你識破騙局；辟邪讓詭異的事嚇不倒你。</p>
       <h4>時間與大事</h4><p>歷史大事照原樣在固定的日子、地點發生；人在現場就能親眼目睹，錯過了只會聽到傳聞。日子近了，會有劇情帶你趕到現場。路上偶爾會回城一趟：可以找商人買賣東西（貨品每趟重新隨機、每件限買一次）、住客舍歇息，或直接離開。</p>
-      <h4>年代</h4><p>黃巾篇：從光和元年（178）開始，跟隨劉備起義，到中平元年（184）冬天黃巾平定為止。</p>
+      <h4>年代</h4><p>漢末篇：從光和元年（178）開始，經過黃巾起義，到初平三年（192）董卓之死為止。黃巾起事時，你要選擇站在誰那邊：劉備的義勇軍、皇甫嵩與曹操的官軍、孫堅的鄉勇，或是太平道；之後同一場亂世，四條路各有各的見聞。年表只記你親眼見過或聽說過的事。</p>
       <h4>心性</h4><p>高人在事件中示範本事時，心性相合的人可以一同學，其他人只能旁觀或冒險偷學：行正道的人學不了邪門功夫，反之亦然。這個江湖沒有門派，你只代表你自己。</p>
       <h4>傳承</h4><p>歸隱或壽終後，積蓄與兵刃會傳給下一代，後人可以另選職業與特質。存檔存在這支手機的瀏覽器裡。</p>
     </div>`,
@@ -7678,5 +7678,6 @@ render();
 <script src="han_legend.js"></script>
 <script src="han_sanguo.js"></script>
 <script src="han_camps.js"></script>
+<script src="han_chaos.js"></script>
 <script src="han_dread.js"></script>
 <script src="han_save.js"></script>
