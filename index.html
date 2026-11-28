@@ -1922,7 +1922,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 /* 江湖歲月錄 — 資料：地點、門派、武功、物品、人物 */
 'use strict';
 
-const VERSION = 'v9.6.0';
+const VERSION = 'v9.7.0';
 // 人物立繪：LinXueLian（linxuelian.itch.io）手繪素材，CC BY-SA 4.0，經合成與裁切
 const FACES = ['su', 'hua', 'li', 'gu', 'shen', 'qin', 'elder', 'boss', 'kid', 'pei', 'guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];
 const SQFACES = ['guojing', 'huangrong', 'yangkang', 'munianci', 'zhoubotong'];   // 方形頭像（其餘為 3:4 立繪）
@@ -2759,7 +2759,7 @@ function setMainGear(id) {
    內力是「氣團」：事件中的運功、動手會消耗，戰鬥中的絕招也用它；每過二十天回一顆。
    戰鬥內部仍用數值血條（S.hp、S.mp 只在戰鬥中有意義），每場開打時由命與氣團換算。 */
 const lifeMax = () => 3 + Math.floor(((S.lv || 1) - 1) / 5) + (S.bonusLife || 0) + Math.max(0, Math.floor((S.stats.con - 6) / 3));   // v9.3：根骨每高 3 點（6 以上）多一條命
-const qiMax = () => clamp(2 + Math.floor(S.stats.int / 3) + Math.floor(((S.lv || 1) - 1) / 6), 3, 9);   // v9.3：氣隨悟性（每 3 點 +1）與等級成長
+const qiMax = () => clamp(2 + Math.floor(S.stats.int / 3) + Math.floor(((S.lv || 1) - 1) / 6) + (typeof gearFx === 'function' ? gearFx('qiCap') : 0), 3, 9);   // v9.3：氣隨悟性（每 3 點 +1）與等級成長
 let PEND = [];                                   // 先記下、等事件結果顯示時再附上的提示
 const takePend = () => { const t = PEND.join(''); PEND = []; return t; };
 function hurt(n = 1) {
@@ -7670,5 +7670,6 @@ render();
 <script src="han_bypass.js"></script>
 <script src="han_gear.js"></script>
 <script src="han_equip.js"></script>
+<script src="han_legend.js"></script>
 <script src="han_dread.js"></script>
 <script src="han_save.js"></script>
